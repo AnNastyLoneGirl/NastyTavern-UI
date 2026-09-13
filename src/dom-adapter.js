@@ -284,8 +284,20 @@ export class DomAdapter {
         }
     }
 
+    getConnectionState() {
+        let nativeStatus = '';
+        try {
+            nativeStatus = String(window.SillyTavern?.getContext?.()?.onlineStatus || '').trim();
+        } catch (_) {}
+
+        const normalized = nativeStatus.toLowerCase();
+        const offline = !normalized || ['no_connection', 'offline', 'disconnected', 'connecting'].includes(normalized);
+        const label = this.first('onlineStatus')?.textContent?.trim() || nativeStatus || 'Connection';
+        return { label, offline, nativeStatus };
+    }
+
     getOnlineStatus() {
-        return this.first('onlineStatus')?.textContent?.trim() || 'Connection';
+        return this.getConnectionState().label;
     }
 
     getCharacterName() {

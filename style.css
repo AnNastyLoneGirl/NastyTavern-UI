@@ -755,12 +755,18 @@ body.mt-enabled #character_popup.mt-advanced-character-popup #post_history_instr
 body.mt-enabled #character_popup.mt-advanced-character-popup #personality_textarea,
 body.mt-enabled #character_popup.mt-advanced-character-popup #scenario_pole {
   min-height:112px!important;
-  height:auto!important;
   resize:vertical!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+body.mt-enabled #character_popup.mt-advanced-character-popup textarea.mt-char-advanced-field {
+  resize:vertical!important;
+  max-height:none!important;
+  overflow:auto!important;
 }
 body.mt-enabled #character_popup.mt-advanced-character-popup #creator_notes_textarea { min-height:120px!important;resize:vertical!important; }
 body.mt-enabled #character_popup.mt-advanced-character-popup #depth_prompt_prompt { min-height:102px!important;resize:vertical!important; }
-body.mt-enabled #character_popup.mt-advanced-character-popup #mes_example_textarea { min-height:270px!important;height:auto!important;resize:vertical!important; }
+body.mt-enabled #character_popup.mt-advanced-character-popup #mes_example_textarea { min-height:270px!important;resize:vertical!important;max-height:none!important;overflow:auto!important; }
 
 
 body.mt-enabled #character_popup.mt-advanced-character-popup .mt-char-depth-row {
@@ -8086,4 +8092,932 @@ body.nt-chat-main-minimized.nt-chat-extensions-minimized.nt-chat-toolbar-ready:n
     min-width:0!important;
     max-width:100%!important;
   }
+}
+
+
+/* v0.1.1 — compact Character create/edit identity area
+   Scope intentionally limited to the native character card editor between
+   Character Name and Creator's Notes. */
+body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar-and-name-block {
+  display:block!important;
+  width:100%!important;
+  margin:0!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #name_div {
+  width:100%!important;
+  margin:0 0 7px!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #character_name_pole {
+  width:100%!important;
+  min-height:36px!important;
+  height:36px!important;
+  margin:0!important;
+  padding:0 10px!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #name_div .extension_token_counter {
+  margin:2px 2px 0!important;
+  min-height:0!important;
+  line-height:1.15!important;
+  font-size:9px!important;
+}
+
+/* Remove the native full-height behaviour that creates the large empty area. */
+body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar-and-name-block > .expander {
+  flex:0 0 auto!important;
+  width:100%!important;
+  min-height:0!important;
+  height:auto!important;
+  gap:6px!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_div {
+  display:grid!important;
+  grid-template-columns:82px minmax(0,1fr)!important;
+  gap:10px!important;
+  width:100%!important;
+  min-height:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  align-items:start!important;
+  justify-content:start!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_div_div.add_avatar.avatar {
+  display:block!important;
+  align-self:start!important;
+  width:82px!important;
+  min-width:82px!important;
+  max-width:82px!important;
+  height:108px!important;
+  min-height:108px!important;
+  max-height:108px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border-radius:11px!important;
+  flex:none!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_load_preview {
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  object-fit:cover!important;
+  border-radius:11px!important;
+}
+
+body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_controls {
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+  align-items:flex-start!important;
+  align-self:start!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  gap:6px!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_controls .form_create_bottom_buttons_block {
+  display:flex!important;
+  flex-wrap:wrap!important;
+  justify-content:flex-start!important;
+  align-items:flex-start!important;
+  align-content:flex-start!important;
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  gap:4px!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_controls .form_create_bottom_buttons_block > .menu_button,
+body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_controls .form_create_bottom_buttons_block > label.menu_button {
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 32px!important;
+  width:32px!important;
+  min-width:32px!important;
+  max-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+  max-height:32px!important;
+  margin:0!important;
+  padding:0!important;
+  border-radius:8px!important;
+  font-size:13px!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_controls > label[for="char-management-dropdown"] {
+  display:block!important;
+  flex:none!important;
+  width:min(220px,100%)!important;
+  min-width:0!important;
+  max-width:220px!important;
+  height:32px!important;
+  min-height:32px!important;
+  margin:0!important;
+  padding:0!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #char-management-dropdown {
+  width:100%!important;
+  height:32px!important;
+  min-height:32px!important;
+  margin:0!important;
+  padding-top:0!important;
+  padding-bottom:0!important;
+  font-size:11px!important;
+}
+
+/* Tags sit immediately below the identity row instead of creating a second large block. */
+body.mt-enabled #right-nav-panel #rm_ch_create_block #tags_div {
+  width:100%!important;
+  margin:6px 0 0!important;
+  padding:0!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #tags_div .tag_controls {
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 32px!important;
+  align-items:center!important;
+  gap:5px!important;
+  width:100%!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #tagInput {
+  width:100%!important;
+  min-width:0!important;
+  height:32px!important;
+  min-height:32px!important;
+  margin:0!important;
+  padding:0 8px!important;
+  font-size:11px!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #tags_div .tags_view {
+  width:32px!important;
+  min-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+  margin:0!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #tagList {
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:4px!important;
+  width:100%!important;
+  margin:4px 0 0!important;
+  padding:0!important;
+  min-height:0!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #tagList .tag {
+  min-height:22px!important;
+  height:auto!important;
+  margin:0!important;
+  padding-top:2px!important;
+  padding-bottom:2px!important;
+  font-size:10px!important;
+}
+
+/* Bring Creator's Notes directly after the compact identity block. */
+body.mt-enabled #right-nav-panel #rm_ch_create_block #spoiler_free_desc {
+  margin-top:8px!important;
+}
+body.mt-enabled #right-nav-panel #rm_ch_create_block #spoiler_free_desc > .inline-drawer-header {
+  min-height:36px!important;
+  padding:7px 10px!important;
+}
+
+/* Favorite feedback: the star becomes gold when the native favorite state is active. */
+body.mt-enabled #right-nav-panel #favorite_button.mt-character-favorite-active {
+  color:#f8d300!important;
+  border-color:color-mix(in srgb,#f8d300 68%,var(--mt-border))!important;
+  background:color-mix(in srgb,#f8d300 15%,rgba(255,255,255,.025))!important;
+  text-shadow:0 0 8px rgba(248,211,0,.25)!important;
+}
+body.mt-enabled #right-nav-panel #favorite_button.mt-character-favorite-active:hover {
+  color:#ffe25a!important;
+  background:color-mix(in srgb,#f8d300 22%,rgba(255,255,255,.035))!important;
+}
+
+/* Phone: keep the same compact hierarchy but stack the picture over the controls. */
+@media (max-width:680px) {
+  body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_div {
+    grid-template-columns:72px minmax(0,1fr)!important;
+    gap:8px!important;
+  }
+  body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_div_div.add_avatar.avatar {
+    width:72px!important;
+    min-width:72px!important;
+    max-width:72px!important;
+    height:94px!important;
+    min-height:94px!important;
+    max-height:94px!important;
+  }
+  body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_controls .form_create_bottom_buttons_block > .menu_button,
+  body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_controls .form_create_bottom_buttons_block > label.menu_button {
+    flex-basis:30px!important;
+    width:30px!important;
+    min-width:30px!important;
+    max-width:30px!important;
+    height:30px!important;
+    min-height:30px!important;
+    max-height:30px!important;
+  }
+  body.mt-enabled #right-nav-panel #rm_ch_create_block #avatar_controls > label[for="char-management-dropdown"] {
+    width:100%!important;
+    max-width:none!important;
+    height:30px!important;
+    min-height:30px!important;
+  }
+  body.mt-enabled #right-nav-panel #rm_ch_create_block #char-management-dropdown {
+    height:30px!important;
+    min-height:30px!important;
+  }
+}
+
+
+/* Favorite state fix: SillyTavern natively toggles fav_on / fav_off. */
+body.mt-enabled #right-nav-panel #favorite_button.fav_on,
+body.mt-enabled #right-nav-panel #favorite_button.fav_on.mt-character-favorite-active {
+  color:#f8d300!important;
+  border-color:color-mix(in srgb,#f8d300 68%,var(--mt-border))!important;
+  background:color-mix(in srgb,#f8d300 15%,rgba(255,255,255,.025))!important;
+  text-shadow:0 0 8px rgba(248,211,0,.3)!important;
+}
+body.mt-enabled #right-nav-panel #favorite_button.fav_on:hover {
+  color:#ffe25a!important;
+  background:color-mix(in srgb,#f8d300 22%,rgba(255,255,255,.035))!important;
+}
+body.mt-enabled #right-nav-panel #favorite_button.fav_off:not(.fav_on) {
+  color:var(--mt-text-2)!important;
+  text-shadow:none!important;
+}
+
+
+/* NastyTavern Settings — integrated module visibility */
+.nt-pref-modules{display:flex;flex-direction:column;gap:10px}.nt-pref-module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.nt-pref-module-card{min-width:0;display:grid!important;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px!important;border:1px solid var(--mt-border)!important;border-radius:12px!important;background:rgba(255,255,255,.02)!important;cursor:pointer!important}.nt-pref-module-card:hover{border-color:var(--mt-border-strong)!important;background:rgba(255,255,255,.04)!important}.nt-pref-module-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:color-mix(in srgb,var(--mt-accent) 10%,rgba(255,255,255,.03));color:var(--mt-text-2)}.nt-pref-module-icon svg{width:17px!important;height:17px!important;fill:currentColor!important}.nt-pref-module-copy{min-width:0;display:flex;flex-direction:column;gap:3px}.nt-pref-module-copy b{font-size:10px}.nt-pref-module-copy small{font-size:8px;line-height:1.35;color:var(--mt-text-3)}.nt-pref-module-card input[type="checkbox"]{width:18px!important;min-width:18px!important;height:18px!important;margin:0!important;accent-color:var(--mt-accent)!important}
+body.nt-hide-module-timeline #nt-timeline-button,
+body.nt-hide-module-context #nt-context-inspector-button,
+body.nt-hide-module-worldinfo #nt-world-info-info-button,
+body.nt-hide-module-variables #nt-variable-manager-quick-button,
+body.nt-hide-module-chattools #nt-chat-tools-button,
+body.nt-hide-module-calendar #nt-calendar-button{display:none!important}
+@media(max-width:680px){.nt-pref-module-grid{grid-template-columns:1fr}.nt-pref-module-card{grid-template-columns:34px minmax(0,1fr) auto;padding:10px!important}.nt-pref-module-icon{width:32px;height:32px}}
+
+
+/* Backgrounds workspace — NastyTavern treatment (v0.1.1) */
+body.mt-enabled #Backgrounds.mt-native-panel {
+  --nt-bg-gap:10px;
+  flex-direction:column!important;
+  gap:var(--nt-bg-gap)!important;
+  overflow:hidden!important;
+  min-width:0!important;
+}
+body.mt-enabled #Backgrounds.mt-native-panel:not(.closedDrawer) {
+  display:flex!important;
+}
+body.mt-enabled #Backgrounds.mt-native-panel.closedDrawer {
+  display:none!important;
+}
+
+/* The workspace chrome already carries the page title. */
+body.mt-enabled #Backgrounds #bg-header-fixed .bg-header-row-1 > h3,
+body.mt-enabled #Backgrounds #bg-header-fixed .bg-header-row-1 > .expander {
+  display:none!important;
+}
+
+body.mt-enabled #Backgrounds #bg-header-fixed {
+  flex:0 0 auto!important;
+  width:100%!important;
+  padding:10px!important;
+  margin:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:8px!important;
+  border:1px solid var(--mt-border)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.022)!important;
+  box-shadow:none!important;
+}
+body.mt-enabled #Backgrounds .bg-header-row-1,
+body.mt-enabled #Backgrounds .bg-header-row-2 {
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:7px!important;
+}
+body.mt-enabled #Backgrounds .bg-header-row-1 {
+  justify-content:flex-end!important;
+  flex-wrap:wrap!important;
+}
+body.mt-enabled #Backgrounds #background_fitting {
+  width:120px!important;
+  min-width:110px!important;
+  max-width:140px!important;
+  height:36px!important;
+  min-height:36px!important;
+  margin:0!important;
+}
+body.mt-enabled #Backgrounds #auto_background,
+body.mt-enabled #Backgrounds #bg_add_folder_button,
+body.mt-enabled #Backgrounds #add_background_button_top {
+  min-height:36px!important;
+  height:36px!important;
+  padding:0 11px!important;
+  margin:0!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  border-radius:10px!important;
+  white-space:nowrap!important;
+}
+body.mt-enabled #Backgrounds #bg-filter {
+  flex:1 1 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  height:38px!important;
+  min-height:38px!important;
+  margin:0!important;
+  padding:0 11px!important;
+}
+body.mt-enabled #Backgrounds #bg-sort {
+  flex:0 0 92px!important;
+  width:92px!important;
+  max-width:92px!important;
+  height:38px!important;
+  min-height:38px!important;
+  margin:0!important;
+}
+
+body.mt-enabled #Backgrounds #bg_tabs {
+  flex:1 1 auto!important;
+  min-height:0!important;
+  width:100%!important;
+  gap:0!important;
+  overflow:hidden!important;
+  border:1px solid var(--mt-border)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.014)!important;
+}
+body.mt-enabled #Backgrounds #bg_tabs .bg_tabs_list {
+  flex:0 0 auto!important;
+  width:100%!important;
+  min-height:48px!important;
+  margin:0!important;
+  padding:7px 8px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  border:0!important;
+  border-bottom:1px solid var(--mt-border)!important;
+  background:rgba(255,255,255,.018)!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scrollbar-width:none!important;
+}
+body.mt-enabled #Backgrounds #bg_tabs .bg_tabs_list::-webkit-scrollbar {
+  display:none!important;
+}
+body.mt-enabled #Backgrounds #bg_tabs .bg_tabs_list .bg_tab_button {
+  flex:0 0 auto!important;
+  min-width:104px!important;
+  min-height:32px!important;
+  border:1px solid transparent!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  color:var(--mt-text-3)!important;
+  opacity:1!important;
+  box-shadow:none!important;
+}
+body.mt-enabled #Backgrounds #bg_tabs .bg_tabs_list .bg_tab_button:hover {
+  color:var(--mt-text)!important;
+  background:rgba(255,255,255,.045)!important;
+}
+body.mt-enabled #Backgrounds #bg_tabs .bg_tabs_list .bg_tab_button.ui-tabs-active {
+  color:#fff!important;
+  border-color:color-mix(in srgb,var(--mt-accent) 32%,var(--mt-border))!important;
+  background:color-mix(in srgb,var(--mt-accent) 14%,rgba(255,255,255,.025))!important;
+}
+body.mt-enabled #Backgrounds #bg_tabs .bg_tabs_list .bg_tab_button a {
+  padding:6px 12px!important;
+  color:inherit!important;
+  text-decoration:none!important;
+}
+body.mt-enabled #Backgrounds #bg_tabs .heading-controls {
+  position:static!important;
+  transform:none!important;
+  margin-left:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  flex:0 0 auto!important;
+}
+body.mt-enabled #Backgrounds #bg_tabs .heading-controls .menu_button {
+  width:32px!important;
+  min-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:9px!important;
+}
+body.mt-enabled #Backgrounds #bg_tabs .heading-controls .menu_button span:not(#bg_group_select_count) {
+  display:none!important;
+}
+
+body.mt-enabled #Backgrounds #bg_tabs .bg_tab_panel {
+  flex:1 1 auto!important;
+  min-height:0!important;
+  width:100%!important;
+  height:auto!important;
+  padding:10px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  background:transparent!important;
+}
+body.mt-enabled #Backgrounds #bg_menu_content,
+body.mt-enabled #Backgrounds #bg_custom_content,
+body.mt-enabled #Backgrounds #bg_folder_grid {
+  width:100%!important;
+  min-width:0!important;
+  gap:8px!important;
+  justify-content:stretch!important;
+}
+body.mt-enabled #Backgrounds .bg_example,
+body.mt-enabled #Backgrounds .bg_folder_tile {
+  border:1px solid var(--mt-border)!important;
+  outline:none!important;
+  border-radius:12px!important;
+  background:rgba(255,255,255,.018)!important;
+  box-shadow:0 4px 14px rgba(0,0,0,.16)!important;
+  transition:border-color .14s ease,transform .14s ease,background .14s ease!important;
+}
+body.mt-enabled #Backgrounds .bg_example:hover,
+body.mt-enabled #Backgrounds .bg_folder_tile:hover {
+  border-color:var(--mt-border-strong)!important;
+  background:rgba(255,255,255,.035)!important;
+  transform:translateY(-1px)!important;
+  filter:none!important;
+}
+body.mt-enabled #Backgrounds .bg_example.selected-background {
+  border-color:#fff!important;
+  box-shadow:0 0 0 2px rgba(255,255,255,.55)!important;
+}
+body.mt-enabled #Backgrounds .bg_example.locked-background {
+  border-color:#e5bd4c!important;
+}
+body.mt-enabled #Backgrounds .bg_example .thumbnail-clipper,
+body.mt-enabled #Backgrounds .bg_folder_tile_cover {
+  border-radius:11px!important;
+}
+body.mt-enabled #Backgrounds .bg_example .jg-menu,
+body.mt-enabled #Backgrounds .bg_folder_tile .bg_folder_tile_menu {
+  top:5px!important;
+  right:5px!important;
+  gap:2px!important;
+  padding:3px!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  border-radius:9px!important;
+  background:rgba(8,10,14,.82)!important;
+  box-shadow:0 6px 18px rgba(0,0,0,.28)!important;
+}
+body.mt-enabled #Backgrounds .bg_example .jg-button,
+body.mt-enabled #Backgrounds .bg_folder_tile .jg-button {
+  width:28px!important;
+  height:28px!important;
+  padding:6px!important;
+  border-radius:7px!important;
+}
+body.mt-enabled #Backgrounds .bg_example .BGSampleTitle,
+body.mt-enabled #Backgrounds .bg_folder_tile_overlay {
+  border-radius:0 0 11px 11px!important;
+}
+body.mt-enabled #Backgrounds #bg_folder_breadcrumb {
+  min-height:40px!important;
+  margin:0 0 8px!important;
+  padding:5px 7px!important;
+  gap:8px!important;
+  border:1px solid var(--mt-border)!important;
+  border-radius:10px!important;
+  background:rgba(255,255,255,.022)!important;
+}
+body.mt-enabled #Backgrounds #bg_chat_hint {
+  margin:12px 0 4px!important;
+  padding:14px!important;
+  border:1px dashed var(--mt-border)!important;
+  border-radius:12px!important;
+  color:var(--mt-text-3)!important;
+  background:rgba(255,255,255,.014)!important;
+}
+body.mt-enabled #Backgrounds #bg-scroll-top {
+  right:18px!important;
+  bottom:18px!important;
+  width:38px!important;
+  min-width:38px!important;
+  height:38px!important;
+  min-height:38px!important;
+  border:1px solid var(--mt-border-strong)!important;
+  border-radius:11px!important;
+  background:rgba(16,19,26,.96)!important;
+  color:var(--mt-text)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.32)!important;
+}
+
+@media (max-width:900px) {
+  body.mt-enabled #Backgrounds .bg-header-row-1 {
+    display:grid!important;
+    grid-template-columns:minmax(100px,1fr) repeat(3,auto)!important;
+  }
+  body.mt-enabled #Backgrounds #background_fitting {
+    width:100%!important;
+    max-width:none!important;
+  }
+}
+
+@media (max-width:680px) {
+  body.mt-enabled #Backgrounds.mt-native-panel {
+    --bg-thumb-columns:2;
+    gap:8px!important;
+    padding:10px!important;
+  }
+  body.mt-enabled #Backgrounds #bg-header-fixed {
+    padding:8px!important;
+    gap:7px!important;
+    border-radius:12px!important;
+  }
+  body.mt-enabled #Backgrounds .bg-header-row-1 {
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:6px!important;
+  }
+  body.mt-enabled #Backgrounds #background_fitting,
+  body.mt-enabled #Backgrounds #auto_background,
+  body.mt-enabled #Backgrounds #bg_add_folder_button,
+  body.mt-enabled #Backgrounds #add_background_button_top {
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:36px!important;
+    min-height:36px!important;
+    padding:0 8px!important;
+    font-size:10px!important;
+  }
+  body.mt-enabled #Backgrounds .bg-header-row-2 {
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 78px!important;
+    gap:6px!important;
+  }
+  body.mt-enabled #Backgrounds #bg-sort {
+    width:78px!important;
+    max-width:78px!important;
+    flex-basis:78px!important;
+  }
+  body.mt-enabled #Backgrounds #bg_tabs {
+    border-radius:12px!important;
+  }
+  body.mt-enabled #Backgrounds #bg_tabs .bg_tabs_list {
+    min-height:46px!important;
+    padding:6px!important;
+  }
+  body.mt-enabled #Backgrounds #bg_tabs .bg_tabs_list .bg_tab_button {
+    min-width:88px!important;
+  }
+  body.mt-enabled #Backgrounds #bg_tabs .bg_tabs_list .bg_tab_button a {
+    padding:6px 9px!important;
+    font-size:10px!important;
+  }
+  body.mt-enabled #Backgrounds #bg_tabs .heading-controls .menu_button {
+    width:30px!important;
+    min-width:30px!important;
+    height:30px!important;
+    min-height:30px!important;
+  }
+  body.mt-enabled #Backgrounds #bg_tabs .bg_tab_panel {
+    padding:7px!important;
+  }
+  body.mt-enabled #Backgrounds #bg_menu_content,
+  body.mt-enabled #Backgrounds #bg_custom_content,
+  body.mt-enabled #Backgrounds #bg_folder_grid {
+    gap:6px!important;
+  }
+}
+
+@media (orientation:landscape) and (max-height:560px) and (max-width:1100px) {
+  body.mt-enabled #Backgrounds.mt-native-panel {
+    --bg-thumb-columns:3;
+    gap:6px!important;
+    padding:8px!important;
+  }
+  body.mt-enabled #Backgrounds #bg-header-fixed {
+    padding:6px 8px!important;
+    gap:5px!important;
+  }
+  body.mt-enabled #Backgrounds .bg-header-row-1 {
+    display:flex!important;
+    flex-wrap:nowrap!important;
+  }
+  body.mt-enabled #Backgrounds #background_fitting {
+    width:96px!important;
+    min-width:96px!important;
+  }
+  body.mt-enabled #Backgrounds #auto_background,
+  body.mt-enabled #Backgrounds #bg_add_folder_button,
+  body.mt-enabled #Backgrounds #add_background_button_top {
+    height:32px!important;
+    min-height:32px!important;
+    padding:0 8px!important;
+    font-size:9px!important;
+  }
+  body.mt-enabled #Backgrounds #bg-filter,
+  body.mt-enabled #Backgrounds #bg-sort {
+    height:34px!important;
+    min-height:34px!important;
+  }
+  body.mt-enabled #Backgrounds #bg_tabs .bg_tabs_list {
+    min-height:40px!important;
+    padding:4px 6px!important;
+  }
+  body.mt-enabled #Backgrounds #bg_tabs .bg_tab_panel {
+    padding:6px!important;
+  }
+}
+
+
+/* v0.1.1 — Story Timeline replaces the legacy Chats trigger in the Nasty Chat Bar. */
+body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-main {
+  grid-template-columns:minmax(72px,.55fr) minmax(280px,460px) minmax(290px,1fr)!important;
+}
+body.mt-enabled #nt-chat-toolbar .nt-chat-left-group {
+  min-width:0!important;
+  width:auto!important;
+  flex:0 1 auto!important;
+}
+body.mt-enabled #nt-chat-toolbar .nt-chat-left-group .nt-chat-message-count {
+  margin:0!important;
+  white-space:nowrap!important;
+}
+
+@media (max-width:1100px) and (min-width:861px) {
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-main {
+    grid-template-columns:minmax(70px,.45fr) minmax(240px,1.25fr) minmax(260px,1fr)!important;
+  }
+}
+
+@media (max-width:860px) {
+  body.mt-enabled #nt-chat-toolbar .nt-chat-left-group {
+    display:none!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-main {
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-search-cluster {
+    grid-column:1!important;
+    grid-row:1!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-action-group {
+    grid-column:1!important;
+    grid-row:2!important;
+  }
+}
+
+@media (max-width:680px) {
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-main {
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:34px 34px!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-search-cluster,
+  body.mt-enabled #nt-chat-toolbar .nt-chat-action-group {
+    width:100%!important;
+    min-width:0!important;
+  }
+}
+
+@media (orientation:landscape) and (max-height:520px) and (max-width:1024px) {
+  body.mt-enabled #nt-chat-toolbar .nt-chat-left-group {
+    display:none!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-main {
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-search-cluster {
+    grid-column:1!important;
+  }
+}
+
+
+/* v0.1.1 – Nasty chat bar layout refinement */
+body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-main {
+  grid-template-columns:minmax(110px,1fr) minmax(320px,560px) minmax(110px,1fr)!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding-right:0!important;
+}
+body.mt-enabled #nt-chat-toolbar .nt-chat-left-group {
+  justify-self:start!important;
+  min-width:0!important;
+  width:100%!important;
+}
+body.mt-enabled #nt-chat-toolbar .nt-chat-message-count {
+  white-space:nowrap!important;
+}
+body.mt-enabled #nt-chat-toolbar .nt-chat-search-cluster {
+  grid-column:2!important;
+  justify-self:center!important;
+  width:100%!important;
+  max-width:560px!important;
+}
+body.mt-enabled #nt-chat-toolbar .nt-chat-action-group {
+  grid-column:3!important;
+  justify-self:end!important;
+  width:auto!important;
+  max-width:none!important;
+  margin-left:auto!important;
+}
+body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-secondary {
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:8px!important;
+  padding-right:0!important;
+}
+body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-extras {
+  min-width:0!important;
+}
+body.mt-enabled #nt-chat-toolbar .nt-chat-global-collapse-toggle {
+  position:static!important;
+  inset:auto!important;
+  transform:none!important;
+  margin-left:auto!important;
+  justify-self:end!important;
+  align-self:center!important;
+  width:28px!important;
+  min-width:28px!important;
+  height:28px!important;
+  min-height:28px!important;
+}
+body.mt-enabled:not(.nt-chat-main-minimized):not(.nt-chat-extensions-minimized) #nt-chat-toolbar {
+  padding-right:12px!important;
+}
+
+/* fully minimized: keep one centered restore pill */
+body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar {
+  height:34px!important;
+  min-height:34px!important;
+  padding:0 10px!important;
+  border-radius:12px!important;
+}
+body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar .nt-chat-toolbar-main {
+  display:none!important;
+}
+body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar .nt-chat-toolbar-secondary {
+  grid-template-columns:1fr!important;
+  justify-items:center!important;
+  height:100%!important;
+  min-height:100%!important;
+  border-top-color:transparent!important;
+  padding:0!important;
+}
+body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar .nt-chat-toolbar-extras {
+  display:none!important;
+}
+body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar .nt-chat-global-collapse-toggle {
+  justify-self:center!important;
+  margin:0!important;
+  transform:rotate(180deg)!important;
+}
+
+@media (max-width:1100px) and (min-width:861px) {
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-main {
+    grid-template-columns:minmax(90px,.8fr) minmax(260px,480px) minmax(180px,1fr)!important;
+  }
+}
+
+@media (max-width:860px) {
+  body.mt-enabled #nt-chat-toolbar .nt-chat-left-group {
+    display:none!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-main {
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-areas:'search search' 'actions actions'!important;
+    gap:6px!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-search-cluster {
+    grid-column:auto!important;
+    grid-area:search!important;
+    justify-self:stretch!important;
+    max-width:none!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-action-group {
+    grid-column:auto!important;
+    grid-area:actions!important;
+    justify-self:end!important;
+    width:100%!important;
+  }
+}
+
+@media (max-width:680px) {
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-main {
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-areas:'search' 'actions'!important;
+    grid-template-rows:34px 34px!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-search-cluster,
+  body.mt-enabled #nt-chat-toolbar .nt-chat-action-group,
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-extras {
+    width:100%!important;
+    min-width:0!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-secondary {
+    grid-template-columns:minmax(0,1fr) auto!important;
+    gap:4px!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-global-collapse-toggle {
+    width:26px!important;
+    min-width:26px!important;
+    height:24px!important;
+    min-height:24px!important;
+    border-radius:8px!important;
+  }
+  body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar {
+    height:28px!important;
+    min-height:28px!important;
+    padding:0 8px!important;
+  }
+  body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar .nt-chat-global-collapse-toggle {
+    width:36px!important;
+    min-width:36px!important;
+    height:22px!important;
+    min-height:22px!important;
+    border-radius:999px!important;
+  }
+}
+
+@media (orientation:landscape) and (max-height:520px) and (max-width:1024px) {
+  body.mt-enabled #nt-chat-toolbar .nt-chat-left-group {
+    display:none!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-main {
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-areas:'search' 'actions'!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-search-cluster,
+  body.mt-enabled #nt-chat-toolbar .nt-chat-action-group {
+    grid-column:auto!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-toolbar-secondary {
+    grid-template-columns:minmax(0,1fr) auto!important;
+    gap:4px!important;
+  }
+  body.mt-enabled #nt-chat-toolbar .nt-chat-global-collapse-toggle {
+    width:24px!important;
+    min-width:24px!important;
+    height:20px!important;
+    min-height:20px!important;
+    border-radius:7px!important;
+  }
+  body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar {
+    height:24px!important;
+    min-height:24px!important;
+    padding:0 6px!important;
+  }
+  body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar .nt-chat-global-collapse-toggle {
+    width:34px!important;
+    min-width:34px!important;
+    height:18px!important;
+    min-height:18px!important;
+    border-radius:999px!important;
+  }
+}
+
+/* v0.1.1 – restore button visibility fix after moving collapse control into secondary row */
+body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar .nt-chat-toolbar-secondary {
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  place-items:center!important;
+  height:100%!important;
+  min-height:100%!important;
+  padding:0!important;
+  border-top-color:transparent!important;
+  overflow:visible!important;
+}
+body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar .nt-chat-toolbar-extras {
+  display:none!important;
+}
+body.nt-chat-main-minimized.nt-chat-extensions-minimized #nt-chat-toolbar .nt-chat-global-collapse-toggle {
+  display:grid!important;
+  position:static!important;
+  inset:auto!important;
+  justify-self:center!important;
+  align-self:center!important;
+  margin:0!important;
+  transform:rotate(180deg)!important;
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
 }

@@ -6,7 +6,8 @@ const NAV = [
     ['characters', 'Characters', icons.characters],
     ['personas', 'Personas', icons.persona],
     ['lorebooks', 'Lorebooks', icons.lore],
-    ['formatting', 'Formatting', icons.prompt],
+    ['backgrounds', 'Backgrounds', icons.image],
+    ['formatting', 'Formatting', icons.formatting],
     ['prompts', 'Prompts', icons.prompt],
     ['models', 'Models', icons.model],
     ['extensions', 'Extensions', icons.extensions],
@@ -14,12 +15,13 @@ const NAV = [
 ];
 
 export class AppShell {
-    constructor(onNavigate, onCommand, onToggleCompact, onHealth, onAbout, onUiAction) {
+    constructor(onNavigate, onCommand, onToggleCompact, onHealth, onAbout, onPreferences, onUiAction) {
         this.onNavigate = onNavigate;
         this.onCommand = onCommand;
         this.onToggleCompact = onToggleCompact;
         this.onHealth = onHealth;
         this.onAbout = onAbout;
+        this.onPreferences = onPreferences;
         this.onUiAction = onUiAction;
         this.active = 'chat';
         this.profileValues = [];
@@ -37,6 +39,7 @@ export class AppShell {
               <button data-mt-command title="Command palette"><span class="mt-nav-icon">${icons.search}</span><span class="mt-nav-label">Search</span><kbd data-mt-command-shortcut>Ctrl K</kbd></button>
               <button data-mt-health title="Health & Performance"><span class="mt-nav-icon">${icons.health}</span><span class="mt-nav-label">Health</span></button>
               <button data-mt-about title="About NastyTavern"><span class="mt-nav-icon">${icons.info}</span><span class="mt-nav-label">About</span></button>
+              <button data-mt-preferences title="NastyTavern Settings"><span class="mt-nav-icon">${icons.settings}</span><span class="mt-nav-label">NT Settings</span></button>
               <button data-mt-collapse title="Compact navigation"><span class="mt-nav-icon">${icons.collapse}</span><span class="mt-nav-label">Collapse</span></button>
             </div>
           </aside>
@@ -71,6 +74,7 @@ export class AppShell {
             if (event.target.closest('[data-mt-command]')) this.onCommand();
             if (event.target.closest('[data-mt-health]')) this.onHealth?.();
             if (event.target.closest('[data-mt-about]')) this.onAbout?.();
+            if (event.target.closest('[data-mt-preferences]')) this.onPreferences?.();
             if (event.target.closest('[data-mt-collapse]')) this.onToggleCompact();
             const uiElement = event.target.closest('[data-mt-ui]');
             const ui = uiElement?.dataset.mtUi;
@@ -102,17 +106,18 @@ export class AppShell {
         root.querySelectorAll('[data-mt-nav]').forEach(el => el.classList.toggle('is-active', el.dataset.mtNav === id));
         const label = NAV.find(n => n[0] === id)?.[1] || id;
         root.querySelector('[data-mt-title]').textContent = label;
-        root.querySelector('[data-mt-subtitle]').textContent = subtitle || ({chat:'Conversation workspace',characters:'Character library',personas:'Identity and prompt persona',lorebooks:'World Info and dynamic context',formatting:'Context, Instruct & System Prompt',prompts:'Generation and prompt construction',models:'API and model connections',extensions:'SillyTavern extensions',settings:'Appearance and application settings'}[id] || 'Workspace');
+        root.querySelector('[data-mt-subtitle]').textContent = subtitle || ({chat:'Conversation workspace',characters:'Character library',personas:'Identity and prompt persona',lorebooks:'World Info and dynamic context',backgrounds:'Chat backgrounds and image library',formatting:'Context, Instruct & System Prompt',prompts:'Generation and prompt construction',models:'API and model connections',extensions:'SillyTavern extensions',settings:'Appearance and application settings'}[id] || 'Workspace');
     }
 
-    updateStatus({connection, character, persona}) {
+    updateStatus({connection, offline: nativeOffline, character, persona}) {
         const root = this.root || document.querySelector('#mt-root');
         if (!root) return;
         const connectionNode = root.querySelector('.mt-connection');
         const statusNode = root.querySelector('[data-mt-connection]');
         const profileNode = root.querySelector('[data-mt-header-profile]');
         const status = connection || 'Connection';
-        const offline = /(^connection$)|no\b.*connection|not connected|disconnected|offline|connecting|pas\s+de\s+connexion|non\s+connect|déconnect|hors\s+ligne|connexion\s+en\s+cours/i.test(status);
+        const fallbackOffline = /(^connection$)|no\b.*connection|not connected|disconnected|offline|connecting|pas\s+de\s+connexion|non\s+connect|déconnect|hors\s+ligne|connexion\s+en\s+cours/i.test(status);
+        const offline = typeof nativeOffline === 'boolean' ? nativeOffline : fallbackOffline;
         if (statusNode) {
             statusNode.textContent = status;
             statusNode.hidden = !offline;

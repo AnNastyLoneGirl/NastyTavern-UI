@@ -20,6 +20,14 @@ export const defaults = Object.freeze({
     chatWidth: 940,
     messageWidth: 860,
     historyLimit: 50,
+    modules: {
+        timeline: true,
+        contextInspector: true,
+        worldInfoInspector: true,
+        variables: true,
+        chatTools: true,
+        calendar: true,
+    },
     shortcutDefaultsVersion: 2,
     shortcuts: {
         commandPalette: 'Ctrl+Alt+K',
@@ -59,6 +67,10 @@ export function getSettings() {
     const settings = context.extensionSettings[MODULE];
     for (const [key, value] of Object.entries(defaults)) {
         if (!Object.hasOwn(settings, key)) settings[key] = structuredClone(value);
+    }
+    if (!settings.modules || typeof settings.modules !== 'object') settings.modules = structuredClone(defaults.modules);
+    for (const [key, value] of Object.entries(defaults.modules)) {
+        if (!Object.hasOwn(settings.modules, key)) settings.modules[key] = value;
     }
     if (!settings.shortcuts || typeof settings.shortcuts !== 'object') settings.shortcuts = structuredClone(defaults.shortcuts);
     for (const [key, value] of Object.entries(defaults.shortcuts)) {
@@ -108,6 +120,13 @@ export function applySettings(settings) {
     document.body?.classList.add('mt-context-hidden');
     document.body?.classList.toggle('mt-hide-native-topbar', !!settings.hideNativeTopbar);
     document.body?.classList.toggle('mt-dock-panels', !!settings.dockNativePanels);
+    const modules = settings.modules || defaults.modules;
+    document.body?.classList.toggle('nt-hide-module-timeline', modules.timeline === false);
+    document.body?.classList.toggle('nt-hide-module-context', modules.contextInspector === false);
+    document.body?.classList.toggle('nt-hide-module-worldinfo', modules.worldInfoInspector === false);
+    document.body?.classList.toggle('nt-hide-module-variables', modules.variables === false);
+    document.body?.classList.toggle('nt-hide-module-chattools', modules.chatTools === false);
+    document.body?.classList.toggle('nt-hide-module-calendar', modules.calendar === false);
     document.body?.classList.toggle('mt-motion', !!settings.motion);
 }
 

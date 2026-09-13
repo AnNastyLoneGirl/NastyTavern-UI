@@ -93,7 +93,6 @@ export class ChatToolbar {
         root.innerHTML = `
           <div class="nt-chat-toolbar-main">
             <div class="nt-chat-left-group">
-              <button type="button" class="nt-chat-history-trigger" data-nt-chat-history-toggle title="Open chat list" aria-label="Open chat list">${icons.history}<span>Chats</span></button>
               <span class="nt-chat-message-count" data-nt-chat-message-count>0 messages</span>
             </div>
             <div class="nt-chat-search-cluster">
@@ -113,8 +112,8 @@ export class ChatToolbar {
           </div>
           <div class="nt-chat-toolbar-secondary">
             <div class="nt-chat-toolbar-extras" data-nt-chat-extras></div>
-          </div>
-          <button type="button" class="nt-chat-global-collapse-toggle" data-nt-toolbar-collapse="all" title="Minimize chat bar" aria-label="Minimize chat bar">${icons.arrowUp}</button>`;
+            <button type="button" class="nt-chat-global-collapse-toggle" data-nt-toolbar-collapse="all" title="Minimize chat bar" aria-label="Minimize chat bar">${icons.arrowUp}</button>
+          </div>`;
         const history = document.createElement('aside');
         history.id = 'nt-chat-history';
         history.hidden = true;

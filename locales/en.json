@@ -502,5 +502,19 @@
   "Minimize chat controls": "Minimize chat controls",
   "Minimize extension tools": "Minimize extension tools",
   "Hide interface chrome and keep only the essentials": "Hide interface chrome and keep only the essentials",
-  "Hide interface chrome and keep only the chat and composer": "Hide interface chrome and keep only the chat and composer"
+  "Hide interface chrome and keep only the chat and composer": "Hide interface chrome and keep only the chat and composer",
+  "Backup, modules and keyboard shortcuts": "Backup, modules and keyboard shortcuts",
+  "Modules": "Modules",
+  "NastyTavern Modules": "NastyTavern Modules",
+  "Choose which integrated tools are shown in the Nasty Chat Bar.": "Choose which integrated tools are shown in the Nasty Chat Bar.",
+  "Timeline and branching conversation viewer.": "Timeline and branching conversation viewer.",
+  "Context / Token Inspector": "Context / Token Inspector",
+  "Prompt composition and context usage inspector.": "Prompt composition and context usage inspector.",
+  "Activated Lorebook entries, live scan and history.": "Activated Lorebook entries, live scan and history.",
+  "Variable Manager": "Variable Manager",
+  "Local and global variable manager.": "Local and global variable manager.",
+  "Bookmarks & Notes": "Bookmarks & Notes",
+  "Per-chat bookmarks and private session notes.": "Per-chat bookmarks and private session notes.",
+  "Story calendar, events and schedule tools.": "Story calendar, events and schedule tools.",
+  "Hidden modules stay installed and can still be opened with their keyboard shortcut or the Command Palette.": "Hidden modules stay installed and can still be opened with their keyboard shortcut or the Command Palette."
 }

@@ -22,12 +22,12 @@ export class NastyTavern {
         this.dom = new DomAdapter();
         this.settings = getSettings();
         this.settings.contextRail = false;
-        this.shell = new AppShell(id => this.navigate(id), () => this.palette.toggle(), () => this.toggleCompactNav(), () => this.healthPanel.open(), () => this.aboutPanel.open(), action => this.handleUiAction(action));
+        this.shell = new AppShell(id => this.navigate(id), () => this.palette.toggle(), () => this.toggleCompactNav(), () => this.healthPanel.open(), () => this.aboutPanel.open(), () => this.preferences.open(), action => this.handleUiAction(action));
         this.palette = new CommandPalette(() => this.getActions());
         this.observer = null;
         this.interval = null;
         this.boundKeydown = e => this.onKeyDown(e);
-        this.boundDocumentClick = () => this.scheduleNativePanelSync();
+        this.boundDocumentClick = event => { this.scheduleNativePanelSync(); if (event.target?.closest?.('#favorite_button')) setTimeout(() => this.syncCharacterFavoriteState(), 80); };
         this.viewSyncTimer = null;
         this.active = false;
         this.retagTimer = null;
@@ -486,13 +486,26 @@ export class NastyTavern {
     }
 
     updateStatus() {
+        const connectionState = this.dom.getConnectionState();
         this.shell.updateStatus({
-            connection: this.dom.getOnlineStatus(),
+            connection: connectionState.label,
+            offline: connectionState.offline,
             character: this.dom.getCharacterName(),
             persona: this.dom.getPersonaName(),
         });
         this.syncNativePanelView();
+        this.syncCharacterFavoriteState();
         localizeOwnedUI();
+    }
+
+    syncCharacterFavoriteState() {
+        const button = document.querySelector('#favorite_button');
+        if (!button) return;
+        const raw = String(document.querySelector('#fav_checkbox')?.value ?? '').trim().toLowerCase();
+        const isFavorite = button.classList.contains('fav_on')
+            || (!button.classList.contains('fav_off') && ['1', 'true', 'yes', 'on'].includes(raw));
+        button.classList.toggle('mt-character-favorite-active', isFavorite);
+        button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
     }
 
     scheduleNativePanelSync(delay = 140) {
@@ -630,7 +643,7 @@ export class NastyTavern {
             ['Characters','characters',icons.characters,'Open character library'],
             ['Personas','personas',icons.persona,'Manage identity and persona'],
             ['Lorebooks / World Info','lorebooks',icons.lore,'Open World Info editor'],
-            ['Formatting','formatting',icons.prompt,'Context Template, Instruct Template and System Prompt'],
+            ['Formatting','formatting',icons.formatting,'Context Template, Instruct Template and System Prompt'],
             ['Generation & Prompt settings','prompts',icons.prompt,'Response Configuration and Prompt Manager'],
             ['Models & API','models',icons.model,'API Connections'],
             ['Extensions','extensions',icons.extensions,'Manage extensions'],
