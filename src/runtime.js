@@ -331,15 +331,19 @@ export class NastyTavern {
             this.palette.close();
             return;
         }
-        const target = event.target;
-        const typing = target?.matches?.('input, textarea, select, [contenteditable="true"]');
-        if (typing) return;
+
+        // Resolve configured shortcuts before checking whether the user is typing.
+        // NastyTavern shortcuts are global application actions and must keep working
+        // while focus is inside SillyTavern's composer, search fields, editors, etc.
         const combo = this.eventToShortcut(event);
+        if (!combo) return;
         const shortcuts = this.settings.shortcuts || {};
         const matched = Object.entries(shortcuts).find(([, value]) => value && value === combo)?.[0];
         if (!matched) return;
+
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation?.();
         this.runShortcut(matched);
     }
 
