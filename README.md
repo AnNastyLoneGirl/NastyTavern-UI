@@ -74,6 +74,5 @@ Major update focused on integrated tools, mobile support, and usability.
 - ⚙️ **Expanded Settings** with keyboard shortcut management, conflict detection, and configuration import/export.
 - ❤️ **Added Health & Performance diagnostics** with a copyable diagnostic report.
 - 🔎 **General UI improvements** including Focus Mode, cleaner navigation, a simplified header, and mobile-specific search placement.
-- 🛠 **Responsive fixes** across Lorebooks, Calendar, Bookmarks, Notes, and other phone layouts.
 
 > v0.1.1 is still being tested and may receive additional fixes before being considered fully stable.
