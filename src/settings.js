@@ -8,12 +8,41 @@ export const defaults = Object.freeze({
     blur: 14,
     navWidth: 222,
     compactNav: false,
+    navHidden: false,
+    appbarMinimized: false,
+    chatBarMinimized: false,
+    extensionsBarMinimized: false,
+    focusMode: false,
     contextRail: false,
     hideNativeTopbar: true,
     dockNativePanels: true,
     motion: true,
     chatWidth: 940,
     messageWidth: 860,
+    historyLimit: 50,
+    shortcutDefaultsVersion: 2,
+    shortcuts: {
+        commandPalette: 'Ctrl+Alt+K',
+        timeline: 'Ctrl+Alt+T',
+        contextInspector: 'Ctrl+Alt+P',
+        worldInfoInspector: 'Ctrl+Alt+W',
+        variables: 'Ctrl+Alt+V',
+        chatTools: 'Ctrl+Alt+N',
+        calendar: 'Ctrl+Alt+C',
+        health: 'Ctrl+Alt+H',
+        focusMode: 'Ctrl+Alt+F',
+        nativeChat: '',
+        nativeCharacters: '',
+        nativePersonas: '',
+        nativeLorebooks: '',
+        nativeBackgrounds: '',
+        nativeFormatting: '',
+        nativePrompts: '',
+        nativeModels: '',
+        nativeExtensions: '',
+        nativeSettings: '',
+        nativeDataBank: '',
+    },
 });
 
 export function getContextSafe() {
@@ -29,8 +58,22 @@ export function getSettings() {
     if (!context.extensionSettings[MODULE]) context.extensionSettings[MODULE] = structuredClone(defaults);
     const settings = context.extensionSettings[MODULE];
     for (const [key, value] of Object.entries(defaults)) {
-        if (!Object.hasOwn(settings, key)) settings[key] = value;
+        if (!Object.hasOwn(settings, key)) settings[key] = structuredClone(value);
     }
+    if (!settings.shortcuts || typeof settings.shortcuts !== 'object') settings.shortcuts = structuredClone(defaults.shortcuts);
+    for (const [key, value] of Object.entries(defaults.shortcuts)) {
+        if (!Object.hasOwn(settings.shortcuts, key)) settings.shortcuts[key] = value;
+    }
+    if ((settings.shortcutDefaultsVersion || 0) < 2) {
+        const oldDefaults = { commandPalette:'Ctrl+K', timeline:'Ctrl+Shift+T', contextInspector:'Ctrl+Shift+P', worldInfoInspector:'Ctrl+Shift+W', variables:'Ctrl+Shift+V', chatTools:'Ctrl+Shift+N', calendar:'', health:'Ctrl+Shift+H' };
+        for (const [key, oldValue] of Object.entries(oldDefaults)) {
+            if (settings.shortcuts[key] === oldValue) settings.shortcuts[key] = defaults.shortcuts[key];
+        }
+        settings.shortcutDefaultsVersion = 2;
+        context.saveSettingsDebounced?.();
+    }
+    delete settings.workspacePresets;
+    delete settings.activeWorkspacePreset;
     return settings;
 }
 
@@ -42,6 +85,9 @@ export function saveSettings() {
 
 export function applySettings(settings) {
     const root = document.documentElement;
+    const unifiedChatMinimized = !!settings.chatBarMinimized || !!settings.extensionsBarMinimized;
+    settings.chatBarMinimized = unifiedChatMinimized;
+    settings.extensionsBarMinimized = unifiedChatMinimized;
     root.style.setProperty('--mt-accent', settings.accent);
     root.style.setProperty('--mt-radius', `${settings.radius}px`);
     root.style.setProperty('--mt-blur', `${settings.blur}px`);
@@ -53,6 +99,11 @@ export function applySettings(settings) {
     document.body?.classList.toggle('mt-density-compact', settings.density === 'compact');
     document.body?.classList.toggle('mt-density-comfortable', settings.density !== 'compact');
     document.body?.classList.toggle('mt-nav-compact', !!settings.compactNav);
+    document.body?.classList.toggle('mt-nav-hidden', !!settings.navHidden);
+    document.body?.classList.toggle('mt-appbar-minimized', !!settings.appbarMinimized);
+    document.body?.classList.toggle('nt-chat-main-minimized', !!settings.chatBarMinimized);
+    document.body?.classList.toggle('nt-chat-extensions-minimized', !!settings.extensionsBarMinimized);
+    document.body?.classList.toggle('mt-focus-mode', !!settings.focusMode);
     settings.contextRail = false;
     document.body?.classList.add('mt-context-hidden');
     document.body?.classList.toggle('mt-hide-native-topbar', !!settings.hideNativeTopbar);
@@ -60,7 +111,7 @@ export function applySettings(settings) {
     document.body?.classList.toggle('mt-motion', !!settings.motion);
 }
 
-export function buildSettingsPanel(settings, onChange) {
+export function buildSettingsPanel(settings, onChange, onOpenHub) {
     const wrap = document.createElement('div');
     wrap.id = 'mt-settings-panel';
     wrap.className = 'inline-drawer mt-settings-native';
@@ -83,6 +134,7 @@ export function buildSettingsPanel(settings, onChange) {
           <label>Message max width <input data-mt-setting="messageWidth" type="range" min="560" max="1200" step="20"><span data-mt-value="messageWidth"></span></label>
         </div>
         <div class="mt-settings-actions">
+          <button class="menu_button" data-mt-action="open-hub">Open NastyTavern Settings</button>
           <button class="menu_button" data-mt-action="toggle-nav">Toggle compact navigation</button>
           <button class="menu_button" data-mt-action="reset">Reset NastyTavern UI</button>
         </div>
@@ -112,6 +164,9 @@ export function buildSettingsPanel(settings, onChange) {
     });
     wrap.addEventListener('click', event => {
         const action = event.target.closest('[data-mt-action]')?.dataset.mtAction;
+        if (action === 'open-hub') {
+            onOpenHub?.();
+        }
         if (action === 'toggle-nav') {
             settings.compactNav = !settings.compactNav;
             onChange(); sync();
