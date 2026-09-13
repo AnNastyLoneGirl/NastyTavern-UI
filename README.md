@@ -221,7 +221,7 @@ Major update focused on the new Home Dashboard and NastyTavern Community.
 - 🧾 **Resource detail pages** for shared Character Cards and Lorebooks.
 - 🏠 **Latest Community resources on the Home Dashboard**, including the 5 latest Character Cards and Lorebooks.
 - 📱 **Additional responsive improvements** for Community and the Home Dashboard.
-- 
+
 > v0.1.2 is still being tested and may receive additional fixes before being considered fully stable.
 
 ### v0.1.1
