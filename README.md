@@ -1,78 +1,205 @@
 # NastyTavern UI
 
-A modern, non-destructive UI/UX overhaul for **SillyTavern 1.18+**.
+A modern interface and quality-of-life overhaul for **SillyTavern 1.18+**.
 
-NastyTavern keeps SillyTavern as the source of truth. It does not replace its chat, character, persona, Lorebook, API, prompt, model, or extension logic; it reorganizes the native interface and adds integrated workflow tools on top of it.
+NastyTavern modernizes the SillyTavern experience and adds new tools for chatting, managing characters and Lorebooks, organizing your roleplays, and connecting with the NastyTavern Community.
+
+It works directly on top of SillyTavern, so you keep access to the features and extensions you already use.
 
 > **Current version:** `0.1.2`  
 > **Minimum SillyTavern version:** `1.18.0`
 
-## ✨ Highlights
+---
 
-- **Modern application shell** — permanent navigation for Chat, Characters, Personas, Lorebooks, Formatting, Prompts, Models, Extensions, and Settings, with a cleaner top bar and docked native workspaces.
-- **Nasty Chat Bar** — chat history and switching, in-chat search, message count, chat actions, connection-profile switching, and quick access to NastyTavern tools.
-- **Integrated workflow tools** — Story Timeline, Context / Token Inspector, Variable Manager, World Info Inspector, per-chat Bookmarks & private Notes, and Calendar & Schedule.
-- **Home Dashboard** — a dedicated no-chat landing page with recent characters, favorites, quick actions, temporary chat access, and character importing.
-- **Community Chat** — optional Supabase-powered real-time SillyTavern community spaces with presence, safe Markdown, replies, reactions, search, session-aware unread counts, persistent mentions, profiles, moderation, typing indicators, and native Character Card / Lorebook sharing.
-- **Mobile-first responsive support** — dedicated phone layouts for portrait and landscape, touch-friendly controls, responsive panels/modals, and overflow fixes across the interface.
-- **NastyTavern Settings** — configurable keyboard shortcuts, conflict detection, UI preferences, and configuration import/export.
-- **Health & Performance** — built-in diagnostics with selector checks and a copyable diagnostic report.
-- **Internationalization** — English fallback and `fr-fr`, with the structure ready for additional locale files.
-- **Compatibility-focused design** — when a specialized NastyTavern module is unavailable, the closest native SillyTavern interface remains accessible.
+## ✨ Features
 
-## 📦 Install
+### 🖥️ Modern interface
 
-### SillyTavern extension installer
+NastyTavern gives SillyTavern a cleaner and more structured interface with quick access to:
 
-Open **Extensions → Install extension** and use:
+- Chat
+- Characters
+- Personas
+- Lorebooks
+- Formatting
+- Prompts
+- Models
+- Extensions
+- Settings
+
+The interface is designed to remain familiar while making frequently used features easier to reach.
+
+### 💬 Nasty Chat Bar
+
+Manage your conversations without constantly opening different SillyTavern menus.
+
+The Nasty Chat Bar includes:
+
+- Recent conversations
+- Quick chat switching
+- Search inside the current conversation
+- Message count
+- Chat actions
+- Connection profile switching
+- Quick access to NastyTavern tools
+
+### 🧰 Integrated tools
+
+NastyTavern includes several tools directly inside the interface:
+
+- Story Timeline
+- Context / Token Inspector
+- Variable Manager
+- World Info Inspector
+- Bookmarks
+- Private Notes
+- Calendar & Schedule
+
+These tools are designed to make long roleplays and more complex setups easier to manage.
+
+### 🏠 Home Dashboard
+
+When no conversation is open, NastyTavern provides a dedicated Home page with:
+
+- Recent characters
+- Favorite characters
+- Quick actions
+- Temporary chat access
+- Character importing
+- Latest Community messages
+- Latest shared Character Cards
+- Latest shared Lorebooks
+
+### 🌐 NastyTavern Community
+
+Community Chat is built directly into NastyTavern and requires no additional configuration.
+
+You can sign in using:
+
+- Email and password
+- Google
+
+Community includes:
+
+- Real-time chat
+- Official discussion channels
+- Replies and reactions
+- Markdown support
+- Mentions
+- Unread indicators
+- User profiles
+- Typing indicators
+- Moderation tools
+- Character Card sharing
+- Lorebook sharing
+
+Shared resources can be previewed directly inside NastyTavern before importing them into SillyTavern.
+
+### 📦 Character Cards & Lorebooks
+
+Character Cards and Lorebooks can be shared directly from their SillyTavern editors.
+
+Shared resources include a detailed information page where available metadata can be viewed before importing.
+
+Character Cards and Lorebooks can also be imported directly into SillyTavern from Community.
+
+### 📱 Mobile support
+
+NastyTavern includes dedicated layouts for both portrait and landscape phone usage.
+
+Menus, panels, modals, buttons, and other controls are adapted for touchscreens and smaller displays.
+
+### ⌨️ Keyboard shortcuts
+
+Many NastyTavern features can be opened with keyboard shortcuts.
+
+Shortcuts can be customized from NastyTavern Settings, with conflict detection to help avoid duplicate key combinations.
+
+### ❤️ Health & Performance
+
+The Health panel provides useful information when something does not work correctly.
+
+It can also generate a diagnostic report that can easily be copied when reporting an issue.
+
+### 🌍 Languages
+
+NastyTavern currently includes:
+
+- English
+- French
+
+Additional translations may be added in the future.
+
+---
+
+## 📦 Installation
+
+### Install directly from SillyTavern
+
+Open:
+
+**Extensions → Install extension**
+
+Then use:
 
 ```text
 https://github.com/AnNastyLoneGirl/NastyTavern-UI
 ```
 
-Reload SillyTavern and enable **NastyTavern UI** if needed.
+Reload SillyTavern after installation.
+
+If needed, make sure **NastyTavern UI** is enabled in your extensions.
 
 ### Manual installation
 
-Copy the entire `NastyTavern-UI` folder into your SillyTavern user extensions directory, then reload SillyTavern.
+Download the repository and place the complete `NastyTavern-UI` folder inside your SillyTavern user extensions directory.
 
-NastyTavern UI requires **SillyTavern 1.18.0 or newer** because it uses extension lifecycle hooks.
+Then restart or reload SillyTavern.
 
-## 💬 Community Chat (Supabase)
+> NastyTavern UI requires **SillyTavern 1.18.0 or newer**.
 
-Community Chat connects directly to the **official NastyTavern Community backend**. End users do not need to configure a Supabase URL, publishable key, database, or Storage project in NastyTavern Settings. The official public/publishable client configuration is bundled with the extension; server-side secrets are never included.
+---
 
-Community authentication supports **email/password and Google OAuth**. Google sign-in requires enabling the Google provider in Supabase Auth and applying the separate OAuth username-onboarding migration. First-time Google users choose a unique permanent Community username after OAuth; their Google display name is never adopted automatically. Email confirmations and Google OAuth dynamically return to the SillyTavern URL currently open in the user's browser (including its active port and base path), as long as that URL matches the Supabase Auth Redirect URLs allow-list.
+## 💬 Community
 
-Shared Character Cards and Lorebooks use a private Supabase Storage bucket with a **5.5 MiB per-file limit**. Community keeps the **100 most recent messages per room**; attachment files linked to pruned/deleted messages are queued for server-side Storage cleanup.
+No Community configuration is required.
 
-The Community migration also creates the private Storage bucket used for Character Cards / Lorebooks, the public avatar bucket, persistent mentions, reports and moderation rules. If no Community admin exists yet, the oldest registered Community account is promoted to admin when the social-features migration is applied.
+Simply open **Community** from the NastyTavern sidebar and create an account or sign in.
 
-Only Supabase public/publishable client credentials are bundled with NastyTavern. Supabase `service_role` and other server-side secrets must never be included in the extension.
+You can use either:
 
-## 🧩 Design principles
+- Email / password
+- Google
 
-1. **Restructure without forking SillyTavern.** Native controls remain the source of truth.
-2. **Progressive complexity.** Common actions stay obvious while advanced controls remain available.
-3. **One design system.** Native and NastyTavern interfaces follow a consistent visual language.
-4. **Fail open.** If a selector or integration breaks after a SillyTavern update, the native UI should remain reachable.
-5. **No hidden feature removal.** NastyTavern changes presentation and workflow, not SillyTavern's underlying capabilities.
+If you sign in with Google for the first time, you will be asked to choose a unique Community username.
 
-## 🛠 Current status
+From Community you can chat with other users, discover shared Character Cards and Lorebooks, and import them directly into SillyTavern.
 
-**v0.1.2** is still under active testing. Most of the core interface and integrated tools are in place, but some compatibility and responsive edge cases may still need adjustments depending on the SillyTavern version, browser, screen size, or third-party extensions in use.
+---
 
-Bug reports and feedback are welcome through the GitHub repository.
+## 🧪 Current status
+
+NastyTavern UI is still under active development.
+
+Version `0.1.2` already includes most of the planned core interface and Community features, but you may still encounter bugs or compatibility issues depending on your SillyTavern version, browser, device, or installed extensions.
+
+If you find a problem, feel free to report it on GitHub.
+
+---
 
 ## ☕ Support the project
 
-If you enjoy **NastyTavern UI** and want to support its development, you can buy me a coffee on Ko-fi. Every contribution helps with testing, compatibility fixes, and future features. 🤍
+If you enjoy **NastyTavern UI** and want to support its development, you can buy me a coffee on Ko-fi.
+
+Every contribution helps with testing, bug fixes, compatibility improvements, and future features. 🤍
 
 👉 **[Buy me a coffee on Ko-fi](https://ko-fi.com/annastylonegirl)**
 
-## 📚 Reference
+---
 
-The project takes layout inspiration from IceFog72's *SillyTavern-Not-A-Discord-Theme*, but uses a different architecture built around a runtime DOM adapter, application shell, command palette, integrated tools, and narrowly scoped module selectors rather than a monolithic CSS-only layout.
+## 📚 Credits
+
+NastyTavern takes visual inspiration from IceFog72's *SillyTavern-Not-A-Discord-Theme*, while providing its own interface, features, and workflow tools.
 
 ---
 
@@ -80,18 +207,21 @@ The project takes layout inspiration from IceFog72's *SillyTavern-Not-A-Discord-
 
 ### v0.1.2
 
-Major update focused on the Home Dashboard and the new NastyTavern Community experience.
+Major update focused on the new Home Dashboard and NastyTavern Community.
 
-- 🏠 **New Home Dashboard** with recent characters, favorites, quick actions, temporary chat access, and dedicated Community panels.
+- 🏠 **New Home Dashboard** with recent characters, favorites, quick actions, temporary chat access, Community messages, and recently shared resources.
 - 🌐 **NastyTavern Community Chat** with official General, NastyTavern, Character Cards, Lorebooks, and Extensions channels.
-- 🔐 **Community authentication** with email/password and Google OAuth.
-- 🔴 **Persistent mentions and session-aware unread indicators** with simple red-dot badges.
-- 🔎 **Live typing indicators, safe Markdown, and simple Community profiles** with avatar, short bio, role, and immutable username.
-- 📦 **Native Character Card & Lorebook sharing** previews, direct download, and **Import into SillyTavern**.
-- ↗️ **Share to Community actions** directly inside the SillyTavern Character Card and Lorebook editors.
-- 🧾 **Resource detail sheets** available from Community and the Home Dashboard, showing the actual metadata and content available in shared Character Cards and Lorebooks.
-- 🏠 **Home Community panels** with a vertical message feed plus the 5 latest shared Character Cards and 5 latest Lorebooks.
-- 📱 **Community and Home responsive refinements** with cleaner resource cards, improved mobile layouts, stable Home scrolling.
+- 🔐 **Community authentication** with email/password and Google.
+- 🔴 **Mentions and unread indicators** with simple red-dot notifications.
+- 👤 **Community profiles** with avatar, bio, role, and permanent username.
+- ⌨️ **Typing indicators** and Markdown support.
+- 🛡️ **Moderation tools** including reports, message deletion, mutes, bans, and Community roles.
+- 📦 **Native Character Card and Lorebook sharing** with previews, downloads, and direct SillyTavern importing.
+- ↗️ **Share to Community buttons** directly inside the Character Card and Lorebook editors.
+- 🧾 **Resource detail pages** for shared Character Cards and Lorebooks.
+- 🏠 **Latest Community resources on the Home Dashboard**, including the 5 latest Character Cards and Lorebooks.
+- 📱 **Additional responsive improvements** for Community and the Home Dashboard.
+- 🧹 **Automatic Community cleanup** to manage older messages and shared resources.
 
 > v0.1.2 is still being tested and may receive additional fixes before being considered fully stable.
 
