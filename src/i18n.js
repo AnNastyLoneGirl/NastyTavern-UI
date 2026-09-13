@@ -2,7 +2,7 @@ let messages = {};
 let locale = 'en';
 let observer = null;
 
-const roots = '#mt-root,#mt-command-palette,#mt-settings-panel,.mt-workspace-chrome,#character_popup.mt-advanced-character-popup,#nt-chat-toolbar,#nt-chat-history,#nt-variable-manager,#nt-variable-manager-quick-button,#nt-world-info-info,#nt-world-info-info-button,#nt-timeline-panel,#nt-timeline-button,#nt-context-inspector,#nt-context-inspector-button,#nt-chat-tools,#nt-chat-tools-button,#nt-calendar-manager,#nt-calendar-button,#nt-preferences,#nt-health-panel,#nt-about-panel';
+const roots = '#mt-root,#mt-command-palette,#mt-settings-panel,.mt-workspace-chrome,#character_popup.mt-advanced-character-popup,#nt-chat-toolbar,#nt-chat-history,#nt-variable-manager,#nt-variable-manager-quick-button,#nt-world-info-info,#nt-world-info-info-button,#nt-timeline-panel,#nt-timeline-button,#nt-context-inspector,#nt-context-inspector-button,#nt-chat-tools,#nt-chat-tools-button,#nt-calendar-manager,#nt-calendar-button,#nt-preferences,#nt-health-panel,#nt-about-panel,#nt-home-dashboard,#nt-community-panel';
 const skip = '.mes_text,.nt-wii-content,.nt-wii-book-title span,.nt-wii-entry-main,.nt-wii-entry pre,.nt-wii-live b,.nt-wii-keychips,.nt-var-name,.nt-var-value,[data-nt-var-chat],.nt-chat-history-item b,.nt-timeline-node-text,.nt-timeline-node-top b,.nt-timeline-message-preview,.nt-timeline-inspector-head b,.nt-timeline-session>div>b,.nt-timeline-swipes article p,.nt-context-prompt pre,.nt-note-title,.nt-note-text,.nt-chat-bookmarks p,[data-nt-timeline-subtitle],[data-mt-profile-current],.nt-calendar-event-card b,.nt-calendar-event-card p,[data-nt-calendar-preview],.nt-calendar-next b,[data-nt-no-i18n]';
 
 const normalizeLocale = value => {

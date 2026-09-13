@@ -6,11 +6,11 @@
   "js": "index.js",
   "css": "style.css",
   "author": "AnNastyLoneGirl + OpenAI",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "homePage": "https://github.com/AnNastyLoneGirl/NastyTavern-UI",
   "auto_update": false,
   "minimum_client_version": "1.18.0",
-  "description": "A non-destructive ergonomic UI overhaul for SillyTavern with integrated chat controls, story timeline, calendar and weekly schedule, prompt/context tools, variable management and World Info inspection.",
+  "description": "A non-destructive SillyTavern UI overhaul with a Home Dashboard, integrated workflow tools, responsive layouts, and optional Supabase-powered Community features.",
   "hooks": {
     "activate": "onActivate",
     "enable": "onEnable",

@@ -13,6 +13,8 @@ import { CalendarManager } from './calendar-manager.js';
 import { PreferencesManager } from './preferences-manager.js';
 import { HealthPanel } from './health-panel.js';
 import { AboutPanel } from './about-panel.js';
+import { HomeDashboard } from './home-dashboard.js';
+import { CommunityChat } from './community-chat.js';
 import { initI18n, startI18nObserver, stopI18nObserver, localizeOwnedUI, t, translateText } from './i18n.js';
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -22,7 +24,7 @@ export class NastyTavern {
         this.dom = new DomAdapter();
         this.settings = getSettings();
         this.settings.contextRail = false;
-        this.shell = new AppShell(id => this.navigate(id), () => this.palette.toggle(), () => this.toggleCompactNav(), () => this.healthPanel.open(), () => this.aboutPanel.open(), () => this.preferences.open(), action => this.handleUiAction(action));
+        this.shell = new AppShell(id => this.navigate(id), () => this.palette.toggle(), () => this.toggleCompactNav(), () => this.healthPanel.open(), () => this.communityChat?.open(), () => this.aboutPanel.open(), () => this.preferences.open(), action => this.handleUiAction(action));
         this.palette = new CommandPalette(() => this.getActions());
         this.observer = null;
         this.interval = null;
@@ -39,6 +41,10 @@ export class NastyTavern {
         this.contextInspector = new ContextInspector(message => this.toast(message));
         this.chatTools = new ChatTools(message => this.toast(message));
         this.calendarManager = new CalendarManager(message => this.toast(message));
+        this.communityChat = new CommunityChat(this.settings, message => this.toast(message), {
+            badgeChanged: value => this.shell?.updateCommunityBadge(value),
+            homeChanged: () => this.homeDashboard?.sync({ view: this.currentView }),
+        });
         this.preferences = new PreferencesManager(this.settings, message => this.toast(message), {
             navigate: id => this.navigate(id),
             currentView: () => this.currentView,
@@ -49,6 +55,13 @@ export class NastyTavern {
         });
         this.healthPanel = new HealthPanel(message => this.toast(message), () => this.getHealthSnapshot());
         this.aboutPanel = new AboutPanel(() => this.healthPanel.open());
+        this.homeDashboard = new HomeDashboard({
+            navigate: id => this.navigate(id),
+            toast: message => this.toast(message),
+            getCommunitySnapshot: () => this.communityChat?.getHomeSnapshot?.(),
+            openCommunity: () => this.communityChat?.open?.(),
+            openCommunityResource: resource => this.communityChat?.openResourceDetails?.(resource),
+        });
     }
 
     async activate() {
@@ -77,6 +90,8 @@ export class NastyTavern {
         this.preferences.unmount();
         this.healthPanel.unmount();
         this.aboutPanel.unmount();
+        this.communityChat.unmount();
+        this.homeDashboard.unmount();
         this.variableManager.unmount();
         this.worldInfoInfo.unmount();
         this.shell.unmount();
@@ -115,6 +130,7 @@ export class NastyTavern {
         this.enhanceChat();
         this.decorateNativePanels();
         this.decorateAdvancedCharacterDefinitions();
+        this.ensureCommunityShareButtons();
         this.variableManager.mount();
         this.setView('chat');
         this.worldInfoInfo.mount();
@@ -125,6 +141,8 @@ export class NastyTavern {
         this.preferences.mount();
         this.healthPanel.mount();
         this.aboutPanel.mount();
+        this.communityChat.mount();
+        this.homeDashboard.mount();
         this.chatToolbar.mount();
         document.addEventListener('keydown', this.boundKeydown, true);
         document.addEventListener('click', this.boundDocumentClick, true);
@@ -162,6 +180,7 @@ export class NastyTavern {
                 this.enhanceChat();
                 this.decorateNativePanels();
                 this.decorateAdvancedCharacterDefinitions();
+                this.ensureCommunityShareButtons();
                 this.variableManager.mount();
                 this.worldInfoInfo.mount();
                 this.timelineManager.mount();
@@ -171,6 +190,8 @@ export class NastyTavern {
                 this.preferences.mount();
                 this.healthPanel.mount();
                 this.aboutPanel.mount();
+                this.communityChat.mount();
+                this.homeDashboard.mount();
                 this.chatToolbar.mount();
                 localizeOwnedUI();
             }, 80);
@@ -369,6 +390,7 @@ export class NastyTavern {
             { id:'variables', label:'Variables', hint:'Open the Variable Manager', group:'NastyTavern' },
             { id:'chatTools', label:'Chat Tools', hint:'Open bookmarks and session notes', group:'NastyTavern' },
             { id:'calendar', label:'Calendar & Schedule', hint:'Open the per-chat calendar and weekly schedule', group:'NastyTavern' },
+            { id:'community', label:'Community Chat', hint:'Open the NastyTavern real-time community chat', group:'NastyTavern' },
             { id:'health', label:'Health & Performance', hint:'Open diagnostic information', group:'NastyTavern' },
             { id:'focusMode', label:'Focus mode', hint:'Hide interface chrome and keep only the essentials', group:'NastyTavern' },
             { id:'nativeChat', label:'Chat view', hint:'Return to the main chat and close native panels', group:'SillyTavern' },
@@ -395,6 +417,7 @@ export class NastyTavern {
         if (id === 'variables') return this.openTool('variables');
         if (id === 'chatTools') return this.openTool('chatTools');
         if (id === 'calendar') return this.openTool('calendar');
+        if (id === 'community') return this.communityChat.open();
         if (id === 'nativeChat') return this.navigate('chat');
         if (id === 'nativeCharacters') return this.navigate('characters');
         if (id === 'nativePersonas') return this.navigate('personas');
@@ -491,15 +514,83 @@ export class NastyTavern {
 
     updateStatus() {
         const connectionState = this.dom.getConnectionState();
+        const character = this.dom.getCharacterName();
+        const persona = this.dom.getPersonaName();
         this.shell.updateStatus({
             connection: connectionState.label,
             offline: connectionState.offline,
-            character: this.dom.getCharacterName(),
-            persona: this.dom.getPersonaName(),
+            character,
+            persona,
+        });
+        this.homeDashboard.sync({
+            view: this.currentView,
+            connection: connectionState.label,
+            character,
+            persona,
         });
         this.syncNativePanelView();
         this.syncCharacterFavoriteState();
+        this.ensureCommunityShareButtons();
         localizeOwnedUI();
+    }
+
+    ensureCommunityShareButtons() {
+        const characterHost = document.querySelector('#avatar_controls');
+        if (characterHost) {
+            let button = characterHost.querySelector('[data-nt-share-character-community]');
+            if (!button) {
+                button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'nt-native-community-share nt-native-community-share-character';
+                button.dataset.ntShareCharacterCommunity = '1';
+                button.innerHTML = `${icons.community}<span>${t('Share to Community')}</span>`;
+                button.title = t('Share this Character Card to Community');
+                button.addEventListener('click', async event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    button.disabled = true;
+                    try { await this.communityChat.shareCurrentCharacterCard(); }
+                    catch (error) { this.toast(error?.message || t('Could not share this Character Card.')); }
+                    finally {
+                        const hasSavedCharacter = Boolean(String(document.querySelector('#avatar_url_pole')?.value || '').trim());
+                        button.disabled = !hasSavedCharacter;
+                    }
+                });
+                characterHost.append(button);
+            }
+            const hasSavedCharacter = Boolean(String(document.querySelector('#avatar_url_pole')?.value || '').trim());
+            button.disabled = !hasSavedCharacter;
+            button.setAttribute('aria-disabled', hasSavedCharacter ? 'false' : 'true');
+        }
+
+        const lorebookSelect = document.querySelector('#world_editor_select');
+        const lorebookRow = lorebookSelect?.closest('.flex-container');
+        if (lorebookSelect && lorebookRow) {
+            lorebookRow.classList.add('nt-lorebook-community-share-row');
+            let button = lorebookRow.querySelector('[data-nt-share-lorebook-community]');
+            if (!button) {
+                button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'nt-native-community-share nt-native-community-share-lorebook';
+                button.dataset.ntShareLorebookCommunity = '1';
+                button.innerHTML = `${icons.community}<span>${t('Share to Community')}</span>`;
+                button.title = t('Share this Lorebook to Community');
+                button.addEventListener('click', async event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    button.disabled = true;
+                    try { await this.communityChat.shareCurrentLorebook(); }
+                    catch (error) { this.toast(error?.message || t('Could not share this Lorebook.')); }
+                    finally { button.disabled = false; }
+                });
+                const importButton = lorebookRow.querySelector('#world_import_button');
+                if (importButton) lorebookRow.insertBefore(button, importButton);
+                else lorebookRow.append(button);
+            }
+            const hasLorebook = Boolean(String(lorebookSelect.value || '').trim());
+            button.disabled = !hasLorebook;
+            button.setAttribute('aria-disabled', hasLorebook ? 'false' : 'true');
+        }
     }
 
     syncCharacterFavoriteState() {
@@ -580,6 +671,13 @@ export class NastyTavern {
     setView(id, subtitle) {
         this.currentView = id;
         this.shell.setActive(id, subtitle);
+        const connectionState = this.dom.getConnectionState();
+        this.homeDashboard?.sync({
+            view: id,
+            connection: connectionState.label,
+            character: this.dom.getCharacterName(),
+            persona: this.dom.getPersonaName(),
+        });
         requestAnimationFrame(() => localizeOwnedUI());
     }
 
@@ -697,6 +795,15 @@ export class NastyTavern {
             hint: t('Open NastyTavern diagnostics'),
             keywords: 'health performance diagnostics',
             run: () => this.healthPanel.open(),
+        });
+
+        actions.splice(2, 0, {
+            label: t('Community Chat'),
+            icon: icons.community,
+            hint: t('Open the NastyTavern real-time community chat'),
+            keywords: 'community chat realtime supabase sillytavern character cards lorebooks',
+            shortcut: this.settings.shortcuts?.community || '',
+            run: () => this.communityChat.open(),
         });
 
         actions.splice(2, 0, {

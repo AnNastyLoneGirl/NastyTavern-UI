@@ -27,6 +27,7 @@ export const defaults = Object.freeze({
         variables: true,
         chatTools: true,
         calendar: true,
+        community: true,
     },
     shortcutDefaultsVersion: 2,
     shortcuts: {
@@ -37,6 +38,7 @@ export const defaults = Object.freeze({
         variables: 'Ctrl+Alt+V',
         chatTools: 'Ctrl+Alt+N',
         calendar: 'Ctrl+Alt+C',
+        community: 'Ctrl+Alt+G',
         health: 'Ctrl+Alt+H',
         focusMode: 'Ctrl+Alt+F',
         nativeChat: '',
@@ -61,7 +63,9 @@ export function getSettings() {
     const context = getContextSafe();
     if (!context?.extensionSettings) {
         const local = JSON.parse(localStorage.getItem('modern_tavern_ui_fallback') || '{}');
-        return Object.assign({}, defaults, local);
+        const settings = Object.assign({}, defaults, local);
+        delete settings.community;
+        return settings;
     }
     if (!context.extensionSettings[MODULE]) context.extensionSettings[MODULE] = structuredClone(defaults);
     const settings = context.extensionSettings[MODULE];
@@ -85,6 +89,7 @@ export function getSettings() {
         context.saveSettingsDebounced?.();
     }
     delete settings.workspacePresets;
+    delete settings.community;
     delete settings.activeWorkspacePreset;
     return settings;
 }
@@ -127,6 +132,7 @@ export function applySettings(settings) {
     document.body?.classList.toggle('nt-hide-module-variables', modules.variables === false);
     document.body?.classList.toggle('nt-hide-module-chattools', modules.chatTools === false);
     document.body?.classList.toggle('nt-hide-module-calendar', modules.calendar === false);
+    document.body?.classList.toggle('nt-hide-module-community', modules.community === false);
     document.body?.classList.toggle('mt-motion', !!settings.motion);
 }
 

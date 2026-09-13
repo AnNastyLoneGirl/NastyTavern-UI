@@ -15,11 +15,12 @@ const NAV = [
 ];
 
 export class AppShell {
-    constructor(onNavigate, onCommand, onToggleCompact, onHealth, onAbout, onPreferences, onUiAction) {
+    constructor(onNavigate, onCommand, onToggleCompact, onHealth, onCommunity, onAbout, onPreferences, onUiAction) {
         this.onNavigate = onNavigate;
         this.onCommand = onCommand;
         this.onToggleCompact = onToggleCompact;
         this.onHealth = onHealth;
+        this.onCommunity = onCommunity;
         this.onAbout = onAbout;
         this.onPreferences = onPreferences;
         this.onUiAction = onUiAction;
@@ -38,6 +39,7 @@ export class AppShell {
             <div class="mt-sidebar-bottom">
               <button data-mt-command title="Command palette"><span class="mt-nav-icon">${icons.search}</span><span class="mt-nav-label">Search</span><kbd data-mt-command-shortcut>Ctrl K</kbd></button>
               <button data-mt-health title="Health & Performance"><span class="mt-nav-icon">${icons.health}</span><span class="mt-nav-label">Health</span></button>
+              <button data-mt-community title="Community Chat"><span class="mt-nav-icon">${icons.community}</span><span class="mt-nav-label">Community</span><i class="mt-community-badge" data-mt-community-badge hidden></i></button>
               <button data-mt-about title="About NastyTavern"><span class="mt-nav-icon">${icons.info}</span><span class="mt-nav-label">About</span></button>
               <button data-mt-preferences title="NastyTavern Settings"><span class="mt-nav-icon">${icons.settings}</span><span class="mt-nav-label">NT Settings</span></button>
               <button data-mt-collapse title="Compact navigation"><span class="mt-nav-icon">${icons.collapse}</span><span class="mt-nav-label">Collapse</span></button>
@@ -73,6 +75,7 @@ export class AppShell {
             if (nav) this.onNavigate(nav.dataset.mtNav);
             if (event.target.closest('[data-mt-command]')) this.onCommand();
             if (event.target.closest('[data-mt-health]')) this.onHealth?.();
+            if (event.target.closest('[data-mt-community]')) this.onCommunity?.();
             if (event.target.closest('[data-mt-about]')) this.onAbout?.();
             if (event.target.closest('[data-mt-preferences]')) this.onPreferences?.();
             if (event.target.closest('[data-mt-collapse]')) this.onToggleCompact();
@@ -90,6 +93,20 @@ export class AppShell {
 
     unmount() { document.querySelector('#mt-root')?.remove(); document.body?.removeAttribute('data-mt-view'); this.root = null; }
 
+
+    updateCommunityBadge(value) {
+        const root = this.root || document.querySelector('#mt-root');
+        const badge = root?.querySelector('[data-mt-community-badge]');
+        if (!badge) return;
+        const count = typeof value === 'object' ? Number(value?.total || 0) : Number(value || 0);
+        const mentions = typeof value === 'object' ? Number(value?.mentions || 0) : 0;
+        const unread = typeof value === 'object' ? Number(value?.unread || 0) : count;
+        const active = mentions > 0 || unread > 0;
+        badge.hidden = !active;
+        badge.textContent = '';
+        badge.classList.toggle('has-mentions', active);
+        badge.title = mentions > 0 ? t('Unread mention') : (unread > 0 ? t('Unread messages') : '');
+    }
 
     updateCommandShortcut(value) {
         const label = String(value || '').replaceAll('+', ' ');

@@ -55,7 +55,7 @@ export class AboutPanel {
             <section class="nt-about-hero">
               <div class="nt-about-logo">${icons.logo}</div>
               <div class="nt-about-hero-copy">
-                <div class="nt-about-title-row"><h2>NastyTavern UI</h2><span>v0.1.1</span></div>
+                <div class="nt-about-title-row"><h2>NastyTavern UI</h2><span>v0.1.2</span></div>
                 <p>${t('A modern, ergonomic interface layer for SillyTavern that keeps the native features underneath while making everyday workflows faster and clearer.')}</p>
                 <div class="nt-about-meta"><span>${t('Created by Anna / AnNastyLoneGirl')}</span><span>${t('Built for SillyTavern 1.18+')}</span><span>${t('Open source')}</span><span>${t('i18n ready')}</span></div>
               </div>
