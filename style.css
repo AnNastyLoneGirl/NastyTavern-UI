@@ -10427,3 +10427,559 @@ body.mt-enabled .nt-community-attachment .nt-community-attachment-copy>span{
 .nt-community-oauth-user>img,.nt-community-oauth-user>span{width:34px;height:34px;border-radius:9px;object-fit:cover;display:grid;place-items:center;background:color-mix(in srgb,var(--mt-accent) 12%,rgba(255,255,255,.03));color:var(--mt-text-1);font-size:11px;font-weight:700;flex:0 0 auto}
 .nt-community-oauth-user>div{display:flex;flex-direction:column;min-width:0;gap:2px}.nt-community-oauth-user b{font-size:9px;color:var(--mt-text-1)}.nt-community-oauth-user small{font-size:7px;color:var(--mt-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+
+/* ========================================================================== */
+/* v0.1.2 — Community phone responsiveness + resource details mobile          */
+/* ========================================================================== */
+
+/* Portrait / narrow phones */
+@media (max-width:680px){
+  #nt-community-panel .nt-community-shell{
+    top:var(--mt-appbar-height)!important;
+    right:0!important;
+    bottom:0!important;
+    left:64px!important;
+    border-radius:0!important;
+    border-right:0!important;
+    border-bottom:0!important;
+  }
+  body.mt-nav-hidden #nt-community-panel .nt-community-shell{left:0!important}
+  body.mt-appbar-minimized #nt-community-panel .nt-community-shell{top:36px!important}
+  body.mt-focus-mode #nt-community-panel .nt-community-shell{top:0!important;left:0!important}
+
+  .nt-community-header{
+    height:52px!important;
+    min-height:52px!important;
+    padding:0 8px 0 10px!important;
+    gap:7px!important;
+  }
+  .nt-community-header>div:first-child{gap:7px!important;overflow:hidden}
+  .nt-community-header>div:first-child>span{width:30px!important;height:30px!important;min-width:30px!important;border-radius:9px!important}
+  .nt-community-header>div:first-child>span svg{width:16px!important;height:16px!important}
+  .nt-community-header>div:first-child>div{min-width:0}
+  .nt-community-header>div:first-child b{
+    display:block!important;
+    max-width:100%!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+    font-size:13px!important;
+  }
+  .nt-community-header>div:first-child small{display:none!important}
+  .nt-community-header-actions{
+    flex:0 0 auto!important;
+    max-width:none!important;
+    gap:3px!important;
+    padding:2px!important;
+    border-radius:9px!important;
+  }
+  body.mt-enabled .nt-community-header-actions>.nt-community-user-pill,
+  body.mt-enabled .nt-community-header-actions>button:not([data-nt-community-profile-self]){
+    width:32px!important;
+    min-width:32px!important;
+    max-width:32px!important;
+    height:32px!important;
+    min-height:32px!important;
+    flex:0 0 32px!important;
+    padding:6px!important;
+  }
+  .nt-community-header-actions [data-nt-community-profile-self]>b,
+  .nt-community-header-actions [data-nt-community-profile-self]>em{display:none!important}
+  .nt-community-mini-avatar{width:24px!important;height:24px!important;min-width:24px!important;border-radius:7px!important}
+
+  .nt-community-workspace{display:block!important;position:relative!important;min-height:0!important;overflow:hidden!important}
+  .nt-community-members{display:none!important}
+  .nt-community-channels{
+    display:block!important;
+    position:absolute!important;
+    z-index:20!important;
+    inset:0 auto 0 0!important;
+    width:min(280px,88%)!important;
+    padding:10px!important;
+    overflow-y:auto!important;
+    transform:translateX(-104%)!important;
+    transition:transform .18s ease!important;
+    border-right:1px solid var(--mt-border-strong)!important;
+    background:color-mix(in srgb,var(--mt-bg-2) 98%,black)!important;
+    box-shadow:18px 0 40px rgba(0,0,0,.42)!important;
+  }
+  #nt-community-panel.show-channels .nt-community-channels{transform:none!important}
+  body.mt-enabled .nt-community-channel{
+    min-height:58px!important;
+    grid-template-columns:30px minmax(0,1fr) auto 13px!important;
+    gap:8px!important;
+    padding:8px 9px!important;
+    border-radius:10px!important;
+  }
+  .nt-community-channel>span:first-child{width:30px!important;height:30px!important;border-radius:8px!important;background:rgba(255,255,255,.025)!important}
+  .nt-community-channel>div>b{font-size:12px!important}
+  .nt-community-channel>div>small{display:block!important;margin-top:2px!important;font-size:10px!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .nt-community-unread-dot{width:8px!important;height:8px!important;min-width:8px!important}
+
+  .nt-community-main{
+    height:100%!important;
+    min-height:0!important;
+    grid-template-rows:52px minmax(0,1fr) 18px auto 60px!important;
+  }
+  .nt-community-room-header{
+    min-height:52px!important;
+    padding:0 8px 0 10px!important;
+    gap:6px!important;
+  }
+  .nt-community-room-title{min-width:0!important;gap:7px!important}
+  .nt-community-room-title>span{flex:0 0 auto!important}
+  .nt-community-room-title>div{min-width:0!important}
+  .nt-community-room-header b{font-size:13px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .nt-community-room-header small{display:none!important}
+  .nt-community-room-meta{gap:4px!important;flex:0 0 auto!important}
+  .nt-community-room-meta>span{display:none!important}
+  .nt-community-room-meta>button{
+    display:grid!important;
+    width:34px!important;
+    min-width:34px!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding:8px!important;
+  }
+
+  .nt-community-search-panel{
+    top:52px!important;
+    left:6px!important;
+    right:6px!important;
+    width:auto!important;
+    max-height:min(420px,72%)!important;
+  }
+  .nt-community-search-panel form{grid-template-columns:18px minmax(0,1fr) auto 34px!important;padding:7px!important}
+  body.mt-enabled .nt-community-search-panel input{font-size:12px!important}
+
+  .nt-community-messages{
+    min-height:0!important;
+    padding:9px 7px 16px!important;
+    scrollbar-gutter:auto!important;
+  }
+  .nt-community-message{
+    width:100%!important;
+    max-width:none!important;
+    grid-template-columns:36px minmax(0,1fr)!important;
+    gap:8px!important;
+    margin:0 0 5px!important;
+    padding:8px!important;
+    border-radius:10px!important;
+  }
+  .nt-community-avatar{width:36px!important;height:36px!important;font-size:10px!important}
+  .nt-community-message-body>header{min-height:24px!important;gap:5px!important;flex-wrap:wrap!important}
+  .nt-community-message-body>header>b{font-size:12px!important}
+  .nt-community-message-body>header>b em{font-size:7px!important}
+  .nt-community-message-body>header>small{font-size:9px!important}
+  .nt-community-message-body>header>div{margin-left:auto!important;gap:2px!important;opacity:1!important}
+  .nt-community-message-body>header button{
+    width:28px!important;min-width:28px!important;height:28px!important;min-height:28px!important;padding:6px!important
+  }
+  .nt-community-message-body>header svg{width:13px!important;height:13px!important}
+  .nt-community-markdown{font-size:13px!important;line-height:1.55!important}
+  .nt-community-message-body blockquote{padding:6px 8px!important;gap:5px!important}
+  .nt-community-message-body blockquote b,.nt-community-message-body blockquote span{font-size:10px!important}
+  .nt-community-reactions{margin-top:6px!important;gap:4px!important}
+  .nt-community-reactions button{min-width:30px!important;height:25px!important;min-height:25px!important;font-size:11px!important}
+
+  .nt-community-typing{width:calc(100% - 16px)!important;min-height:18px!important;font-size:10px!important;padding-bottom:2px!important}
+  .nt-community-reply{width:calc(100% - 12px)!important;margin-bottom:4px!important;padding:7px 8px!important}
+  .nt-community-reply b,.nt-community-reply small{font-size:10px!important}
+  .nt-community-composer{
+    width:calc(100% - 10px)!important;
+    height:56px!important;
+    margin:0 auto 4px!important;
+    padding:6px!important;
+    gap:5px!important;
+    grid-template-columns:30px minmax(0,1fr) 38px!important;
+    border-radius:13px!important;
+  }
+  .nt-community-composer:has(.nt-community-attach){grid-template-columns:30px 36px minmax(0,1fr) 38px!important}
+  .nt-community-composer-channel{width:30px!important;height:30px!important;font-size:13px!important}
+  body.mt-enabled .nt-community-composer textarea{
+    height:40px!important;min-height:40px!important;max-height:110px!important;padding:9px 8px!important;font-size:13px!important;line-height:1.4!important
+  }
+  body.mt-enabled .nt-community-composer>button{height:38px!important;min-height:38px!important;width:38px!important;min-width:38px!important;padding:8px!important}
+  body.mt-enabled .nt-community-attach{width:36px!important;min-width:36px!important;height:38px!important;min-height:38px!important;padding:8px!important}
+
+  /* Shared resources inside messages */
+  body.mt-enabled .nt-community-attachment{
+    width:100%!important;
+    max-width:100%!important;
+    grid-template-columns:88px minmax(0,1fr)!important;
+    gap:8px!important;
+    padding:7px!important;
+  }
+  body.mt-enabled .nt-community-attachment button.nt-community-attachment-media{
+    width:88px!important;min-width:88px!important;height:112px!important;min-height:112px!important;max-height:112px!important
+  }
+  body.mt-enabled .nt-community-attachment-body{min-width:0!important;min-height:112px!important}
+  body.mt-enabled .nt-community-attachment button.nt-community-attachment-main{padding:7px 8px!important}
+  body.mt-enabled .nt-community-attachment .nt-community-attachment-copy small{font-size:9px!important}
+  body.mt-enabled .nt-community-attachment .nt-community-attachment-copy b{font-size:13px!important;white-space:normal!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
+  body.mt-enabled .nt-community-attachment .nt-community-attachment-copy>span{font-size:9px!important}
+  body.mt-enabled .nt-community-attachment-actions{gap:4px!important;justify-content:flex-start!important;flex-wrap:wrap!important;padding:5px 7px!important}
+  body.mt-enabled .nt-community-attachment-actions button{height:30px!important;min-height:30px!important;padding:0 8px!important;font-size:9px!important}
+  body.mt-enabled .nt-community-attachment.is-lorebook button.nt-community-attachment-media{height:88px!important;min-height:88px!important;max-height:88px!important}
+  body.mt-enabled .nt-community-attachment.is-lorebook .nt-community-attachment-body{min-height:88px!important}
+
+  /* Profile / moderation overlays */
+  .nt-community-overlay{padding:6px!important}
+  .nt-community-profile-card,.nt-community-moderation-card{width:100%!important;max-height:100%!important;border-radius:12px!important}
+  .nt-community-profile-hero{padding:13px!important;gap:11px!important}
+  .nt-community-profile-avatar{width:58px!important;height:58px!important;min-width:58px!important}
+  .nt-community-profile-card form{padding:12px!important}
+}
+
+@media (max-width:420px){
+  #nt-community-panel .nt-community-shell{left:58px!important}
+  body.mt-nav-hidden #nt-community-panel .nt-community-shell{left:0!important}
+  .nt-community-header>div:first-child>span{display:none!important}
+  .nt-community-header>div:first-child b{font-size:12px!important}
+  body.mt-enabled .nt-community-header-actions>.nt-community-user-pill,
+  body.mt-enabled .nt-community-header-actions>button:not([data-nt-community-profile-self]){
+    width:30px!important;min-width:30px!important;max-width:30px!important;height:30px!important;min-height:30px!important;flex-basis:30px!important;padding:6px!important
+  }
+  .nt-community-message{grid-template-columns:32px minmax(0,1fr)!important;gap:7px!important;padding:7px 5px!important}
+  .nt-community-avatar{width:32px!important;height:32px!important}
+  .nt-community-message-body>header>b{font-size:11px!important}
+  .nt-community-markdown{font-size:12.5px!important}
+  body.mt-enabled .nt-community-attachment{grid-template-columns:78px minmax(0,1fr)!important}
+  body.mt-enabled .nt-community-attachment button.nt-community-attachment-media{width:78px!important;min-width:78px!important;height:102px!important;min-height:102px!important;max-height:102px!important}
+  body.mt-enabled .nt-community-attachment-body{min-height:102px!important}
+}
+
+/* Phone landscape: never restore the desktop 3-column workspace. */
+@media (orientation:landscape) and (max-height:650px) and (max-width:1100px){
+  #nt-community-panel .nt-community-shell{
+    top:0!important;bottom:0!important;right:0!important;left:64px!important;border-radius:0!important;border-right:0!important;border-bottom:0!important
+  }
+  body.mt-nav-hidden #nt-community-panel .nt-community-shell{left:0!important}
+  body.mt-focus-mode #nt-community-panel .nt-community-shell{left:0!important}
+  .nt-community-header{height:44px!important;min-height:44px!important;padding:0 7px 0 9px!important}
+  .nt-community-header>div:first-child>span{width:28px!important;height:28px!important;min-width:28px!important}
+  .nt-community-header>div:first-child small{display:none!important}
+  .nt-community-header>div:first-child b{font-size:12px!important}
+  .nt-community-header-actions{gap:3px!important;padding:2px!important;max-width:none!important}
+  body.mt-enabled .nt-community-header-actions>.nt-community-user-pill,
+  body.mt-enabled .nt-community-header-actions>button:not([data-nt-community-profile-self]){
+    width:30px!important;min-width:30px!important;max-width:30px!important;height:30px!important;min-height:30px!important;flex:0 0 30px!important;padding:6px!important
+  }
+  .nt-community-header-actions [data-nt-community-profile-self]>b,
+  .nt-community-header-actions [data-nt-community-profile-self]>em{display:none!important}
+  .nt-community-workspace{display:block!important;position:relative!important;overflow:hidden!important}
+  .nt-community-members{display:none!important}
+  .nt-community-channels{
+    display:block!important;position:absolute!important;z-index:20!important;inset:0 auto 0 0!important;width:min(270px,58vw)!important;padding:7px!important;
+    transform:translateX(-104%)!important;transition:transform .18s ease!important;background:color-mix(in srgb,var(--mt-bg-2) 98%,black)!important;
+    border-right:1px solid var(--mt-border-strong)!important;box-shadow:18px 0 40px rgba(0,0,0,.42)!important;overflow-y:auto!important
+  }
+  #nt-community-panel.show-channels .nt-community-channels{transform:none!important}
+  body.mt-enabled .nt-community-channel{min-height:48px!important;padding:6px 8px!important;grid-template-columns:28px minmax(0,1fr) auto 13px!important}
+  .nt-community-channel>div>b{font-size:11px!important}.nt-community-channel>div>small{display:block!important;font-size:9px!important}
+  .nt-community-main{height:100%!important;grid-template-rows:44px minmax(0,1fr) 16px auto 52px!important}
+  .nt-community-room-header{min-height:44px!important;padding:0 8px!important}
+  .nt-community-room-header b{font-size:12px!important}.nt-community-room-header small{display:none!important}
+  .nt-community-room-meta>span{display:none!important}.nt-community-room-meta>button{display:grid!important;width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important;padding:7px!important}
+  .nt-community-messages{padding:6px 8px 10px!important}
+  .nt-community-message{grid-template-columns:32px minmax(0,1fr)!important;gap:7px!important;padding:5px 7px!important;margin-bottom:3px!important}
+  .nt-community-avatar{width:32px!important;height:32px!important}
+  .nt-community-message-body>header>b{font-size:11px!important}.nt-community-message-body>header>small{font-size:8px!important}.nt-community-markdown{font-size:12px!important;line-height:1.45!important}
+  .nt-community-composer{width:calc(100% - 10px)!important;height:48px!important;margin-bottom:2px!important;padding:4px 5px!important;grid-template-columns:28px minmax(0,1fr) 34px!important}
+  .nt-community-composer:has(.nt-community-attach){grid-template-columns:28px 32px minmax(0,1fr) 34px!important}
+  .nt-community-composer-channel{width:28px!important;height:28px!important;font-size:12px!important}
+  body.mt-enabled .nt-community-composer textarea{height:36px!important;min-height:36px!important;padding:7px 8px!important;font-size:12px!important}
+  body.mt-enabled .nt-community-composer>button{width:34px!important;min-width:34px!important;height:34px!important;min-height:34px!important;padding:7px!important}
+  body.mt-enabled .nt-community-attach{width:32px!important;min-width:32px!important;height:34px!important;min-height:34px!important;padding:7px!important}
+  .nt-community-search-panel{top:44px!important;right:6px!important;width:min(430px,calc(100% - 12px))!important;max-height:72%!important}
+}
+
+/* Resource detail sheet — phone-first layout */
+@media (max-width:780px){
+  #nt-community-resource-modal{
+    padding:6px!important;
+    align-items:stretch!important;
+    justify-items:stretch!important;
+  }
+  .nt-resource-modal-card{
+    width:100%!important;
+    height:calc(100dvh - 12px)!important;
+    max-height:calc(100dvh - 12px)!important;
+    min-height:0!important;
+    grid-template-rows:auto auto minmax(0,1fr) auto!important;
+    border-radius:14px!important;
+  }
+  .nt-resource-modal-header{padding:10px 10px 9px!important;gap:8px!important}
+  .nt-resource-modal-header>div{gap:8px!important;min-width:0!important}
+  .nt-resource-modal-header>div>span{width:32px!important;height:32px!important;min-width:32px!important;border-radius:9px!important}
+  .nt-resource-modal-header>div>span svg{width:17px!important;height:17px!important}
+  .nt-resource-modal-header small{font-size:8px!important}
+  .nt-resource-modal-header h2{font-size:15px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  body.mt-enabled .nt-resource-modal-header>button{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important}
+  .nt-resource-modal-meta{min-height:32px!important;padding:6px 11px!important;gap:6px!important;font-size:9px!important;overflow-x:auto!important;flex-wrap:nowrap!important;white-space:nowrap!important}
+  .nt-resource-modal-meta::-webkit-scrollbar{display:none}
+  .nt-resource-modal-content{
+    min-height:0!important;
+    grid-template-columns:1fr!important;
+    align-content:start!important;
+    gap:10px!important;
+    padding:10px!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+  }
+  .nt-resource-modal-cover{
+    position:relative!important;
+    top:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    width:100%!important;
+    padding:8px!important;
+    gap:6px!important;
+    border-radius:12px!important;
+  }
+  .nt-resource-modal-cover img{
+    width:100%!important;
+    height:auto!important;
+    max-height:34dvh!important;
+    object-fit:contain!important;
+    border-radius:9px!important;
+  }
+  .nt-resource-modal-cover>small{padding:0 4px 2px!important;font-size:9px!important}
+  .nt-resource-modal-content>main{gap:9px!important}
+  .nt-resource-info-tags{gap:5px!important}
+  .nt-resource-info-tags span,.nt-resource-info-keyline div span{min-height:22px!important;padding:2px 7px!important;font-size:9px!important}
+  .nt-resource-info-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+  .nt-resource-info-stats>div{padding:8px 9px!important;border-radius:9px!important}
+  .nt-resource-info-stats small{font-size:8px!important}.nt-resource-info-stats b{font-size:10px!important}
+  .nt-resource-info-section{padding:10px!important;border-radius:10px!important}
+  .nt-resource-info-section h4{margin-bottom:6px!important;font-size:11px!important}
+  .nt-resource-info-text{font-size:11px!important;line-height:1.5!important}
+  .nt-resource-info-greetings summary,.nt-resource-info-technical>summary,.nt-resource-info-advanced>summary{padding:9px!important;font-size:10px!important}
+  .nt-resource-info-entry>summary{padding:9px!important;gap:7px!important}
+  .nt-resource-info-entry>summary b{font-size:10.5px!important;white-space:normal!important}
+  .nt-resource-info-entry>summary small{font-size:8px!important}
+  .nt-resource-info-entry-body{padding:9px!important;gap:8px!important}
+  .nt-resource-info-keyline{grid-template-columns:1fr!important;gap:4px!important}
+  .nt-resource-info-keyline>small{padding-top:0!important;font-size:8px!important}
+  .nt-resource-info-technical>pre,.nt-resource-info-advanced>pre{max-height:220px!important;padding:9px!important;font-size:9px!important}
+  .nt-resource-modal-card>footer{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:6px!important;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px))!important;
+    background:color-mix(in srgb,var(--mt-bg-2) 96%,black)!important;
+  }
+  body.mt-enabled .nt-resource-modal-card>footer button{
+    width:100%!important;
+    min-width:0!important;
+    height:42px!important;
+    min-height:42px!important;
+    padding:0 8px!important;
+    justify-content:center!important;
+    font-size:10px!important;
+    white-space:normal!important;
+    line-height:1.15!important;
+  }
+}
+
+@media (max-width:420px){
+  .nt-resource-modal-card>footer{grid-template-columns:1fr!important}
+  .nt-resource-modal-cover img{max-height:31dvh!important}
+  .nt-resource-info-stats{grid-template-columns:1fr 1fr!important}
+}
+
+@media (orientation:landscape) and (max-height:650px) and (max-width:1100px){
+  #nt-community-resource-modal{padding:4px!important}
+  .nt-resource-modal-card{height:calc(100dvh - 8px)!important;max-height:calc(100dvh - 8px)!important;border-radius:10px!important}
+  .nt-resource-modal-header{padding:7px 9px!important}.nt-resource-modal-meta{padding:4px 10px!important;min-height:27px!important}
+  .nt-resource-modal-content{grid-template-columns:minmax(150px,26vw) minmax(0,1fr)!important;gap:9px!important;padding:8px!important}
+  .nt-resource-modal-cover{position:sticky!important;top:0!important;padding:6px!important}
+  .nt-resource-modal-cover img{max-height:calc(100dvh - 150px)!important}
+  .nt-resource-modal-card>footer{display:flex!important;justify-content:flex-end!important;padding:6px 9px!important}
+  body.mt-enabled .nt-resource-modal-card>footer button{width:auto!important;min-width:130px!important;height:36px!important;min-height:36px!important}
+}
+
+
+/* v0.1.2 — Community mobile drawer opacity + resource detail sheet stacking fix */
+@media (max-width:780px){
+  .nt-community-channels{
+    background:rgba(9, 12, 20, 0.97)!important;
+    backdrop-filter:blur(14px)!important;
+    -webkit-backdrop-filter:blur(14px)!important;
+    border-right:1px solid color-mix(in srgb,var(--mt-border-strong) 88%, rgba(255,255,255,.08))!important;
+    box-shadow:20px 0 48px rgba(0,0,0,.62)!important;
+  }
+
+  #nt-community-resource-modal{
+    padding:6px!important;
+  }
+  .nt-resource-modal-card{
+    width:100%!important;
+    height:calc(100dvh - 12px)!important;
+    max-height:calc(100dvh - 12px)!important;
+    min-height:0!important;
+    display:grid!important;
+    grid-template-rows:auto auto minmax(0,1fr) auto!important;
+    overflow:hidden!important;
+  }
+  .nt-resource-modal-content{
+    min-height:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:12px!important;
+    padding:10px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+  }
+  .nt-resource-modal-cover{
+    position:relative!important;
+    top:auto!important;
+    align-self:stretch!important;
+    flex:0 0 auto!important;
+    width:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    padding:10px!important;
+    gap:8px!important;
+    border-radius:12px!important;
+    overflow:hidden!important;
+  }
+  .nt-resource-modal-cover img{
+    display:block!important;
+    width:100%!important;
+    height:auto!important;
+    max-height:34dvh!important;
+    object-fit:contain!important;
+    position:relative!important;
+    z-index:0!important;
+    margin:0 auto!important;
+    border-radius:10px!important;
+    background:rgba(0,0,0,.22)!important;
+  }
+  .nt-resource-modal-cover > span{
+    position:relative!important;
+    z-index:0!important;
+  }
+  .nt-resource-modal-cover > small{
+    width:100%!important;
+    display:block!important;
+    position:relative!important;
+    z-index:0!important;
+    padding:0 2px 0!important;
+    text-align:center!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  .nt-resource-modal-content > main{
+    min-width:0!important;
+    min-height:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    gap:10px!important;
+    position:relative!important;
+    z-index:1!important;
+  }
+  .nt-resource-info-section,
+  .nt-resource-info-entry-section,
+  .nt-resource-info-loading,
+  .nt-resource-info-error,
+  .nt-resource-info-technical,
+  .nt-resource-info-advanced,
+  .nt-resource-info-greetings details,
+  .nt-resource-info-entry{
+    position:relative!important;
+    z-index:1!important;
+  }
+}
+
+@media (max-width:420px){
+  .nt-resource-modal-cover img{
+    max-height:30dvh!important;
+  }
+}
+
+/* v0.1.2 — final phone landscape guard: keep resource cover above content */
+@media (orientation:landscape) and (max-height:650px) and (max-width:1100px){
+  .nt-community-channels{
+    background:rgba(9,12,20,.995)!important;
+    backdrop-filter:blur(16px)!important;
+    -webkit-backdrop-filter:blur(16px)!important;
+    border-right:1px solid color-mix(in srgb,var(--mt-border-strong) 92%,rgba(255,255,255,.1))!important;
+    box-shadow:22px 0 52px rgba(0,0,0,.7)!important;
+  }
+
+  #nt-community-resource-modal{padding:4px!important}
+  .nt-resource-modal-card{
+    height:calc(100dvh - 8px)!important;
+    max-height:calc(100dvh - 8px)!important;
+    grid-template-rows:auto auto minmax(0,1fr) auto!important;
+    overflow:hidden!important;
+  }
+  .nt-resource-modal-content{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    grid-template-columns:none!important;
+    gap:10px!important;
+    padding:8px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+  }
+  .nt-resource-modal-cover{
+    position:relative!important;
+    top:auto!important;
+    align-self:stretch!important;
+    flex:0 0 auto!important;
+    width:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    padding:8px!important;
+    overflow:hidden!important;
+  }
+  .nt-resource-modal-cover img{
+    display:block!important;
+    width:100%!important;
+    height:auto!important;
+    max-height:42dvh!important;
+    object-fit:contain!important;
+    position:relative!important;
+    inset:auto!important;
+    transform:none!important;
+    margin:0 auto!important;
+  }
+  .nt-resource-modal-content>main{
+    width:100%!important;
+    min-width:0!important;
+    position:relative!important;
+    z-index:1!important;
+  }
+  .nt-resource-modal-card>footer{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:6px!important;
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))!important;
+  }
+  body.mt-enabled .nt-resource-modal-card>footer button{
+    width:100%!important;
+    min-width:0!important;
+    height:38px!important;
+    min-height:38px!important;
+  }
+}
+
+/* The channel drawer should remain visually separate on every phone layout. */
+@media (max-width:1100px) and (max-height:900px){
+  #nt-community-panel .nt-community-channels{
+    background:rgba(9,12,20,.995)!important;
+    backdrop-filter:blur(16px)!important;
+    -webkit-backdrop-filter:blur(16px)!important;
+    box-shadow:22px 0 52px rgba(0,0,0,.7)!important;
+  }
+}

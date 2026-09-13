@@ -1844,7 +1844,10 @@ export class CommunityChat {
         const searchHit = event.target.closest('[data-nt-search-message]');
         if (searchHit) { const el=this.root?.querySelector(`[data-nt-community-message="${searchHit.dataset.ntSearchMessage}"]`); if(el){this.searchOpen=false;this.renderWorkspace();requestAnimationFrame(()=>this.root?.querySelector(`[data-nt-community-message="${searchHit.dataset.ntSearchMessage}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}));} return; }
         const channel = event.target.closest('[data-nt-community-channel]');
-        if (channel) return this.selectChannel(channel.dataset.ntCommunityChannel);
+        if (channel) {
+            this.root?.classList.remove('show-channels');
+            return this.selectChannel(channel.dataset.ntCommunityChannel);
+        }
         if (event.target.closest('[data-nt-community-cancel-reply]')) { this.replyTo = null; return this.updateDynamicAreas(); }
         if (event.target.closest('[data-nt-community-attach]')) return this.root?.querySelector('[data-nt-community-share-file]')?.click();
         const resourceInfo = event.target.closest('[data-nt-resource-info]');
