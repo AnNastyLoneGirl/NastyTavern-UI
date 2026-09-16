@@ -373,14 +373,16 @@ export class CatalogueModal {
         if (!client || !this.user) return;
         if (this.realtimeSubscription && !force) return;
         if (force) this.unsubscribeRealtime();
-        const channel = client.channel(`nt-catalogue:live:${this.user.id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_items' }, payload => this.handleRealtimeItemChange(payload))
+        let channel = client.channel(`nt-catalogue:live:${this.user.id}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_rejections', filter: `owner_id=eq.${this.user.id}` }, payload => this.handleRealtimeRejectionChange(payload))
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_reports' }, () => this.handleRealtimeReportChange())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_audit_log' }, () => { if (this.isModerator && this.state.section === 'audit') void this.loadAudit({ silent: true }); })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_collections' }, () => this.handleRealtimeCollectionChange())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_collection_items' }, () => this.handleRealtimeCollectionChange())
-            .subscribe(status => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_collection_items' }, () => this.handleRealtimeCollectionChange());
+
+        // Catalogue item/review/report/audit rows are intentionally not subscribed
+        // through Realtime: those tables contain moderation-private columns. The UI
+        // reads them only through role-checked RPCs and explicit refreshes.
+
+        channel = channel.subscribe(status => {
                 if (status === 'SUBSCRIBED') {
                     const wasDisconnected = !this.realtimeConnected;
                     this.realtimeConnected = true;
@@ -1054,7 +1056,7 @@ export class CatalogueModal {
 
     async loadReports({ silent=false }={}) {
         if(!this.isModerator) return this.applySection('discover'); if(!silent)this.renderLoading();
-        try { const client=this.client||await this.community.makeClient(); const {data,error}=await client.rpc('nt_catalog_report_queue',{p_limit:this.state.limit,p_offset:this.state.offset}); if(error)throw error; const rows=data||[]; const ids=rows.map(r=>r.item_id); let itemMap=new Map(); if(ids.length){const q=await client.from('nt_catalog_items').select('*').in('id',ids); if(q.error)throw q.error; itemMap=new Map((q.data||[]).map(i=>[i.id,i]));} this.reportRows=rows.map(r=>({...r,item:itemMap.get(r.item_id)||null})); this.items=this.reportRows.map(r=>r.item).filter(Boolean); this.total=Number(rows[0]?.total_count||0); await this.loadPreviewUrlsFor(this.items); this.renderReports(); } catch(error){this.renderError(error);}
+        try { const client=this.client||await this.community.makeClient(); const {data,error}=await client.rpc('nt_catalog_report_queue',{p_limit:this.state.limit,p_offset:this.state.offset}); if(error)throw error; const rows=data||[]; const ids=rows.map(r=>r.item_id).filter(Boolean); let itemMap=new Map(); if(ids.length){const q=await client.rpc('nt_catalog_moderator_items',{p_ids:ids}); if(q.error)throw q.error; itemMap=new Map((q.data||[]).map(i=>[i.id,i]));} this.reportRows=rows.map(r=>({...r,item:itemMap.get(r.item_id)||null})); this.items=this.reportRows.map(r=>r.item).filter(Boolean); this.total=Number(rows[0]?.total_count||0); await this.loadPreviewUrlsFor(this.items); this.renderReports(); } catch(error){this.renderError(error);}
     }
 
     reportReasonLabel(reason){ return ({wrong_rating:t('Wrong SFW / NSFW category'),stolen_copy:t('Stolen or copied resource'),misleading:t('Misleading metadata'),prohibited:t('Prohibited content'),other:t('Other')})[String(reason||'')]||t('Other'); }
@@ -1075,7 +1077,7 @@ export class CatalogueModal {
 
     async logModerationAction(action,item,details={}){if(!this.isModerator||!item)return; try{const client=this.client||await this.community.makeClient(); await client.rpc('nt_catalog_log_moderation_action',{p_action:action,p_item:item.id||null,p_nt_uuid:item.nt_uuid||null,p_title:item.title||'',p_details:details||{}});}catch(_){} }
 
-    async openItemById(id){if(!id)return; try{const client=this.client||await this.community.makeClient(); const {data,error}=await client.from('nt_catalog_items').select('*').eq('id',id).maybeSingle(); if(error)throw error; if(!data)throw new Error(t('Catalogue item not found.')); await this.loadPreviewUrlsFor([data]); return this.openItemDetails(data,this.root?.querySelector(`[data-nt-catalogue-item="${id}"]`)||null);}catch(error){this.toast?.(error?.message||String(error));}}
+    async openItemById(id){if(!this.isModerator||!id)return; try{const client=this.client||await this.community.makeClient(); const {data,error}=await client.rpc('nt_catalog_moderator_items',{p_ids:[id]}); if(error)throw error; const item=Array.isArray(data)?data[0]:null; if(!item)throw new Error(t('Catalogue item not found.')); await this.loadPreviewUrlsFor([item]); return this.openItemDetails(item,this.root?.querySelector(`[data-nt-catalogue-item="${id}"]`)||null);}catch(error){this.toast?.(error?.message||String(error));}}
 
     renderLoading() {
         const content = this.root?.querySelector('[data-nt-catalogue-content]');
@@ -1760,13 +1762,9 @@ export class CatalogueModal {
         if (!item?.id) throw new Error(t('Catalogue item not found.'));
         const client = this.client || await this.community?.makeClient?.();
         if (!client) throw new Error(t('Community connection unavailable.'));
-        const { data, error } = await client
-            .from('nt_catalog_items')
-            .select('resource_payload')
-            .eq('id', item.id)
-            .maybeSingle();
+        const { data, error } = await client.rpc('nt_catalog_item_payload', { p_item: item.id });
         if (error) throw error;
-        const resource = data?.resource_payload;
+        const resource = data;
         if (resource && typeof resource === 'object' && Object.keys(resource).length) return resource;
 
         // Legacy fallback only: newer catalogue entries keep their metadata in Supabase,
@@ -1861,16 +1859,18 @@ export class CatalogueModal {
         if (this.client) {
             const ids = versions.map(version => version.id).filter(Boolean);
             if (ids.length) {
-                const [{ data: ratingRows }, { data: moderationRows }] = await Promise.all([
-                    this.client.from('nt_catalog_ratings').select('item_id,rating').in('item_id', ids),
-                    this.client.from('nt_catalog_items').select('id,moderation_status,declared_content_rating,content_rating,moderation_note,submitted_at,copy_risk_score,copy_source_item').in('id', ids),
-                ]);
+                const { data: ratingRows } = await this.client.from('nt_catalog_ratings').select('item_id,rating').in('item_id', ids);
                 const ratings = new Map((ratingRows || []).map(row => [row.item_id, Number(row.rating || 0)]));
-                const moderation = new Map((moderationRows || []).map(row => [row.id, row]));
-                versions.forEach(version => {
-                    version.my_rating = ratings.get(version.id) || 0;
-                    if (moderation.has(version.id)) Object.assign(version, moderation.get(version.id));
-                });
+                versions.forEach(version => { version.my_rating = ratings.get(version.id) || 0; });
+
+                // Internal moderation metadata is never requested for Member/VIP.
+                if (this.isModerator) {
+                    const { data: moderationRows } = await this.client.rpc('nt_catalog_moderator_items', { p_ids: ids });
+                    const moderation = new Map((moderationRows || []).map(row => [row.id, row]));
+                    versions.forEach(version => {
+                        if (moderation.has(version.id)) Object.assign(version, moderation.get(version.id));
+                    });
+                }
             }
         }
         return versions;
