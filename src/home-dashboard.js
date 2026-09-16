@@ -1,27 +1,57 @@
 import { icons } from './icons.js';
 import { t } from './i18n.js';
+import { getContextSafe as ctx, escapeHtml } from './utils.js';
+import { starsHtml } from './ui-templates.js';
 
 const HERO_IMAGE = new URL('../assets/home-hero.webp', import.meta.url).href;
 
-const ctx = () => {
-    try { return window.SillyTavern?.getContext?.() || null; } catch (_) { return null; }
-};
-
-const escapeHtml = value => String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
 
 const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
-const formatBytes = size => { const n = Number(size || 0); if (!Number.isFinite(n) || n <= 0) return '0 B'; if (n < 1024) return `${n} B`; if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`; return `${(n / 1024 / 1024).toFixed(1)} MB`; };
 const isFavorite = value => value === true || value === 1 || ['1', 'true', 'yes', 'on'].includes(String(value ?? '').toLowerCase());
 const timestamp = value => {
     if (value === undefined || value === null || value === '') return 0;
     if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
     const parsed = Date.parse(value);
     return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeTimestamp = value => {
+    const raw = timestamp(value);
+    if (!raw) return 0;
+    return raw > 0 && raw < 1e11 ? raw * 1000 : raw;
+};
+
+const relativeTime = value => {
+    const ms = normalizeTimestamp(value);
+    if (!ms) return '';
+    const diff = ms - Date.now();
+    const abs = Math.abs(diff);
+    const units = abs < 60_000
+        ? ['second', 1_000]
+        : abs < 3_600_000
+            ? ['minute', 60_000]
+            : abs < 86_400_000
+                ? ['hour', 3_600_000]
+                : abs < 2_592_000_000
+                    ? ['day', 86_400_000]
+                    : ['month', 2_592_000_000];
+    try {
+        return new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'narrow' }).format(Math.round(diff / units[1]), units[0]);
+    } catch (_) {
+        return '';
+    }
+};
+
+const compactNumber = value => {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0) return '0';
+    try { return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(n); }
+    catch (_) { return String(Math.round(n)); }
+};
+
+const renderRatingStars = value => {
+    const average = Number(value || 0);
+    return `<span class="nt-home-shared-rating-stars" aria-label="${escapeHtml(`${average ? average.toFixed(2) : '0.00'} / 5`)}">${starsHtml(average)}</span>`;
 };
 
 export class HomeDashboard {
@@ -31,12 +61,20 @@ export class HomeDashboard {
         this.getCommunitySnapshot = options.getCommunitySnapshot || (() => ({ ready:false, signedIn:false, online:0, messages:[], characterCards:[], lorebooks:[], mentions:0 }));
         this.openCommunity = options.openCommunity || (() => {});
         this.openCommunityResource = options.openCommunityResource || (() => {});
+        this.openCatalogue = options.openCatalogue || (() => {});
+        this.openCreateCharacter = options.openCreateCharacter || null;
         this.root = null;
         this.active = false;
         this.lastSignature = '';
         this.lastCommunitySignature = '';
+        this.lastResourceSignature = '';
         this.recentNodes = [];
+        this.collectionTab = 'favorites';
+        this.collectionTrack = null;
+        this.collectionResizeObserver = null;
         this.boundClick = event => this.onClick(event);
+        this.boundResize = () => this.updateCollectionScroller();
+        this.boundCollectionScroll = () => this.updateCollectionScrollState();
     }
 
     mount() {
@@ -48,6 +86,7 @@ export class HomeDashboard {
             root.hidden = true;
             root.setAttribute('aria-label', t('NastyTavern Home'));
             root.addEventListener('click', this.boundClick);
+            window.addEventListener('resize', this.boundResize, { passive: true });
             document.body.append(root);
             this.root = root;
         }
@@ -56,13 +95,27 @@ export class HomeDashboard {
 
     unmount() {
         this.root?.removeEventListener('click', this.boundClick);
+        window.removeEventListener('resize', this.boundResize);
+        if (this.collectionTrack) this.collectionTrack.removeEventListener('scroll', this.boundCollectionScroll);
+        this.collectionResizeObserver?.disconnect();
+        this.collectionResizeObserver = null;
+        this.collectionTrack = null;
         this.root?.remove();
         this.root = null;
         this.active = false;
         this.lastSignature = '';
         this.lastCommunitySignature = '';
+        this.lastResourceSignature = '';
         this.recentNodes = [];
         document.body?.classList.remove('nt-home-active');
+        this.setShellHomeHeader(false);
+    }
+
+    setShellHomeHeader(enabled) {
+        const shell = document.querySelector('#mt-root');
+        if (!shell || document.body?.dataset?.mtView !== 'chat') return;
+        const title = shell.querySelector('[data-mt-title]');
+        if (title) title.textContent = enabled ? t('Home') : t('Chat');
     }
 
     isNoChat() {
@@ -97,21 +150,24 @@ export class HomeDashboard {
                 this.root.hidden = true;
                 document.body?.classList.remove('nt-home-active');
             }
+            this.setShellHomeHeader(false);
             return;
         }
 
         this.active = true;
         this.root.hidden = false;
         document.body?.classList.add('nt-home-active');
+        this.setShellHomeHeader(true);
 
         const characters = this.getCharacters();
         const recent = this.getRecentCharacters(characters);
         const favorites = this.getFavoriteCharacters(characters);
         const community = this.getCommunitySnapshot?.() || { ready:false, signedIn:false, online:0, messages:[], characterCards:[], lorebooks:[], mentions:0 };
         const signature = JSON.stringify({
-            recent: recent.map(item => [item.characterIndex, item.file, item.avatar, item.title, item.preview, item.meta]),
+            recent: recent.map(item => [item.characterIndex, item.file, item.avatar, item.title, item.preview, item.meta, item.character?.date_last_chat]),
             favorites: favorites.map(item => [item.characterIndex, item.avatar, item.title]),
             characterCount: characters.length,
+            collectionTab: this.collectionTab,
             version: this.getVersion(),
         });
         const communitySignature = JSON.stringify([
@@ -120,8 +176,13 @@ export class HomeDashboard {
             community.online,
             community.mentions,
             ...(community.messages || []).map(m => [m.id, m.channel_slug, m.content, m.created_at, m.profile?.username, m.profile?.avatar_url]),
-            ...(community.characterCards || []).map(m => [m.id, m.metadata?.display_name, m.metadata?.name, m.metadata?.size, m.metadata?.path, m.profile?.username]),
-            ...(community.lorebooks || []).map(m => [m.id, m.metadata?.display_name, m.metadata?.name, m.metadata?.size, m.metadata?.path, m.profile?.username]),
+            ...(community.characterCards || []).map(m => [m.id, m.metadata?.display_name, m.metadata?.name, m.metadata?.size, m.metadata?.path, m.metadata?.downloads, m.metadata?.download_count, m.metadata?.rating, m.download_count, m.rating, m.rating_count, m.preview_url, m.profile?.username]),
+            ...(community.lorebooks || []).map(m => [m.id, m.metadata?.display_name, m.metadata?.name, m.metadata?.size, m.metadata?.path, m.metadata?.downloads, m.metadata?.download_count, m.metadata?.rating, m.download_count, m.rating, m.rating_count, m.preview_url, m.profile?.username]),
+        ]);
+        const resourceSignature = JSON.stringify([
+            community.signedIn,
+            ...(community.characterCards || []).map(m => [m.id, m.metadata?.display_name, m.metadata?.name, m.metadata?.size, m.metadata?.path, m.metadata?.downloads, m.metadata?.download_count, m.metadata?.rating, m.download_count, m.rating, m.rating_count, m.profile?.username]),
+            ...(community.lorebooks || []).map(m => [m.id, m.metadata?.display_name, m.metadata?.name, m.metadata?.size, m.metadata?.path, m.metadata?.downloads, m.metadata?.download_count, m.metadata?.rating, m.download_count, m.rating, m.rating_count, m.profile?.username]),
         ]);
 
         // Realtime Community updates are frequent. Re-rendering the entire Home page here
@@ -129,14 +190,17 @@ export class HomeDashboard {
         // Community changed, update that widget in place and leave the rest of Home alone.
         if (signature === this.lastSignature) {
             if (communitySignature !== this.lastCommunitySignature) {
+                const resourcesChanged = resourceSignature !== this.lastResourceSignature;
                 this.lastCommunitySignature = communitySignature;
-                this.updateCommunityWidget(community);
+                this.lastResourceSignature = resourceSignature;
+                this.updateCommunityWidget(community, { resourcesChanged });
             }
             return;
         }
 
         this.lastSignature = signature;
         this.lastCommunitySignature = communitySignature;
+        this.lastResourceSignature = resourceSignature;
         this.render({ characters, recent, favorites, community });
     }
 
@@ -229,7 +293,21 @@ export class HomeDashboard {
             });
         }
 
-        return recent.slice(0, 12);
+        return recent
+            .sort((a, b) => {
+                const lastUsedDiff = timestamp(b.character?.date_last_chat) - timestamp(a.character?.date_last_chat);
+                if (lastUsedDiff) return lastUsedDiff;
+
+                // Preserve SillyTavern's native Recent Chats order when no reliable
+                // last-use timestamp is available for one or both entries.
+                const aNativeIndex = a.nativeIndex >= 0 ? a.nativeIndex : Number.POSITIVE_INFINITY;
+                const bNativeIndex = b.nativeIndex >= 0 ? b.nativeIndex : Number.POSITIVE_INFINITY;
+                const nativeOrderDiff = aNativeIndex - bNativeIndex;
+                if (nativeOrderDiff) return nativeOrderDiff;
+
+                return clean(a.title).localeCompare(clean(b.title));
+            })
+            .slice(0, 12);
     }
 
     getFavoriteCharacters(characterEntries) {
@@ -247,23 +325,33 @@ export class HomeDashboard {
             }));
     }
 
+    cardImage(image, fallbackIcon, title) {
+        return image
+            ? `<img class="nt-home-media-image" src="${escapeHtml(image)}" alt="" loading="lazy">`
+            : `<span class="nt-home-media-fallback" aria-hidden="true">${fallbackIcon}</span>`;
+    }
+
     recentCharacterList(recent, hasCharacters) {
         if (!hasCharacters) return this.gettingStarted();
         if (!recent.length) {
             return `<div class="nt-home-list-empty"><span>${icons.characters}</span><b>${t('No recent characters')}</b><small>${t('Open a character from your library and it will appear here.')}</small><button type="button" data-nt-home-action="characters">${t('Browse characters')}</button></div>`;
         }
 
-        this.recentNodes = recent.map(item => item.node);
-        return recent.map((item, index) => `
-          <button type="button" class="nt-home-character-row" data-nt-home-recent="${index}" data-nt-home-character="${item.characterIndex}" title="${escapeHtml(item.title)}">
-            <span class="nt-home-character-avatar">${item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : icons.characters}</span>
-            <span class="nt-home-character-copy">
-              <b>${escapeHtml(item.title)}</b>
-              <small>${escapeHtml(item.preview || t('Open the latest conversation with this character.'))}</small>
-              ${item.meta ? `<em>${escapeHtml(item.meta)}</em>` : ''}
-            </span>
-            <span class="nt-home-character-open">${icons.arrowRight}</span>
-          </button>`).join('');
+        const visible = recent.slice(0, 10);
+        this.recentNodes = visible.map(item => item.node);
+        const cards = visible.map((item, index) => {
+            const elapsed = relativeTime(item.character?.date_last_chat) || item.meta || '';
+            return `<article class="nt-home-media-card nt-home-media-card-recent">
+              ${this.cardImage(item.image, icons.characters, item.title)}
+              <button type="button" class="nt-home-media-hit" data-nt-home-recent="${index}" data-nt-home-character="${item.characterIndex}" aria-label="${escapeHtml(item.title)}"></button>
+              <div class="nt-home-media-content">
+                ${elapsed ? `<span class="nt-home-media-subline">${escapeHtml(elapsed)}</span>` : ''}
+                <b class="nt-home-media-title">${escapeHtml(item.title)}</b>
+              </div>
+            </article>`;
+        });
+        if (recent.length > 10) cards.push(this.viewAllCard('characters', icons.characters));
+        return `<div class="nt-home-card-track" data-nt-home-collection-track>${cards.join('')}</div>`;
     }
 
     gettingStarted() {
@@ -290,29 +378,38 @@ export class HomeDashboard {
               </div>`;
         }
 
-        return `
-          <div class="nt-home-favorites-track" data-nt-home-favorites-track>
-            ${favorites.map(item => `
-              <button type="button" class="nt-home-favorite-card" data-nt-home-favorite="${item.characterIndex}" title="${escapeHtml(item.title)}">
-                <span>${item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : icons.characters}</span>
-                <b>${escapeHtml(item.title)}</b>
-                <small>${t('Open character')}</small>
-              </button>`).join('')}
-          </div>`;
+        const cards = favorites.slice(0, 10).map(item => `
+          <article class="nt-home-media-card nt-home-media-card-favorite">
+            ${this.cardImage(item.image, icons.characters, item.title)}
+            <button type="button" class="nt-home-media-hit" data-nt-home-favorite="${item.characterIndex}" aria-label="${escapeHtml(item.title)}"></button>
+            <div class="nt-home-media-content">
+              <b class="nt-home-media-title">${escapeHtml(item.title)}</b>
+            </div>
+          </article>`);
+        if (favorites.length > 10) cards.push(this.viewAllCard('characters', icons.characters));
+        return `<div class="nt-home-card-track" data-nt-home-collection-track>${cards.join('')}</div>`;
+    }
+
+    viewAllCard(action, icon) {
+        return `<article class="nt-home-media-card nt-home-view-all-card">
+          ${this.cardImage('', icon, t('View all'))}
+          <button type="button" class="nt-home-media-hit" data-nt-home-action="${escapeHtml(action)}" aria-label="${escapeHtml(t('View all'))}"></button>
+          <div class="nt-home-media-content nt-home-view-all-content">
+            <b class="nt-home-media-title">${escapeHtml(t('View all'))}</b>
+          </div>
+        </article>`;
     }
 
     quickActions() {
         const actions = [
-            ['temporary', icons.chat, t('Temporary chat'), t('Start without a character')],
-            ['characters', icons.characters, t('Characters'), t('Browse your library')],
-            ['create', icons.plus, t('Create character'), t('Build a new card')],
-            ['import', icons.upload, t('Import character'), t('Add a card from a file')],
-            ['models', icons.plug, t('API Connections'), t('Configure your model')],
-            ['lorebooks', icons.lore, t('Lorebooks'), t('Manage world context')],
+            ['create', icons.characters, t('Create Character')],
+            ['import', icons.download, t('Import JSON')],
+            ['cloud', icons.cloud, t('Import Cloud')],
+            ['catalogue', icons.workspace, t('Nasty Catalogue')],
         ];
-        return actions.map(([action, icon, label, hint]) => `
+        return actions.map(([action, icon, label]) => `
           <button type="button" data-nt-home-action="${action}">
-            <span>${icon}</span><div><b>${label}</b><small>${hint}</small></div>${icons.arrowRight}
+            <span>${icon}</span><b>${label}</b>
           </button>`).join('');
     }
 
@@ -324,19 +421,35 @@ export class HomeDashboard {
     }
 
     renderSharedResources(resources, kind) {
-        const rows = Array.isArray(resources) ? resources.slice(0, 5) : [];
+        const rows = Array.isArray(resources) ? resources : [];
         const empty = kind === 'character' ? t('No Character Cards shared yet.') : t('No Lorebooks shared yet.');
         const fallbackIcon = kind === 'character' ? icons.characters : icons.lore;
         if (!rows.length) return `<div class="nt-home-resource-empty"><span>${fallbackIcon}</span><small>${empty}</small></div>`;
-        return `<div class="nt-home-resource-list">${rows.map(item => {
+        const cards = rows.slice(0, 10).map(item => {
             const meta = item.metadata || {};
             const author = item.profile?.username || t('Unknown user');
             const logicalName = String(meta.display_name || meta.name || (kind === 'character' ? t('Character Card') : t('Lorebook'))).replace(/\.(?:png|json|lorebook)$/i, '');
-            return `<button type="button" class="nt-home-resource-row" data-nt-home-resource="${escapeHtml(item.id)}" title="${escapeHtml(t('View resource details'))}: ${escapeHtml(logicalName)}"><span class="nt-home-resource-preview">${item.preview_url ? `<img src="${escapeHtml(item.preview_url)}" alt="${escapeHtml(logicalName)}">` : fallbackIcon}</span><span class="nt-home-resource-copy"><b>${escapeHtml(logicalName)}</b><small>${escapeHtml(t('Shared by {name}', { name: author }))}</small><em>${escapeHtml(formatBytes(meta.size))}</em></span>${icons.arrowRight}</button>`;
-        }).join('')}</div>`;
+            const downloads = compactNumber(meta.download_count ?? meta.downloads ?? item.download_count ?? item.downloads ?? 0);
+            const ratingRaw = Number(meta.rating ?? item.rating ?? 0);
+            const rating = Number(item.rating_count || 0) > 0 && Number.isFinite(ratingRaw) ? ratingRaw : 0;
+            return `<article class="nt-home-media-card nt-home-media-card-shared">
+              ${this.cardImage(item.preview_url, fallbackIcon, logicalName)}
+              <div class="nt-home-shared-rating">${renderRatingStars(rating)}</div>
+              <button type="button" class="nt-home-media-hit" data-nt-home-resource="${escapeHtml(item.id)}" aria-label="${escapeHtml(logicalName)}"></button>
+              <div class="nt-home-media-content">
+                <span class="nt-home-shared-downloads">${icons.download}<span>${escapeHtml(downloads)}</span></span>
+                <b class="nt-home-media-title">${escapeHtml(logicalName)}</b>
+                <span class="nt-home-media-subline">${escapeHtml(t('Shared by {name}', { name: author }))}</span>
+              </div>
+            </article>`;
+        });
+        if (rows.length > 10) {
+            cards.push(this.viewAllCard(kind === 'character' ? 'community-character-cards' : 'community-lorebooks', fallbackIcon));
+        }
+        return `<div class="nt-home-card-track" data-nt-home-collection-track>${cards.join('')}</div>`;
     }
 
-    updateCommunityWidget(community) {
+    updateCommunityWidget(community, { resourcesChanged = false } = {}) {
         if (!this.root?.isConnected) return;
         const current = this.root.querySelector('[data-nt-home-community-widget]');
         if (!current) return;
@@ -346,10 +459,19 @@ export class HomeDashboard {
         const template = document.createElement('template');
         template.innerHTML = this.renderCommunityWidget(community).trim();
         const next = template.content.firstElementChild;
-        if (!next) return;
-        current.replaceWith(next);
+        if (next) current.replaceWith(next);
 
-        // Keep the viewport perfectly stable even if message/resource rows change height.
+        if (resourcesChanged && (this.collectionTab === 'shared-characters' || this.collectionTab === 'shared-lorebooks')) {
+            const content = this.root.querySelector('[data-nt-home-collection-content]');
+            if (content) {
+                const hasCharacters = this.getCharacters().length > 0;
+                const recent = this.getRecentCharacters(this.getCharacters());
+                const favorites = this.getFavoriteCharacters(this.getCharacters());
+                content.innerHTML = this.renderCollectionContent({ favorites, recent, community, hasCharacters });
+                requestAnimationFrame(() => this.updateCollectionScroller());
+            }
+        }
+
         if (scroll) {
             scroll.scrollTop = scrollTop;
             requestAnimationFrame(() => {
@@ -360,20 +482,65 @@ export class HomeDashboard {
 
     renderCommunityWidget(community) {
         const snapshot = community || { ready:false, signedIn:false, online:0, messages:[], characterCards:[], lorebooks:[], mentions:0 };
-        return `<div class="nt-home-community-grid" data-nt-home-community-widget>
-          <section class="nt-home-section nt-home-community">
-            <header><div><span>${icons.community}</span><div><h2>${t('Community')}</h2><small>${t('Latest from General and NastyTavern')}</small></div></div><nav>${snapshot.signedIn ? `<span class="nt-home-community-online">● ${Number(snapshot.online||0)} ${t('online')}</span>${snapshot.mentions ? `<span class="nt-home-community-mentions" title="${t('Unread mention')}" aria-label="${t('Unread mention')}"></span>` : ''}` : ''}<button type="button" class="nt-home-community-open" data-nt-home-action="community">${icons.community}<span>${t('Open Community')}</span>${icons.arrowRight}</button></nav></header>
-            ${this.renderCommunityFeed(snapshot)}
-          </section>
-          <section class="nt-home-section nt-home-shared-panel nt-home-shared-characters">
-            <header><div><span>${icons.characters}</span><div><h2>${t('Latest Character Cards')}</h2><small>${t('Recently shared Character Cards')}</small></div></div></header>
-            ${snapshot.signedIn ? this.renderSharedResources(snapshot.characterCards, 'character') : `<div class="nt-home-resource-empty"><span>${icons.characters}</span><small>${t('Sign in to Community to see shared resources.')}</small></div>`}
-          </section>
-          <section class="nt-home-section nt-home-shared-panel nt-home-shared-lorebooks">
-            <header><div><span>${icons.lore}</span><div><h2>${t('Latest Lorebooks')}</h2><small>${t('Recently shared Lorebooks')}</small></div></div></header>
-            ${snapshot.signedIn ? this.renderSharedResources(snapshot.lorebooks, 'lorebook') : `<div class="nt-home-resource-empty"><span>${icons.lore}</span><small>${t('Sign in to Community to see shared resources.')}</small></div>`}
-          </section>
-        </div>`;
+        return `<section class="nt-home-section nt-home-community" data-nt-home-community-widget>
+          <header>
+            <div><div><h2>${t('Community')}</h2></div></div>
+            <nav>${snapshot.signedIn ? `<span class="nt-home-community-online">● ${Number(snapshot.online||0)} ${t('online')}</span>${snapshot.mentions ? `<span class="nt-home-community-mentions" title="${t('Unread mention')}" aria-label="${t('Unread mention')}"></span>` : ''}` : ''}<button type="button" class="nt-home-community-open" data-nt-home-action="community"><span>${t('Open')}</span>${icons.arrowRight}</button></nav>
+          </header>
+          ${this.renderCommunityFeed(snapshot)}
+        </section>`;
+    }
+
+    renderCollectionContent({ favorites, recent, community, hasCharacters }) {
+        const snapshot = community || { ready:false, signedIn:false, characterCards:[], lorebooks:[] };
+        if (this.collectionTab === 'recent') {
+            return this.recentCharacterList(recent, hasCharacters);
+        }
+        if (this.collectionTab === 'shared-characters') {
+            return snapshot.signedIn
+                ? this.renderSharedResources(snapshot.characterCards, 'character')
+                : `<div class="nt-home-resource-empty nt-home-collection-empty"><small>${t('Sign in to Community to see shared resources.')}</small><button type="button" data-nt-home-action="community">${t('Open Community')}</button></div>`;
+        }
+        if (this.collectionTab === 'shared-lorebooks') {
+            return snapshot.signedIn
+                ? this.renderSharedResources(snapshot.lorebooks, 'lorebook')
+                : `<div class="nt-home-resource-empty nt-home-collection-empty"><small>${t('Sign in to Community to see shared resources.')}</small><button type="button" data-nt-home-action="community">${t('Open Community')}</button></div>`;
+        }
+        return this.favoriteCarousel(favorites);
+    }
+
+    renderCollectionPanel({ favorites, recent, community, hasCharacters }) {
+        const tabs = [
+            ['favorites', t('Favorites')],
+            ['recent', t('Recent Chats')],
+            ['shared-characters', t('Shared Cards')],
+            ['shared-lorebooks', t('Shared Lorebooks')],
+        ];
+        return `<section class="nt-home-section nt-home-collection-panel">
+          <div class="nt-home-collection-nav">
+            <div class="nt-home-collection-tabs" role="tablist" aria-label="${t('Library')}">
+              ${tabs.map(([id, label]) => `<button type="button" role="tab" aria-selected="${this.collectionTab === id ? 'true' : 'false'}" class="${this.collectionTab === id ? 'is-active' : ''}" data-nt-home-collection-tab="${id}">${label}</button>`).join('')}
+            </div>
+            <div class="nt-home-collection-arrows" data-nt-home-collection-arrows hidden>
+              <button type="button" data-nt-home-collection-scroll="prev" aria-label="${escapeHtml(t('Previous'))}">${icons.arrowLeft}</button>
+              <button type="button" data-nt-home-collection-scroll="next" aria-label="${escapeHtml(t('Next'))}">${icons.arrowRight}</button>
+            </div>
+          </div>
+          <div class="nt-home-collection-content" data-nt-home-collection-content>
+            ${this.renderCollectionContent({ favorites, recent, community, hasCharacters })}
+          </div>
+        </section>`;
+    }
+
+    renderFooter(version) {
+        return `<footer class="nt-home-footer">
+          <div class="nt-home-resource-links">
+            <a href="https://docs.sillytavern.app/" target="_blank" rel="noreferrer"><span>${t('Documentation')}</span>${icons.external}</a>
+            <a href="https://github.com/AnNastyLoneGirl/NastyTavern-UI" target="_blank" rel="noreferrer"><span>GitHub</span>${icons.external}</a>
+            <a href="https://discord.gg/F4ps4dA7tB" target="_blank" rel="noreferrer"><span>Discord</span>${icons.external}</a>
+          </div>
+          <small class="nt-home-build" title="${escapeHtml(`${version} · NastyTavern UI v0.1.3`)}">${escapeHtml(version)} · NastyTavern UI v0.1.3</small>
+        </footer>`;
     }
 
     render({ characters, recent, favorites, community }) {
@@ -386,53 +553,35 @@ export class HomeDashboard {
             <div class="nt-home-layout">
               <section class="nt-home-hero" style="--nt-home-hero-image:url('${HERO_IMAGE}')">
                 <div class="nt-home-hero-copy">
-                  <small>NASTYTAVERN</small>
-                  <h1>${t('Welcome to')} <em>NastyTavern</em></h1>
-                  <p>${t('A cleaner way to chat, create characters and build worlds with SillyTavern.')}</p>
+                  <h1>${t('Welcome to')} <span class="nt-home-hero-brand">NastyTavern</span></h1>
+                  <p>${t('A reworked SillyTavern experience with a more modern, cohesive, and enjoyable interface.')}</p>
                   <div class="nt-home-hero-actions">
-                    <button type="button" class="is-primary" data-nt-home-action="temporary">${icons.chat}<span>${t('Open temporary chat')}</span>${icons.arrowRight}</button>
-                    <button type="button" data-nt-home-action="characters">${icons.characters}<span>${t('Browse characters')}</span></button>
+                    <button type="button" data-nt-home-action="temporary">${icons.chat}<span>${t('Open temporary chat')}</span></button>
+                    <button type="button" class="is-primary" data-nt-home-action="community">${icons.community}<span>${t('Community')}</span>${icons.arrowRight}</button>
                   </div>
                 </div>
               </section>
 
-              <div class="nt-home-content-grid">
-                <section class="nt-home-section nt-home-recent-characters">
-                  <header>
-                    <div><span>${icons.history}</span><div><h2>${t('Recent Characters')}</h2><small>${t('One entry per character, ordered by your latest chats.')}</small></div></div>
-                    ${hasCharacters ? `<button type="button" data-nt-home-action="characters" title="${t('Browse all characters')}">${icons.characters}</button>` : ''}
-                  </header>
-                  <div class="nt-home-character-list">${this.recentCharacterList(recent, hasCharacters)}</div>
-                </section>
+              <div class="nt-home-dashboard-grid">
+                <main class="nt-home-main-column">
+                  ${this.renderCollectionPanel({ favorites, recent, community, hasCharacters })}
+                </main>
 
-                <div class="nt-home-right-stack">
-                  <section class="nt-home-section nt-home-favorites">
-                    <header>
-                      <div><span>${icons.bookmark}</span><div><h2>${t('Favorite Characters')}</h2><small>${t('Quickly jump back into your favorite cards.')}</small></div></div>
-                      ${favorites.length > 0 ? `<nav><button type="button" data-nt-home-carousel="prev" title="${t('Previous')}">${icons.arrowLeft}</button><button type="button" data-nt-home-carousel="next" title="${t('Next')}">${icons.arrowRight}</button></nav>` : ''}
-                    </header>
-                    ${this.favoriteCarousel(favorites)}
+                <aside class="nt-home-side-column">
+                  <section class="nt-home-section nt-home-quick-section" aria-label="${t('Quick Actions')}">
+                    <div class="nt-home-quick-grid nt-quick-action-grid">${this.quickActions()}</div>
                   </section>
-
-                  <section class="nt-home-section nt-home-quick-section">
-                    <header><div><span>${icons.command}</span><div><h2>${t('Quick Actions')}</h2><small>${t('Common actions, always within reach.')}</small></div></div></header>
-                    <div class="nt-home-quick-grid">${this.quickActions()}</div>
-                  </section>
-                </div>
+                  ${this.renderCommunityWidget(community)}
+                </aside>
               </div>
 
-              ${this.renderCommunityWidget(community)}
-
-              <footer class="nt-home-footer">
-                <div>
-                  <a href="https://docs.sillytavern.app/" target="_blank" rel="noreferrer">${icons.note}<span>${t('Documentation')}</span>${icons.external}</a>
-                  <a href="https://github.com/AnNastyLoneGirl/NastyTavern-UI" target="_blank" rel="noreferrer">${icons.external}<span>GitHub</span></a>
-                  <a href="https://discord.gg/F4ps4dA7tB" target="_blank" rel="noreferrer">${icons.chat}<span>Discord</span>${icons.external}</a>
-                </div>
-                <small>${escapeHtml(version)} · NastyTavern UI v0.1.2</small>
-              </footer>
             </div>
+          </div>
+          <div class="nt-home-footer-shell">
+            ${this.renderFooter(version)}
           </div>`;
+
+        requestAnimationFrame(() => this.updateCollectionScroller());
 
         const scroll = this.root.querySelector('.nt-home-scroll');
         if (scroll && previousScroll > 0) {
@@ -442,6 +591,69 @@ export class HomeDashboard {
             });
         }
     }
+
+    updateCollectionScroller() {
+        if (!this.root?.isConnected) return;
+        const track = this.root.querySelector('[data-nt-home-collection-track]');
+        const arrows = this.root.querySelector('[data-nt-home-collection-arrows]');
+
+        if (this.collectionTrack && this.collectionTrack !== track) {
+            this.collectionTrack.removeEventListener('scroll', this.boundCollectionScroll);
+            this.collectionResizeObserver?.disconnect();
+        }
+
+        this.collectionTrack = track || null;
+        if (!track || !arrows) {
+            if (arrows) arrows.hidden = true;
+            return;
+        }
+
+        track.removeEventListener('scroll', this.boundCollectionScroll);
+        track.addEventListener('scroll', this.boundCollectionScroll, { passive: true });
+
+        if (typeof ResizeObserver === 'function') {
+            this.collectionResizeObserver ??= new ResizeObserver(() => this.refreshCollectionOverflow());
+            this.collectionResizeObserver.disconnect();
+            this.collectionResizeObserver.observe(track);
+        }
+
+        this.refreshCollectionOverflow();
+        requestAnimationFrame(() => this.refreshCollectionOverflow());
+    }
+
+    refreshCollectionOverflow() {
+        const track = this.collectionTrack;
+        const arrows = this.root?.querySelector('[data-nt-home-collection-arrows]');
+        if (!track || !arrows) return;
+
+        const viewportWidth = track.clientWidth;
+        const overflowWidth = track.scrollWidth - viewportWidth;
+        const hasOverflow = viewportWidth > 0 && overflowWidth > 4;
+        arrows.hidden = !hasOverflow;
+        if (hasOverflow) this.updateCollectionScrollState();
+    }
+
+    updateCollectionScrollState() {
+        const track = this.collectionTrack;
+        const arrows = this.root?.querySelector('[data-nt-home-collection-arrows]');
+        if (!track || !arrows || arrows.hidden) return;
+        const prev = arrows.querySelector('[data-nt-home-collection-scroll="prev"]');
+        const next = arrows.querySelector('[data-nt-home-collection-scroll="next"]');
+        if (prev) prev.disabled = track.scrollLeft <= 2;
+        if (next) next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+    }
+
+    scrollCollection(direction) {
+        const track = this.root?.querySelector('[data-nt-home-collection-track]');
+        const card = track?.querySelector('.nt-home-media-card');
+        if (!track || !card) return;
+        const styles = getComputedStyle(track);
+        const gap = Number.parseFloat(styles.columnGap || styles.gap || '0') || 0;
+        const distance = card.getBoundingClientRect().width + gap;
+        track.scrollBy({ left: (direction === 'prev' ? -1 : 1) * distance, behavior: 'smooth' });
+        setTimeout(() => this.updateCollectionScrollState(), 260);
+    }
+
 
     clickNative(selector) {
         const el = document.querySelector(selector);
@@ -496,6 +708,22 @@ export class HomeDashboard {
     }
 
     onClick(event) {
+        const collectionTab = event.target.closest('[data-nt-home-collection-tab]')?.dataset.ntHomeCollectionTab;
+        if (collectionTab && ['favorites', 'recent', 'shared-characters', 'shared-lorebooks'].includes(collectionTab)) {
+            if (this.collectionTab !== collectionTab) {
+                this.collectionTab = collectionTab;
+                this.lastSignature = '';
+                this.sync({ view: 'chat' });
+            }
+            return;
+        }
+
+        const collectionScroll = event.target.closest('[data-nt-home-collection-scroll]')?.dataset.ntHomeCollectionScroll;
+        if (collectionScroll) {
+            this.scrollCollection(collectionScroll);
+            return;
+        }
+
         const recent = event.target.closest('[data-nt-home-recent]');
         if (recent) {
             const index = Number(recent.dataset.ntHomeRecent);
@@ -508,13 +736,6 @@ export class HomeDashboard {
         const favorite = event.target.closest('[data-nt-home-favorite]');
         if (favorite) {
             this.selectCharacter(Number(favorite.dataset.ntHomeFavorite));
-            return;
-        }
-
-        const carousel = event.target.closest('[data-nt-home-carousel]')?.dataset.ntHomeCarousel;
-        if (carousel) {
-            const track = this.root?.querySelector('[data-nt-home-favorites-track]');
-            track?.scrollBy?.({ left: (carousel === 'prev' ? -1 : 1) * Math.max(260, track.clientWidth * .7), behavior: 'smooth' });
             return;
         }
 
@@ -534,17 +755,50 @@ export class HomeDashboard {
             return;
         }
         if (action === 'create') {
-            this.navigate('characters');
-            setTimeout(() => document.querySelector('#rm_button_create')?.click(), 180);
+            if (this.openCreateCharacter) {
+                void Promise.resolve(this.openCreateCharacter());
+                return;
+            }
+            void Promise.resolve(this.navigate('characters')).then(opened => {
+                if (opened === false) return;
+                requestAnimationFrame(() => document.querySelector('#rm_button_create')?.click());
+            });
             return;
         }
         if (action === 'import') {
-            this.navigate('characters');
-            setTimeout(() => document.querySelector('#character_import_button')?.click(), 180);
+            if (this.clickNative('#character_import_button')) return;
+
+            // Fallback for layouts where SillyTavern mounts the character controls lazily.
+            void Promise.resolve(this.navigate('characters')).then(opened => {
+                if (opened === false) return;
+                requestAnimationFrame(() => this.clickNative('#character_import_button'));
+            });
             return;
         }
         if (action === 'community') {
             this.openCommunity?.();
+            return;
+        }
+        if (action === 'community-character-cards') {
+            this.openCommunity?.('character-cards');
+            return;
+        }
+        if (action === 'community-lorebooks') {
+            this.openCommunity?.('lorebooks');
+            return;
+        }
+        if (action === 'cloud') {
+            if (this.clickNative('#external_import_button')) return;
+
+            // Fallback for layouts where SillyTavern mounts the character controls lazily.
+            void Promise.resolve(this.navigate('characters')).then(opened => {
+                if (opened === false) return;
+                requestAnimationFrame(() => this.clickNative('#external_import_button'));
+            });
+            return;
+        }
+        if (action === 'catalogue') {
+            this.openCatalogue?.();
             return;
         }
         if (['characters', 'models', 'lorebooks'].includes(action)) this.navigate(action);

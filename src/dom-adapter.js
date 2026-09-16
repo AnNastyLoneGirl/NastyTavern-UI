@@ -43,6 +43,9 @@ const SELECTORS = {
         '[title*="User Settings"]',
     ],
     backgrounds: [
+        '#backgrounds-drawer-toggle',
+        '#backgrounds-button .drawer-icon',
+        '#backgrounds-button',
         '#logo_block .drawer-icon',
         '#logo_block',
         '#site_logo',
@@ -150,17 +153,6 @@ export class DomAdapter {
             return true;
         }
         return false;
-    }
-
-    controlIsOpen(el) {
-        if (!el) return false;
-        const holder = el.closest('.drawer') || el.parentElement;
-        return !!(
-            el.classList?.contains('openIcon') ||
-            el.querySelector?.('.openIcon') ||
-            holder?.querySelector?.('.openIcon') ||
-            holder?.querySelector?.('.drawer-content:not(.closedDrawer)')
-        );
     }
 
     getDrawerPartsFromCandidate(original, key) {
@@ -296,10 +288,6 @@ export class DomAdapter {
         return { label, offline, nativeStatus };
     }
 
-    getOnlineStatus() {
-        return this.getConnectionState().label;
-    }
-
     getCharacterName() {
         const node = this.first('characterName');
         if (!node) return '';
@@ -359,10 +347,6 @@ export class DomAdapter {
         return { ok: true, trigger, content, popup };
     }
 
-    discoverExtensionSettings() {
-        return document.querySelector('#extensions_settings, #extensions_settings2, .extensions_settings') || null;
-    }
-
     tagNativeUI() {
         const personaInner = document.querySelector('#persona-management-block');
         personaInner?.classList.remove('mt-native-panel');
@@ -383,6 +367,9 @@ export class DomAdapter {
                 el.classList.add('mt-native-panel');
             }
         }
+        const worldInfoActions = document.querySelector('#WorldInfo #world_popup_new')?.closest('.flex-container.alignitemscenter');
+        worldInfoActions?.classList.add('nt-wi-popup-actions');
+
         document.querySelectorAll('.drawer-content').forEach(el => el.classList.add('mt-drawer-content'));
         document.querySelectorAll('.inline-drawer').forEach(el => el.classList.add('mt-inline-card'));
         document.querySelectorAll('.popup, .popup-content, dialog').forEach(el => el.classList.add('mt-popup-surface'));

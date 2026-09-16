@@ -1,24 +1,14 @@
 import { icons } from './icons.js';
-
-const getContext = () => {
-    try { return window.SillyTavern?.getContext?.() || null; } catch (_) { return null; }
-};
-
-const escapeHtml = value => String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+import { getContextSafe as getContext, escapeHtml } from './utils.js';
+import { confirmDialog } from './ui-templates.js';
 
 const chatIdOf = context => {
     try { return context?.getCurrentChatId?.() || context?.chatId || ''; } catch (_) { return context?.chatId || ''; }
 };
 
 export class ChatToolbar {
-    constructor(toast, onToggleSection) {
+    constructor(toast) {
         this.toast = toast;
-        this.onToggleSection = onToggleSection;
         this.root = null;
         this.interval = null;
         this.events = [];
@@ -110,10 +100,7 @@ export class ChatToolbar {
               <button type="button" class="nt-chat-tool-button" data-nt-chat-action="close" title="Close chat" aria-label="Close chat">${icons.close}</button>
             </div>
           </div>
-          <div class="nt-chat-toolbar-secondary">
-            <div class="nt-chat-toolbar-extras" data-nt-chat-extras></div>
-            <button type="button" class="nt-chat-global-collapse-toggle" data-nt-toolbar-collapse="all" title="Minimize chat bar" aria-label="Minimize chat bar">${icons.arrowUp}</button>
-          </div>`;
+`;
         const history = document.createElement('aside');
         history.id = 'nt-chat-history';
         history.hidden = true;
@@ -135,13 +122,13 @@ export class ChatToolbar {
     }
 
     integrateQuickButtons() {
-        const host = this.root?.querySelector('[data-nt-chat-extras]');
+        const host = this.root?.querySelector('.nt-chat-action-group');
         if (!host) return;
-        for (const id of ['nt-timeline-button', 'nt-context-inspector-button', 'nt-world-info-info-button', 'nt-variable-manager-quick-button', 'nt-calendar-button', 'nt-chat-tools-button']) {
+        for (const id of ['nt-chat-tools-hub-button']) {
             const button = document.getElementById(id);
             if (!button) continue;
-            button.classList.add('nt-chat-inline-extra');
-            if (button.parentElement !== host) host.append(button);
+            button.classList.add('nt-chat-tool-button', 'nt-chat-inline-extra');
+            if (button.parentElement !== host || host.firstElementChild !== button) host.prepend(button);
         }
     }
 
@@ -268,20 +255,7 @@ export class ChatToolbar {
         }
     }
 
-    stepChat(direction) {
-        if (!this.chatList.length) return;
-        let index = this.chatList.indexOf(this.lastChatId);
-        if (index < 0) index = 0;
-        const next = this.chatList[(index + direction + this.chatList.length) % this.chatList.length];
-        this.openChat(next);
-    }
-
     onToolbarClick(event) {
-        const collapse = event.target.closest('[data-nt-toolbar-collapse]')?.dataset.ntToolbarCollapse;
-        if (collapse) {
-            this.onToggleSection?.(collapse);
-            return;
-        }
         if (event.target.closest('[data-nt-chat-history-toggle]')) {
             this.toggleHistory();
             return;
@@ -335,11 +309,7 @@ export class ChatToolbar {
     async deleteCurrentChat() {
         const context = getContext();
         if (!chatIdOf(context)) return;
-        let confirmed = false;
-        try {
-            confirmed = context.Popup?.show?.confirm ? await context.Popup.show.confirm('Delete the current chat?') : window.confirm('Delete the current chat?');
-        } catch (_) {}
-        if (!confirmed) return;
+        if (!await confirmDialog('Delete the current chat?')) return;
         try {
             if (typeof context?.executeSlashCommandsWithOptions === 'function') await context.executeSlashCommandsWithOptions('/delchat');
             else this.toast?.('Delete chat is unavailable in this SillyTavern build.');
@@ -404,11 +374,13 @@ export class ChatToolbar {
         if (event.key !== 'Escape') return;
         const history = document.querySelector('#nt-chat-history');
         if (history && !history.hidden) {
+            event.preventDefault();
             this.toggleHistory(false);
             return;
         }
         const input = this.root?.querySelector('[data-nt-chat-search-input]');
         if (input && input.value) {
+            event.preventDefault();
             input.value = '';
             this.clearChatSearch(false);
             input.blur();

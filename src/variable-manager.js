@@ -1,9 +1,8 @@
 import { icons } from './icons.js';
 import { t } from './i18n.js';
+import { getContextSafe as getContext, escapeHtml } from './utils.js';
+import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
 
-const getContext = () => {
-    try { return window.SillyTavern?.getContext?.() || null; } catch (_) { return null; }
-};
 
 const normalizeValue = value => value === undefined || value === null ? '' : String(value);
 
@@ -20,12 +19,6 @@ const getValueType = value => {
     return 'text';
 };
 
-const escapeHtml = value => String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
 
 export class VariableManager {
     constructor(toast) {
@@ -114,16 +107,29 @@ export class VariableManager {
             this.root = existing;
             return existing;
         }
-        const root = document.createElement('div');
-        root.id = 'nt-variable-manager';
-        root.hidden = true;
-        root.innerHTML = `
-          <div class="nt-var-backdrop" data-nt-var-close></div>
-          <section class="nt-var-panel" role="dialog" aria-modal="true" aria-label="Variable manager">
-            <header class="nt-var-header">
-              <div class="nt-var-title"><span class="nt-var-title-icon">${icons.variables}</span><span><b>Variables</b><small data-nt-var-chat>Current chat</small></span></div>
-              <button type="button" class="nt-var-close" data-nt-var-close aria-label="Close">${icons.close}</button>
-            </header>
+        const { root, header, body, footer } = createModalShell({
+            id: 'nt-variable-manager',
+            title: 'Variables',
+            subtitle: 'Current chat',
+            icon: icons.variables,
+            size: 'large',
+            modalClass: 'nt-var-panel',
+            backdropClass: 'nt-var-backdrop',
+            headerClass: 'nt-var-header',
+            headingClass: 'nt-var-title',
+            iconClass: 'nt-var-title-icon',
+            copyClass: 'nt-var-title-copy',
+            closeClass: 'nt-var-close',
+            closeLabel: 'Close',
+            closeAttrs: { 'data-nt-var-close': '' },
+            bodyClass: 'nt-var-list',
+            bodyAttrs: { 'data-nt-var-list': '' },
+            footerClass: 'nt-var-footer',
+            footerHtml: 'Local variables are stored in the current chat only.',
+        });
+        header?.querySelector('.nt-modal-heading-copy > small')?.setAttribute('data-nt-var-chat', '');
+        footer?.setAttribute('data-nt-var-footer', '');
+        body.insertAdjacentHTML('beforebegin', `
             <div class="nt-var-tabs" role="tablist">
               <button type="button" class="is-active" data-nt-var-scope="local" role="tab"><span>Local</span><small>Current chat</small><b data-nt-var-local-count>0</b></button>
               <button type="button" data-nt-var-scope="global" role="tab"><span>Global</span><small>All chats</small><b data-nt-var-global-count>0</b></button>
@@ -140,10 +146,7 @@ export class VariableManager {
               </div>
               <label class="nt-var-create-value"><span>Value</span><textarea rows="3" placeholder="Value…" data-nt-var-create-value></textarea></label>
               <div class="nt-var-create-actions"><button type="button" data-nt-var-create-cancel>Cancel</button><button type="submit" class="is-primary">Create</button></div>
-            </form>
-            <div class="nt-var-list" data-nt-var-list></div>
-            <footer class="nt-var-footer" data-nt-var-footer>Local variables are stored in the current chat only.</footer>
-          </section>`;
+            </form>`);
         document.body.append(root);
         root.addEventListener('click', event => this.onClick(event));
         root.addEventListener('submit', event => this.onSubmit(event));
@@ -163,22 +166,18 @@ export class VariableManager {
         if (!this.root) return;
         if (scope === 'local' || scope === 'global') this.scope = scope;
         this.opened = true;
-        this.root.hidden = false;
+        showModalShell(this.root);
         document.body.classList.add('nt-variables-open');
         this.snapshot = '';
         this.syncScopeUI();
         this.refresh(true);
-        requestAnimationFrame(() => this.root?.classList.add('is-open'));
     }
 
     close() {
         if (!this.root) return;
         this.opened = false;
-        this.root.classList.remove('is-open');
+        hideModalShell(this.root, { immediate: false, duration: 180 });
         document.body.classList.remove('nt-variables-open');
-        setTimeout(() => {
-            if (!this.opened && this.root) this.root.hidden = true;
-        }, 180);
     }
 
     tick() {
@@ -338,8 +337,10 @@ export class VariableManager {
     onKeyDown(event) {
         if (event.key === 'Escape') {
             const create = this.root?.querySelector('[data-nt-var-create]');
-            if (create && !create.hidden) this.hideCreateForm();
-            else this.close();
+            if (create && !create.hidden) {
+                event.preventDefault();
+                this.hideCreateForm();
+            }
             return;
         }
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
@@ -477,7 +478,7 @@ export class VariableManager {
             list.innerHTML = `<div class="nt-var-empty"><span>${icons.undo}</span><b>No variable history yet</b><small>Changes made in the Variable Manager will appear here.</small></div>`;
             return;
         }
-        list.innerHTML = history.map((item, index) => `<article class="nt-var-history-row"><div><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.action)} · ${new Date(item.at).toLocaleString()}</small><p><code>${escapeHtml(normalizeValue(item.before))}</code><span>→</span><code>${escapeHtml(normalizeValue(item.after))}</code></p></div><button type="button" data-nt-var-restore="${index}">${icons.undo}<span>Restore</span></button></article>`).join('');
+        list.innerHTML = history.map((item, index) => `<article class="nt-var-history-row"><div><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.action)} · ${new Date(item.at).toLocaleString()}</small><p><code>${escapeHtml(normalizeValue(item.before))}</code><span>→</span><code>${escapeHtml(normalizeValue(item.after))}</code></p></div><button type="button" class="menu_button" data-nt-var-restore="${index}">${icons.undo}<span>Restore</span></button></article>`).join('');
     }
 
     restoreHistory(index) {

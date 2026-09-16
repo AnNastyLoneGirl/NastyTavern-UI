@@ -1,16 +1,7 @@
 import { icons } from './icons.js';
 import { t } from './i18n.js';
-
-const getContext = () => {
-    try { return window.SillyTavern?.getContext?.() || null; } catch (_) { return null; }
-};
-
-const escapeHtml = value => String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+import { getContextSafe as getContext, escapeHtml } from './utils.js';
+import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
 
 const stripExt = value => String(value ?? '').replace(/\.jsonl$/i, '');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -69,9 +60,6 @@ export class TimelineManager {
         this.selectedKey = '';
         this.searchQuery = '';
         this.boundContextChange = () => this.onContextChange();
-        this.boundKeydown = event => {
-            if (event.key === 'Escape' && this.root && !this.root.hidden) this.close();
-        };
     }
 
     mount() {
@@ -81,7 +69,6 @@ export class TimelineManager {
         if (this.mounted) return;
         this.mounted = true;
         this.bindEvents();
-        document.addEventListener('keydown', this.boundKeydown, true);
         this.interval = setInterval(() => this.tick(), 650);
     }
 
@@ -92,7 +79,6 @@ export class TimelineManager {
         this.events = [];
         clearInterval(this.interval);
         this.interval = null;
-        document.removeEventListener('keydown', this.boundKeydown, true);
         this.root?.remove();
         this.button?.remove();
         this.root = null;
@@ -158,44 +144,49 @@ export class TimelineManager {
             this.inspector = existing.querySelector('[data-nt-timeline-inspector]');
             return existing;
         }
-        const root = document.createElement('section');
-        root.id = 'nt-timeline-panel';
-        root.hidden = true;
-        root.setAttribute('role', 'dialog');
-        root.setAttribute('aria-modal', 'true');
-        root.setAttribute('aria-label', 'Story Timeline');
-        root.innerHTML = `
-          <header class="nt-timeline-header">
-            <div class="nt-timeline-heading"><span class="nt-timeline-heading-icon">${icons.timeline}</span><span><b>Story Timeline</b><small data-nt-timeline-subtitle>Current character</small></span></div>
-            <div class="nt-timeline-header-actions">
+        const { root, header } = createModalShell({
+            id: 'nt-timeline-panel',
+            title: 'Story Timeline',
+            subtitle: 'Current character',
+            icon: icons.timeline,
+            size: 'large',
+            rootClass: 'nt-timeline-modal-root',
+            modalClass: 'nt-timeline-modal',
+            bodyClass: 'nt-timeline-modal-body',
+            closeAttrs: { 'data-nt-timeline-close': '' },
+            headerActionsHtml: `
               <button type="button" data-nt-timeline-focus title="Focus current chat">${icons.target}<span>Current path</span></button>
-              <button type="button" data-nt-timeline-refresh title="Refresh timeline">${icons.refresh}<span>Refresh</span></button>
-              <button type="button" data-nt-timeline-close title="Close" aria-label="Close">${icons.close}</button>
-            </div>
-          </header>
-          <div class="nt-timeline-toolbar">
-            <label class="nt-timeline-search">${icons.search}<input type="search" placeholder="Search every message…" data-nt-timeline-search><span class="nt-timeline-search-count" data-nt-timeline-search-count></span></label>
-            <div class="nt-timeline-zoom">
-              <button type="button" data-nt-timeline-zoom-out title="Zoom out" aria-label="Zoom out">−</button>
-              <button type="button" data-nt-timeline-zoom-reset title="Reset zoom"><span data-nt-timeline-zoom-label>100%</span></button>
-              <button type="button" data-nt-timeline-zoom-in title="Zoom in" aria-label="Zoom in">+</button>
-            </div>
-            <div class="nt-timeline-stats">
-              <span><b data-nt-timeline-chat-count>0</b> chats</span>
-              <span><b data-nt-timeline-node-count>0</b> nodes</span>
-              <span><b data-nt-timeline-branch-count>0</b> branches</span>
-            </div>
-          </div>
-          <div class="nt-timeline-progress" data-nt-timeline-progress hidden><span></span><b>Building timeline…</b><small data-nt-timeline-progress-text>Loading chats</small></div>
-          <div class="nt-timeline-body">
-            <div class="nt-timeline-viewport" data-nt-timeline-viewport>
-              <div class="nt-timeline-stage" data-nt-timeline-stage><div class="nt-timeline-canvas" data-nt-timeline-canvas></div></div>
-              <div class="nt-timeline-empty" data-nt-timeline-empty hidden><span>${icons.timeline}</span><b>No timeline yet</b><small>Start or load a chat, then refresh this view.</small></div>
-            </div>
-            <aside class="nt-timeline-inspector" data-nt-timeline-inspector>
-              <div class="nt-timeline-inspector-empty"><span>${icons.timeline}</span><b>Select a message</b><small>Click a node to inspect it, jump to its chat, or create a branch from it.</small></div>
-            </aside>
-          </div>`;
+              <button type="button" data-nt-timeline-refresh title="Refresh timeline">${icons.refresh}<span>Refresh</span></button>`,
+            bodyHtml: `
+              <div class="nt-timeline-toolbar">
+                <label class="nt-timeline-search">${icons.search}<input type="search" placeholder="Search every message…" data-nt-timeline-search><span class="nt-timeline-search-count" data-nt-timeline-search-count></span></label>
+                <div class="nt-timeline-zoom">
+                  <button type="button" data-nt-timeline-zoom-out title="Zoom out" aria-label="Zoom out">−</button>
+                  <button type="button" data-nt-timeline-zoom-reset title="Reset zoom"><span data-nt-timeline-zoom-label>100%</span></button>
+                  <button type="button" data-nt-timeline-zoom-in title="Zoom in" aria-label="Zoom in">+</button>
+                </div>
+                <div class="nt-timeline-stats">
+                  <span><b data-nt-timeline-chat-count>0</b> chats</span>
+                  <span><b data-nt-timeline-node-count>0</b> nodes</span>
+                  <span><b data-nt-timeline-branch-count>0</b> branches</span>
+                </div>
+              </div>
+              <div class="nt-timeline-progress" data-nt-timeline-progress hidden><span></span><b>Building timeline…</b><small data-nt-timeline-progress-text>Loading chats</small></div>
+              <div class="nt-timeline-body">
+                <div class="nt-timeline-viewport" data-nt-timeline-viewport>
+                  <div class="nt-timeline-stage" data-nt-timeline-stage><div class="nt-timeline-canvas" data-nt-timeline-canvas></div></div>
+                  <div class="nt-timeline-empty" data-nt-timeline-empty hidden><span>${icons.timeline}</span><b>No timeline yet</b><small>Start or load a chat, then refresh this view.</small></div>
+                </div>
+                <aside class="nt-timeline-inspector" data-nt-timeline-inspector>
+                  <div class="nt-timeline-inspector-empty"><span>${icons.timeline}</span><b>Select a message</b><small>Click a node to inspect it, jump to its chat, or create a branch from it.</small></div>
+                </aside>
+              </div>`
+        });
+        header?.querySelector('.nt-modal-heading')?.classList.add('nt-timeline-heading');
+        header?.querySelector('.nt-modal-heading-icon')?.classList.add('nt-timeline-heading-icon');
+        header?.querySelector('.nt-modal-header-actions')?.classList.add('nt-timeline-header-actions');
+        const subtitle = header?.querySelector('.nt-modal-heading-copy > small');
+        if (subtitle) subtitle.dataset.ntTimelineSubtitle = '';
         document.body.append(root);
         root.addEventListener('click', event => this.onClick(event));
         root.addEventListener('dblclick', event => this.onDoubleClick(event));
@@ -254,7 +245,7 @@ export class TimelineManager {
     async open() {
         this.ensurePanel();
         this.ensureButton();
-        this.root.hidden = false;
+        showModalShell(this.root);
         document.body?.classList.add('nt-timeline-open');
         this.button?.classList.add('is-active');
         const stale = Date.now() - this.lastLoadedAt > 30000 || this.getIdentity() !== this.lastIdentity;
@@ -264,7 +255,7 @@ export class TimelineManager {
     }
 
     close() {
-        if (this.root) this.root.hidden = true;
+        if (this.root) hideModalShell(this.root);
         document.body?.classList.remove('nt-timeline-open');
         this.button?.classList.remove('is-active');
     }

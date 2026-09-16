@@ -6,11 +6,11 @@
   "js": "index.js",
   "css": "style.css",
   "author": "AnNastyLoneGirl + OpenAI",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "homePage": "https://github.com/AnNastyLoneGirl/NastyTavern-UI",
   "auto_update": false,
   "minimum_client_version": "1.18.0",
-  "description": "A non-destructive SillyTavern UI overhaul with a Home Dashboard, integrated workflow tools, responsive layouts, and optional Supabase-powered Community features.",
+  "description": "NastyTavern transforms SillyTavern's visual design, navigation, layouts, panels, and everyday workflows into a more modern and cohesive interface.",
   "hooks": {
     "activate": "onActivate",
     "enable": "onEnable",

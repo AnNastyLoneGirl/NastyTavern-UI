@@ -1,4 +1,5 @@
 import { icons } from './icons.js';
+import { adoptModalShell, showModalShell, hideModalShell, setModalShellCloseHandler } from './modal-shell.js';
 
 function normalize(v) { return String(v || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
 function score(query, item) {
@@ -29,6 +30,8 @@ export class CommandPalette {
           <div class="mt-command-results" role="listbox"></div>
           <div class="mt-command-footer"><span>↑↓ Navigate</span><span>Enter Open</span><span>Ctrl K Toggle</span></div>
         </div>`;
+        adoptModalShell(root, { modalSelector: '.mt-command-dialog', backdropSelector: '.mt-command-backdrop', headerSelector: null, bodySelector: '.mt-command-results', footerSelector: '.mt-command-footer', size: 'compact' });
+        setModalShellCloseHandler(root, () => this.close());
         document.body.append(root);
         this.root = root;
         this.input = root.querySelector('input');
@@ -44,12 +47,12 @@ export class CommandPalette {
 
     open() {
         this.mount();
-        this.root.hidden = false;
+        showModalShell(this.root);
         this.index = 0; this.input.value = '';
         this.render();
         requestAnimationFrame(() => this.input.focus());
     }
-    close() { if (this.root) this.root.hidden = true; }
+    close() { if (this.root) { hideModalShell(this.root); } }
     toggle() { this.root && !this.root.hidden ? this.close() : this.open(); }
 
     render() {
@@ -60,8 +63,7 @@ export class CommandPalette {
     }
 
     onKeyDown(e) {
-        if (e.key === 'Escape') { e.preventDefault(); this.close(); }
-        else if (e.key === 'ArrowDown') { e.preventDefault(); this.index = Math.min(this.index + 1, this.results.length - 1); this.render(); }
+        if (e.key === 'ArrowDown') { e.preventDefault(); this.index = Math.min(this.index + 1, this.results.length - 1); this.render(); }
         else if (e.key === 'ArrowUp') { e.preventDefault(); this.index = Math.max(this.index - 1, 0); this.render(); }
         else if (e.key === 'Enter') { e.preventDefault(); this.run(this.index); }
     }

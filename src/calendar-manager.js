@@ -1,9 +1,10 @@
 import { icons } from './icons.js';
 import { t, getLocale } from './i18n.js';
+import { getContextSafe as getContext, escapeHtml as esc } from './utils.js';
+import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
+import { emptyStateHtml, tabsHtml } from './ui-templates.js';
 
 const PROMPT_KEY = 'NASTYTAVERN_CALENDAR';
-const getContext = () => { try { return window.SillyTavern?.getContext?.() || null; } catch (_) { return null; } };
-const esc = value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 const pad = value => String(value).padStart(2, '0');
 const uid = () => globalThis.crypto?.randomUUID?.() || `nt-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const toDate = value => {
@@ -160,31 +161,32 @@ export class CalendarManager {
 
     ensurePanel() {
         if (this.root = document.querySelector('#nt-calendar-manager')) return this.root;
-        const root = document.createElement('div');
-        root.id = 'nt-calendar-manager';
-        root.hidden = true;
-        root.innerHTML = `
-          <div class="nt-tool-backdrop" data-nt-calendar-close></div>
-          <section class="nt-tool-modal nt-calendar-modal">
-            <header class="nt-tool-header">
-              <div><span>${icons.calendar}</span><div><b>${t('Calendar & Schedule')}</b><small>${t('Story dates, appointments and weekly routine')}</small></div></div>
-              <button type="button" data-nt-calendar-close>${icons.close}</button>
-            </header>
+        const { root, body } = createModalShell({
+            id: 'nt-calendar-manager',
+            title: t('Calendar & Schedule'),
+            subtitle: t('Story dates, appointments and weekly routine'),
+            icon: icons.calendar,
+            size: 'large',
+            modalClass: 'nt-tool-modal nt-calendar-modal',
+            backdropClass: 'nt-tool-backdrop',
+            bodyClass: 'nt-calendar-body',
+            bodyAttrs: { 'data-nt-calendar-body': '' },
+            closeAttrs: { 'data-nt-calendar-close': '' },
+        });
+        body.insertAdjacentHTML('beforebegin', `
             <div class="nt-calendar-datebar">
               <div class="nt-calendar-story-date">
-                <button type="button" data-nt-date-step="-1" title="${t('Previous day')}">${icons.arrowLeft}</button>
+                <button type="button" class="menu_button menu_button_icon" data-nt-date-step="-1" title="${t('Previous day')}">${icons.arrowLeft}</button>
                 <label><span>${t('Current story date')}</span><input type="date" data-nt-current-date></label>
-                <button type="button" data-nt-date-step="1" title="${t('Next day')}">${icons.arrowRight}</button>
+                <button type="button" class="menu_button menu_button_icon" data-nt-date-step="1" title="${t('Next day')}">${icons.arrowRight}</button>
               </div>
               <div class="nt-calendar-next" data-nt-next-event></div>
             </div>
-            <div class="nt-tool-tabs nt-calendar-tabs">
-              <button type="button" class="is-active" data-nt-calendar-tab="calendar">${t('Calendar')}</button>
-              <button type="button" data-nt-calendar-tab="weekly">${t('Weekly Schedule')}</button>
-              <button type="button" data-nt-calendar-tab="injection">${t('Prompt Injection')}</button>
-            </div>
-            <div class="nt-calendar-body" data-nt-calendar-body></div>
-          </section>`;
+            ${tabsHtml('nt-calendar-tab', [
+                { id: 'calendar', label: t('Calendar'), active: true },
+                { id: 'weekly', label: t('Weekly Schedule') },
+                { id: 'injection', label: t('Prompt Injection') },
+            ], { className: 'nt-calendar-tabs' })}`);
         root.addEventListener('click', event => this.onClick(event));
         root.addEventListener('input', event => this.onInput(event));
         root.addEventListener('change', event => this.onChange(event));
@@ -203,16 +205,14 @@ export class CalendarManager {
     open() {
         this.ensurePanel();
         this.refreshFromChat(false);
-        this.root.hidden = false;
+        showModalShell(this.root);
         document.body.classList.add('nt-calendar-open');
         this.render();
-        requestAnimationFrame(() => this.root?.classList.add('is-open'));
     }
     close() {
         if (!this.root || this.root.hidden) return;
-        this.root.classList.remove('is-open');
+        hideModalShell(this.root, { immediate: false });
         document.body.classList.remove('nt-calendar-open');
-        setTimeout(() => { if (this.root && !this.root.classList.contains('is-open')) this.root.hidden = true; }, 160);
     }
 
     onChatChanged() {
@@ -243,7 +243,7 @@ export class CalendarManager {
         this.root.querySelectorAll('[data-nt-calendar-tab]').forEach(button => button.classList.toggle('is-active', button.dataset.ntCalendarTab === this.tab));
         const body = this.root.querySelector('[data-nt-calendar-body]');
         if (!store) {
-            body.innerHTML = `<div class="nt-tool-empty"><b>${t('Open a chat first')}</b><small>${t('Calendar data is stored independently for each chat.')}</small></div>`;
+            body.innerHTML = emptyStateHtml({ title: t('Open a chat first'), subtitle: t('Calendar data is stored independently for each chat.') });
             this.renderNextEvent(null);
             return;
         }
@@ -275,18 +275,18 @@ export class CalendarManager {
           <div class="nt-calendar-layout">
             <section class="nt-calendar-month-card">
               <div class="nt-calendar-month-head">
-                <button type="button" data-nt-month-step="-1">${icons.arrowLeft}</button>
+                <button type="button" class="menu_button menu_button_icon" data-nt-month-step="-1">${icons.arrowLeft}</button>
                 <b>${esc(monthLabel(this.monthDate))}</b>
-                <button type="button" data-nt-month-step="1">${icons.arrowRight}</button>
+                <button type="button" class="menu_button menu_button_icon" data-nt-month-step="1">${icons.arrowRight}</button>
               </div>
               <div class="nt-calendar-weekdays">${labels.map(label => `<span>${esc(label)}</span>`).join('')}</div>
               <div class="nt-calendar-grid">${days}</div>
             </section>
             <section class="nt-calendar-day-panel">
-              <header><div><small>${t('Selected day')}</small><b>${esc(dateLabel(this.selectedDate))}</b></div><button type="button" data-nt-set-current ${this.selectedDate === store.currentDate ? 'disabled' : ''}>${this.selectedDate === store.currentDate ? t('Current date') : t('Set as current date')}</button></header>
+              <header><div><small>${t('Selected day')}</small><b>${esc(dateLabel(this.selectedDate))}</b></div><button type="button" class="menu_button" data-nt-set-current ${this.selectedDate === store.currentDate ? 'disabled' : ''}>${this.selectedDate === store.currentDate ? t('Current date') : t('Set as current date')}</button></header>
               <div class="nt-calendar-event-list">${selected.length ? selected.map(event => this.eventCard(event)).join('') : `<div class="nt-calendar-empty"><span>${icons.calendar}</span><b>${t('Nothing planned')}</b><small>${t('Click Add event to plan this day.')}</small></div>`}</div>
               <form class="nt-calendar-editor" data-nt-event-form>
-                <div class="nt-calendar-editor-title"><b>${editing ? t('Edit event') : t('Add event')}</b>${editing ? `<button type="button" data-nt-event-cancel>${t('Cancel')}</button>` : ''}</div>
+                <div class="nt-calendar-editor-title"><b>${editing ? t('Edit event') : t('Add event')}</b>${editing ? `<button type="button" class="menu_button" data-nt-event-cancel>${t('Cancel')}</button>` : ''}</div>
                 <div class="nt-calendar-form-grid">
                   <label><span>${t('For')}</span><select data-nt-event-owner><option value="user" ${editing?.owner !== 'char' && editing?.owner !== 'general' ? 'selected' : ''}>{{user}}</option><option value="char" ${editing?.owner === 'char' ? 'selected' : ''}>{{char}}</option><option value="general" ${editing?.owner === 'general' ? 'selected' : ''}>${t('General')}</option></select></label>
                   <label class="is-wide"><span>${t('Title')}</span><input data-nt-event-title value="${esc(editing?.title || '')}" placeholder="${t('Dentist appointment, exam, birthday…')}"></label>
@@ -301,7 +301,7 @@ export class CalendarManager {
 
     eventCard(event) {
         const owner = this.ownerLabel(event.owner);
-        return `<article class="nt-calendar-event-card ${event.inject === false ? 'is-muted' : ''}"><div><span>${owner}</span><b>${esc(event.title || t('Untitled event'))}</b>${event.details ? `<p>${esc(event.details)}</p>` : ''}</div><div><button type="button" data-nt-event-edit="${esc(event.id)}" title="${t('Edit')}">${icons.edit}</button><button type="button" class="is-danger" data-nt-event-delete="${esc(event.id)}" title="${t('Delete')}">${icons.trash}</button></div></article>`;
+        return `<article class="nt-calendar-event-card ${event.inject === false ? 'is-muted' : ''}"><div><span>${owner}</span><b>${esc(event.title || t('Untitled event'))}</b>${event.details ? `<p>${esc(event.details)}</p>` : ''}</div><div><button type="button" class="menu_button menu_button_icon" data-nt-event-edit="${esc(event.id)}" title="${t('Edit')}">${icons.edit}</button><button type="button" class="menu_button menu_button_icon is-danger" data-nt-event-delete="${esc(event.id)}" title="${t('Delete')}">${icons.trash}</button></div></article>`;
     }
 
     renderWeekly(store) {
@@ -317,7 +317,7 @@ export class CalendarManager {
               <header><div><small>${t('Recurring weekly plan')}</small><b>${esc(weekdayLong(this.weekday))}</b></div>${currentWeekday === this.weekday ? `<span>${t('Current story day')}</span>` : ''}</header>
               <div class="nt-weekly-list">${items.length ? items.map(item => this.routineCard(item)).join('') : `<div class="nt-calendar-empty"><span>${icons.calendar}</span><b>${t('No recurring items')}</b><small>${t('Add school, work, training or any regular activity.')}</small></div>`}</div>
               <form class="nt-calendar-editor" data-nt-routine-form>
-                <div class="nt-calendar-editor-title"><b>${editing ? t('Edit weekly item') : t('Add weekly item')}</b>${editing ? `<button type="button" data-nt-routine-cancel>${t('Cancel')}</button>` : ''}</div>
+                <div class="nt-calendar-editor-title"><b>${editing ? t('Edit weekly item') : t('Add weekly item')}</b>${editing ? `<button type="button" class="menu_button" data-nt-routine-cancel>${t('Cancel')}</button>` : ''}</div>
                 <div class="nt-calendar-form-grid">
                   <label><span>${t('For')}</span><select data-nt-routine-owner><option value="user" ${editing?.owner !== 'char' && editing?.owner !== 'general' ? 'selected' : ''}>{{user}}</option><option value="char" ${editing?.owner === 'char' ? 'selected' : ''}>{{char}}</option><option value="general" ${editing?.owner === 'general' ? 'selected' : ''}>${t('General')}</option></select></label>
                   <label class="is-wide"><span>${t('Activity')}</span><input data-nt-routine-title value="${esc(editing?.title || '')}" placeholder="${t('University classes, work, gym…')}"></label>
@@ -331,7 +331,7 @@ export class CalendarManager {
     }
 
     routineCard(item) {
-        return `<article class="nt-calendar-event-card ${item.inject === false ? 'is-muted' : ''}"><div><span>${this.ownerLabel(item.owner)}</span><b>${esc(item.title || t('Untitled item'))}</b>${item.details ? `<p>${esc(item.details)}</p>` : ''}</div><div><button type="button" data-nt-routine-edit="${esc(item.id)}" title="${t('Edit')}">${icons.edit}</button><button type="button" class="is-danger" data-nt-routine-delete="${esc(item.id)}" title="${t('Delete')}">${icons.trash}</button></div></article>`;
+        return `<article class="nt-calendar-event-card ${item.inject === false ? 'is-muted' : ''}"><div><span>${this.ownerLabel(item.owner)}</span><b>${esc(item.title || t('Untitled item'))}</b>${item.details ? `<p>${esc(item.details)}</p>` : ''}</div><div><button type="button" class="menu_button menu_button_icon" data-nt-routine-edit="${esc(item.id)}" title="${t('Edit')}">${icons.edit}</button><button type="button" class="menu_button menu_button_icon is-danger" data-nt-routine-delete="${esc(item.id)}" title="${t('Delete')}">${icons.trash}</button></div></article>`;
     }
 
     renderInjection(store) {
@@ -356,7 +356,7 @@ export class CalendarManager {
               </div>
             </section>
             <section class="nt-calendar-preview-card">
-              <header><div><b>${t('Injection preview')}</b><small>${t('This is the compact context the model receives.')}</small></div><button type="button" data-nt-calendar-copy>${icons.copy}<span>${t('Copy')}</span></button></header>
+              <header><div><b>${t('Injection preview')}</b><small>${t('This is the compact context the model receives.')}</small></div><button type="button" class="menu_button" data-nt-calendar-copy>${icons.copy}<span>${t('Copy')}</span></button></header>
               <pre data-nt-calendar-preview>${esc(preview)}</pre>
             </section>
           </div>`;

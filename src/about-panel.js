@@ -1,5 +1,7 @@
 import { icons } from './icons.js';
 import { t } from './i18n.js';
+import { escapeHtml as esc } from './utils.js';
+import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
 
 const LINKS = [
     { id:'youtube', name:'YouTube', handle:'@AnNastyLoneGirl', description:'Tutorials, guides and NastyTavern / SillyTavern content', url:'https://www.youtube.com/@AnNastyLoneGirl' },
@@ -9,7 +11,6 @@ const LINKS = [
     { id:'kofi', name:'Ko-fi', handle:'annastylonegirl', description:'Support development and buy me a coffee', url:'https://ko-fi.com/annastylonegirl' },
 ];
 
-const esc = value => String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 
 export class AboutPanel {
     constructor(onDiagnostics) {
@@ -28,34 +29,31 @@ export class AboutPanel {
 
     open() {
         this.ensure();
-        this.root.hidden = false;
-        requestAnimationFrame(() => this.root?.classList.add('is-open'));
+        showModalShell(this.root);
     }
 
     close() {
         if (!this.root) return;
-        this.root.classList.remove('is-open');
-        setTimeout(() => {
-            if (this.root && !this.root.classList.contains('is-open')) this.root.hidden = true;
-        }, 160);
+        hideModalShell(this.root, { immediate: false });
     }
 
     ensure() {
         if (this.root = document.querySelector('#nt-about-panel')) return this.root;
-        const root = document.createElement('div');
-        root.id = 'nt-about-panel';
-        root.hidden = true;
-        root.innerHTML = `<div class="nt-tool-backdrop" data-nt-about-close></div>
-        <section class="nt-tool-modal nt-about-modal" role="dialog" aria-modal="true" aria-label="${esc(t('About NastyTavern'))}">
-          <header class="nt-tool-header">
-            <div><span>${icons.logo}</span><div><b>${t('About NastyTavern')}</b><small>${t('Project, support and contact information')}</small></div></div>
-            <div><button type="button" data-nt-about-close title="${esc(t('Close'))}" aria-label="${esc(t('Close'))}">${icons.close}</button></div>
-          </header>
-          <div class="nt-about-body">
+        const { root, body } = createModalShell({
+            id: 'nt-about-panel',
+            title: t('About NastyTavern'),
+            subtitle: t('Project, support and contact information'),
+            icon: icons.logo,
+            modalClass: 'nt-tool-modal nt-about-modal',
+            backdropClass: 'nt-tool-backdrop',
+            bodyClass: 'nt-about-body',
+            closeAttrs: { 'data-nt-about-close': '' },
+        });
+        body.innerHTML = `
             <section class="nt-about-hero">
               <div class="nt-about-logo">${icons.logo}</div>
               <div class="nt-about-hero-copy">
-                <div class="nt-about-title-row"><h2>NastyTavern UI</h2><span>v0.1.2</span></div>
+                <div class="nt-about-title-row"><h2>NastyTavern UI</h2><span>v0.1.3</span></div>
                 <p>${t('A modern, ergonomic interface layer for SillyTavern that keeps the native features underneath while making everyday workflows faster and clearer.')}</p>
                 <div class="nt-about-meta"><span>${t('Created by Anna / AnNastyLoneGirl')}</span><span>${t('Built for SillyTavern 1.18+')}</span><span>${t('Open source')}</span><span>${t('i18n ready')}</span></div>
               </div>
@@ -122,8 +120,7 @@ export class AboutPanel {
             </section>
 
             <footer class="nt-about-footer"><span>${t('NastyTavern UI is a community extension for SillyTavern.')}</span><span>${t('Thank you for using and improving the project.')} 🤍</span></footer>
-          </div>
-        </section>`;
+        `;
         root.addEventListener('click', event => {
             if (event.target.closest('[data-nt-about-close]')) this.close();
             if (event.target.closest('[data-nt-about-diagnostics]')) {

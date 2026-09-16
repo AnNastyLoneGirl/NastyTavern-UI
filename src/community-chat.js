@@ -1,13 +1,12 @@
 import { icons } from './icons.js';
 import { t } from './i18n.js';
+import { escapeHtml as esc, formatBytes, withViewOpeningState } from './utils.js';
+import { avatarHtml, closeButtonHtml, confirmDialog, starsHtml } from './ui-templates.js';
+import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
 
 const SDK_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0';
 const COMMUNITY_SUPABASE_URL = 'https://egyzkywvuvlcaguirzdm.supabase.co';
 const COMMUNITY_SUPABASE_KEY = 'sb_publishable_UBR44UD7dwhGHnPdQi-UAw_wyFQX0rK';
-const esc = value => String(value ?? '')
-    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
-
 
 const renderInlineMarkdown = value => {
     let html = esc(value);
@@ -95,21 +94,15 @@ const shortTime = value => {
     catch (_) { return ''; }
 };
 
-const initials = value => String(value || '?').trim().slice(0, 2).toUpperCase();
 const OFFICIAL_CHANNEL_SLUGS = ['general', 'nastytavern', 'character-cards', 'lorebooks', 'extensions'];
+const COMMUNITY_REACTION_EMOJIS = ['👍','❤️','😂','😊','😮','😢','😡','🔥','🎉','👏','💯','👀','🤔','🙏','✨','💜'];
 const OFFICIAL_CHANNEL_ORDER = new Map(OFFICIAL_CHANNEL_SLUGS.map((slug, index) => [slug, index]));
 const makeSessionToken = () => {
     try { return crypto.randomUUID(); } catch (_) { return `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
 };
 
 const roleRank = role => role === 'admin' ? 2 : role === 'moderator' ? 1 : 0;
-const formatBytes = size => {
-    const n = Number(size || 0);
-    if (!Number.isFinite(n) || n <= 0) return '0 B';
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-    return `${(n / 1024 / 1024).toFixed(1)} MB`;
-};
+const roleLabel = role => role === 'admin' ? t('Admin') : role === 'moderator' ? t('Moderator') : role === 'vip' ? 'VIP' : t('Member');
 const safeResourceName = value => {
     const cleaned = String(value || '')
         .replace(/[\u0000-\u001f<>:"/\\|?*]+/g, ' ')
@@ -185,10 +178,6 @@ const resourceDate = value => {
     try { return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
     catch (_) { return String(value || ''); }
 };
-const jsonForDisplay = value => {
-    try { return JSON.stringify(value, null, 2); } catch (_) { return ''; }
-};
-
 const inspectCommunityResource = async (blob, meta = {}) => {
     const kind = meta.kind === 'lorebook' ? 'lorebook' : 'character';
     const name = safeResourceName(meta.display_name || stripResourceExtension(meta.name) || (kind === 'character' ? 'Character Card' : 'Lorebook'));
@@ -270,6 +259,9 @@ export class CommunityChat {
         this.activeChannelId = null;
         this.messages = [];
         this.reactions = [];
+        this.resourceStats = new Map();
+        this.reactionPickerMessageId = null;
+        this.reactionPending = new Set();
         this.presence = new Map();
         this.globalPresence = new Map();
         this.subscription = null;
@@ -289,6 +281,7 @@ export class CommunityChat {
         this.unreadCounts = new Map();
         this.mentionCounts = new Map();
         this.notificationSubscription = null;
+        this.reportSyncTimer = null;
         this.activitySubscription = null;
         this.typingUsers = new Map();
         this.typingTimers = new Map();
@@ -299,12 +292,12 @@ export class CommunityChat {
         this.profileView = null;
         this.moderationOpen = false;
         this.reports = [];
+        this.openReportCount = 0;
         this.reportMessages = new Map();
         this.reportProfiles = new Map();
         this.attachmentUrls = new Map();
-        this.resourceModalRoot = null;
-        this.resourceModalMessage = null;
-        this.resourceModalObjectUrl = '';
+        this.resourceDetailsMessage = null;
+        this.resourceDetailsObjectUrl = '';
         this.homeSnapshot = { ready: false, signedIn: false, online: 0, messages: [], characterCards: [], lorebooks: [], mentions: 0 };
         this.backgroundInitPromise = null;
     }
@@ -342,10 +335,16 @@ export class CommunityChat {
         this.unsubscribeNotifications();
         this.unsubscribeActivity();
         try { this.authSubscription?.data?.subscription?.unsubscribe?.(); } catch (_) {}
+        this.authSubscription = null;
         clearTimeout(this.refreshTimer);
+        this.refreshTimer = null;
+        clearTimeout(this.typingStopTimer);
+        this.typingStopTimer = null;
+        this.typingTimers.forEach(timer => clearTimeout(timer));
+        this.typingTimers.clear();
+        this.typingUsers.clear();
+        this.reactionPending.clear();
         this.closeResourceDetails();
-        this.resourceModalRoot?.remove();
-        this.resourceModalRoot = null;
         this.root?.remove();
         this.root = null;
         this.client = null;
@@ -354,10 +353,21 @@ export class CommunityChat {
 
     ensure() {
         if (this.root = document.querySelector('#nt-community-panel')) return this.root;
-        const root = document.createElement('div');
-        root.id = 'nt-community-panel';
-        root.hidden = true;
-        root.innerHTML = `<div class="nt-community-backdrop" data-nt-community-close></div><section class="nt-community-shell" data-nt-community-shell></section>`;
+        const { root, header } = createModalShell({
+            id: 'nt-community-panel',
+            title: t('NastyTavern Community'),
+            subtitle: t('NastyTavern Community'),
+            icon: icons.community || icons.chat,
+            size: 'large',
+            modalClass: 'nt-community-shell',
+            backdropClass: 'nt-community-backdrop',
+            headerClass: 'nt-community-header',
+            headerActionsClass: 'nt-community-header-actions',
+            bodyClass: 'nt-community-shell-body',
+            bodyAttrs: { 'data-nt-community-shell': '' },
+            closeAttrs: { 'data-nt-community-close': '' },
+        });
+        if (header) header.hidden = true;
         root.addEventListener('click', event => this.onClick(event));
         root.addEventListener('submit', event => this.onSubmit(event));
         root.addEventListener('keydown', event => this.onKeyDown(event));
@@ -368,17 +378,23 @@ export class CommunityChat {
         return root;
     }
 
-    async open() {
+    async open({ authMode = null, channelSlug = '' } = {}) {
+        if (authMode === 'signup' || authMode === 'signin') {
+            this.authMode = authMode;
+            this.notice = '';
+        }
         this.ensure();
-        this.root.hidden = false;
-        requestAnimationFrame(() => this.root?.classList.add('is-open'));
+        showModalShell(this.root);
         await this.initialize();
         if (this.user) {
             await this.loadMentionCounts();
             this.subscribeNotifications();
             this.subscribeActivity();
+            const requestedChannel = String(channelSlug || '').trim();
+            const channel = requestedChannel ? this.channels.find(item => item.slug === requestedChannel) : null;
+            if (channel) await this.selectChannel(channel.id);
+            else await this.ensureGeneralChannelSelected();
         }
-        await this.ensureGeneralChannelSelected();
     }
 
     async ensureGeneralChannelSelected() {
@@ -390,30 +406,7 @@ export class CommunityChat {
     close() {
         if (!this.root || this.root.hidden) return;
         this.sendTyping(false);
-        this.root.classList.remove('is-open');
-        setTimeout(() => { if (this.root && !this.root.classList.contains('is-open')) this.root.hidden = true; }, 160);
-    }
-
-    async reconfigure() {
-        this.unsubscribeChannel();
-        this.unsubscribeGlobalPresence();
-        this.unsubscribeNotifications();
-        this.unsubscribeActivity();
-        try { this.authSubscription?.data?.subscription?.unsubscribe?.(); } catch (_) {}
-        this.authSubscription = null;
-        this.client = null;
-        this.user = null;
-        this.profile = null;
-        this.channels = [];
-        this.channelMembers.clear();
-        this.activeChannelId = null;
-        this.messages = [];
-        this.reactions = [];
-        this.presence.clear();
-        this.globalPresence.clear();
-        this.configFingerprint = '';
-        this.workspaceLoadPromise = null;
-        if (this.root && !this.root.hidden) await this.initialize();
+        hideModalShell(this.root, { immediate: false });
     }
 
     config() {
@@ -514,6 +507,7 @@ export class CommunityChat {
             this.activeChannelId = null;
             this.messages = [];
             this.reactions = [];
+            this.resourceStats.clear();
             this.presence.clear();
             this.globalPresence.clear();
             this.renderAuth();
@@ -562,6 +556,16 @@ export class CommunityChat {
         })();
         this.backgroundInitPromise = task;
         try { return await task; } finally { if (this.backgroundInitPromise === task) this.backgroundInitPromise = null; }
+    }
+
+    getAccountSnapshot() {
+        const signedIn = Boolean(this.user && this.profile);
+        return {
+            signedIn,
+            username: signedIn ? String(this.profile?.username || '').trim() : '',
+            avatarUrl: signedIn ? String(this.profile?.avatar_url || '').trim() : '',
+            role: signedIn ? String(this.profile?.role || 'member').trim().toLowerCase() : '',
+        };
     }
 
     getHomeSnapshot() { return structuredClone(this.homeSnapshot); }
@@ -614,14 +618,38 @@ export class CommunityChat {
                 }
                 this.updateChannelBadges();
             })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'nt_profiles', filter: `id=eq.${this.user.id}` }, payload => this.handleOwnProfileChange(payload.new || {}))
-            .subscribe();
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'nt_profiles', filter: `id=eq.${this.user.id}` }, payload => this.handleOwnProfileChange(payload.new || {}));
+        if (roleRank(this.profile?.role) >= 1) {
+            channel.on('postgres_changes', { event: '*', schema: 'public', table: 'nt_reports' }, async () => {
+                await this.loadOpenReportCount();
+                this.syncModerationIndicator();
+                if (this.moderationOpen) await this.loadReports();
+            });
+        }
+        channel.subscribe();
         this.notificationSubscription = channel;
+        if (roleRank(this.profile?.role) >= 1 && !this.reportSyncTimer) {
+            // Realtime remains the primary path. This narrow fallback covers deployments where
+            // nt_reports is not included in the Realtime publication or a transient event is missed.
+            this.reportSyncTimer = window.setInterval(async () => {
+                const before = this.openReportCount;
+                await this.loadOpenReportCount();
+                if (before !== this.openReportCount) this.syncModerationIndicator();
+            }, 5000);
+        }
     }
 
     unsubscribeNotifications() {
         if (this.notificationSubscription && this.client) try { this.client.removeChannel(this.notificationSubscription); } catch (_) {}
         this.notificationSubscription = null;
+        if (this.reportSyncTimer) window.clearInterval(this.reportSyncTimer);
+        this.reportSyncTimer = null;
+    }
+
+    syncModerationIndicator() {
+        const button = this.root?.querySelector('[data-nt-community-moderation]');
+        if (!button) return;
+        button.classList.toggle('has-open-reports', this.openReportCount > 0);
     }
 
     handleOwnProfileChange(next = {}) {
@@ -647,6 +675,7 @@ export class CommunityChat {
         if (!this.client || !this.user || this.activitySubscription) return;
         const channel = this.client.channel('nt-community:activity')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'nt_messages' }, payload => this.handleBackgroundMessage(payload.new || {}))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_resource_stats_live' }, payload => this.handleResourceStatsRealtime(payload))
             .subscribe();
         this.activitySubscription = channel;
     }
@@ -666,6 +695,28 @@ export class CommunityChat {
         this.updateChannelBadges();
         const relevant = this.channels.find(c => c.id === message.channel_id && ['general','nastytavern','character-cards','lorebooks'].includes(c.slug));
         if (relevant || !this.channels.length) setTimeout(() => this.refreshHomeSnapshot(), 160);
+    }
+
+    handleResourceStatsRealtime(payload) {
+        const row = payload?.new || payload?.old || {};
+        const id = Number(row.resource_message_id);
+        if (!Number.isFinite(id)) return;
+        const key = String(id);
+        const previous = this.resourceStatsFor(id);
+        if (payload?.eventType === 'DELETE') {
+            this.resourceStats.set(key, { rating_average: 0, rating_count: 0, acquisition_count: 0, my_rating: previous.my_rating });
+        } else {
+            this.resourceStats.set(key, {
+                rating_average: Number(row.rating_average || 0),
+                rating_count: Number(row.rating_count || 0),
+                acquisition_count: Number(row.acquisition_count || 0),
+                my_rating: previous.my_rating,
+            });
+        }
+        if (this.messages.some(message => Number(message.id) === id)) {
+            this.updateDynamicAreas({ scrollMessagesToBottom: false });
+        }
+        void this.refreshHomeSnapshot();
     }
 
     updateChannelBadges() {
@@ -704,26 +755,42 @@ export class CommunityChat {
                     ? this.client.from('nt_messages').select(select).in('channel_id', feedIds).order('created_at', { ascending: false }).limit(5)
                     : Promise.resolve({ data: [] }),
                 cardsId
-                    ? this.client.from('nt_messages').select(select).eq('channel_id', cardsId).in('message_type', ['attachment','character_card']).order('created_at', { ascending: false }).limit(5)
+                    ? this.client.from('nt_messages').select(select).eq('channel_id', cardsId).in('message_type', ['attachment','character_card']).order('created_at', { ascending: false }).limit(11)
                     : Promise.resolve({ data: [] }),
                 lorebooksId
-                    ? this.client.from('nt_messages').select(select).eq('channel_id', lorebooksId).in('message_type', ['attachment','lorebook']).order('created_at', { ascending: false }).limit(5)
+                    ? this.client.from('nt_messages').select(select).eq('channel_id', lorebooksId).in('message_type', ['attachment','lorebook']).order('created_at', { ascending: false }).limit(11)
                     : Promise.resolve({ data: [] }),
             ]);
 
+            const resourceRows = [...(cardResult.data || []), ...(loreResult.data || [])];
+            await this.loadResourceStats(resourceRows.map(row => row.id));
+
             const decorateResources = async (rows, expectedKind) => {
-                const filtered = (rows || []).filter(row => !row.metadata?.kind || row.metadata.kind === expectedKind).slice(0, 5);
+                const filtered = (rows || []).filter(row => !row.metadata?.kind || row.metadata.kind === expectedKind).slice(0, 11);
                 return Promise.all(filtered.map(async row => {
                     let preview_url = '';
                     const path = row.metadata?.path;
                     const name = String(row.metadata?.name || '');
                     if (path && (row.metadata?.mime === 'image/png' || /\.png$/i.test(name))) {
-                        try {
-                            const { data } = await this.client.storage.from('community-files').createSignedUrl(path, 3600);
-                            preview_url = data?.signedUrl || '';
-                        } catch (_) {}
+                        preview_url = this.attachmentUrls.get(path) || '';
+                        if (!preview_url) {
+                            try {
+                                const { data } = await this.client.storage.from('community-files').createSignedUrl(path, 3600);
+                                preview_url = data?.signedUrl || '';
+                                if (preview_url) this.attachmentUrls.set(path, preview_url);
+                            } catch (_) {}
+                        }
                     }
-                    return { ...row, preview_url };
+                    const stats = this.resourceStatsFor(row.id);
+                    return {
+                        ...row,
+                        preview_url,
+                        rating: stats.rating_average,
+                        rating_count: stats.rating_count,
+                        download_count: stats.acquisition_count,
+                        acquisition_count: stats.acquisition_count,
+                        my_rating: stats.my_rating,
+                    };
                 }));
             };
 
@@ -746,11 +813,42 @@ export class CommunityChat {
         } catch (error) { console.warn('[NastyTavern] Home Community snapshot failed', error); }
     }
 
+    setShellMode(mode = 'workspace') {
+        const auth = mode === 'auth';
+        this.root?.classList.toggle('is-auth-modal', auth);
+        const modal = this.root?.querySelector('.nt-community-shell');
+        modal?.classList.toggle('nt-modal-size-compact', auth);
+        modal?.classList.toggle('nt-modal-size-large', !auth);
+        const body = this.shell();
+        body?.classList.toggle('nt-community-auth-modal-body', auth);
+        if (!auth) body?.classList.remove('nt-community-auth-onboarding');
+        this.root?.querySelector('.nt-community-header')?.classList.toggle('nt-community-auth-header', auth);
+    }
+
+    configureShellHeader({ title = t('NastyTavern Community'), subtitle = '', actionsHtml = '', visible = true } = {}) {
+        const header = this.root?.querySelector('.nt-community-header');
+        if (!header) return;
+        header.hidden = !visible;
+        const titleNode = header.querySelector('.nt-modal-heading-copy > b');
+        const subtitleNode = header.querySelector('.nt-modal-heading-copy > small');
+        if (titleNode) titleNode.textContent = title;
+        if (subtitleNode) {
+            subtitleNode.textContent = subtitle;
+            subtitleNode.hidden = !subtitle;
+        }
+        const actions = header.querySelector('.nt-community-header-actions');
+        if (actions) actions.innerHTML = `${actionsHtml}${closeButtonHtml('nt-community-close')}`;
+    }
+
     renderLoading() {
+        this.setShellMode('workspace');
+        this.configureShellHeader({ visible: false });
         this.shell().innerHTML = `<div class="nt-community-center"><span class="nt-community-spinner"></span><b>${t('Connecting to Community Chat…')}</b><small>${t('Loading your community workspace.')}</small></div>`;
     }
 
     renderSetup() {
+        this.setShellMode('workspace');
+        this.configureShellHeader({ visible: false });
         this.shell().innerHTML = `
           <div class="nt-community-center nt-community-setup">
             <span class="nt-community-big-icon">${icons.community || icons.chat}</span>
@@ -761,6 +859,8 @@ export class CommunityChat {
     }
 
     renderError(error) {
+        this.setShellMode('workspace');
+        this.configureShellHeader({ visible: false });
         const message = String(error?.message || error || t('Unknown error'));
         const schemaMissing = /relation .*nt_|does not exist|schema cache/i.test(message);
         this.shell().innerHTML = `
@@ -777,11 +877,12 @@ export class CommunityChat {
     renderAuth() {
         const signup = this.authMode === 'signup';
         const googleIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.91h5.38a4.6 4.6 0 0 1-2 3.02v2.54h3.24c1.9-1.75 2.98-4.34 2.98-7.4Z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.63-2.37l-3.24-2.54c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.04v2.62A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.92A6.02 6.02 0 0 1 6.08 12c0-.67.11-1.31.31-1.92V7.46H3.04A10 10 0 0 0 2 12c0 1.61.39 3.13 1.04 4.54l3.35-2.62Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.51 3.83 1.5l2.87-2.88A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.96 5.46l3.35 2.62C7.18 7.71 9.39 5.95 12 5.95Z"/></svg>`;
+        this.setShellMode('auth');
+        this.configureShellHeader({ title: signup ? t('Create account') : t('Sign in'), subtitle: t('NastyTavern Community') });
+        this.shell()?.classList.remove('nt-community-auth-onboarding');
         this.shell().innerHTML = `
-          <div class="nt-community-auth">
-            <div class="nt-community-auth-art"><span>${icons.community || icons.chat}</span><b>NastyTavern Community</b><p>${t('Chat with other NastyTavern users in real time.')}</p></div>
+            <div class="nt-community-auth-intro"><b>${signup ? t('Join NastyTavern Community') : t('Welcome back')}</b><p>${signup ? t('Create your Community account to chat with other NastyTavern users.') : t('Sign in to access Community Chat and your shared spaces.')}</p></div>
             <div class="nt-community-auth-card">
-              <div class="nt-community-auth-tabs"><button type="button" data-nt-community-auth-tab="signin" class="${signup ? '' : 'is-active'}">${t('Sign in')}</button><button type="button" data-nt-community-auth-tab="signup" class="${signup ? 'is-active' : ''}">${t('Create account')}</button></div>
               <button type="button" class="nt-community-google" data-nt-community-google>${googleIcon}<span>${t('Continue with Google')}</span></button>
               <div class="nt-community-auth-divider"><span>${t('or')}</span></div>
               <form data-nt-community-auth-form>
@@ -791,18 +892,20 @@ export class CommunityChat {
                 ${this.notice ? `<p class="nt-community-notice">${esc(this.notice)}</p>` : ''}
                 <button type="submit" class="is-primary">${signup ? t('Create account') : t('Sign in')}</button>
               </form>
-            </div>
-          </div>`;
+              <button type="button" class="nt-community-auth-switch" data-nt-community-auth-tab="${signup ? 'signin' : 'signup'}">${signup ? t('Sign in') : t('Create account')}</button>
+            </div>`;
     }
 
     renderUsernameOnboarding() {
+        this.setShellMode('auth');
+        this.configureShellHeader({ title: t('Community profile'), subtitle: t('NastyTavern Community') });
         const avatar = this.user?.user_metadata?.avatar_url || this.user?.user_metadata?.picture || '';
         const email = this.user?.email || '';
+        this.shell()?.classList.add('nt-community-auth-onboarding');
         this.shell().innerHTML = `
-          <div class="nt-community-auth">
-            <div class="nt-community-auth-art"><span>${icons.community || icons.chat}</span><b>NastyTavern Community</b><p>${t('Choose the permanent identity you will use in Community.')}</p></div>
+            <div class="nt-community-auth-intro"><b>${t('Choose your Community username')}</b><p>${t('Choose the permanent identity you will use in Community.')}</p></div>
             <div class="nt-community-auth-card nt-community-username-card">
-              <div class="nt-community-oauth-user">${avatar ? `<img src="${esc(avatar)}" alt="">` : `<span>${initials(email || 'G')}</span>`}<div><b>${t('Google account connected')}</b><small>${esc(email)}</small></div></div>
+              <div class="nt-community-oauth-user">${avatarHtml(avatar, email || 'G', { wrapInitials: true })}<div><b>${t('Google account connected')}</b><small>${esc(email)}</small></div></div>
               <h3>${t('Choose your Community username')}</h3>
               <p>${t('Your Google name is not used automatically. Pick the unique username other Community members will see.')}</p>
               <form data-nt-community-username-form>
@@ -811,8 +914,7 @@ export class CommunityChat {
                 <button type="submit" class="is-primary">${t('Join Community')}</button>
               </form>
               <button type="button" class="nt-community-config-link" data-nt-community-signout>${t('Use another account')}</button>
-            </div>
-          </div>`;
+            </div>`;
     }
 
     getAuthRedirectUrl() {
@@ -895,6 +997,7 @@ export class CommunityChat {
             return;
         }
         await this.loadChannelMembersIndex();
+        if (roleRank(this.profile?.role) >= 1) await this.loadOpenReportCount();
         if (this.activeChannelId && !this.channels.some(channel => channel.id === this.activeChannelId)) {
             this.activeChannelId = null;
         }
@@ -928,18 +1031,15 @@ export class CommunityChat {
 
     channelMeta(channel) {
         const slug = channel?.slug || '';
-        if (slug === 'nastytavern') return { label: 'NastyTavern', description: t('Discuss NastyTavern, its interface, features, feedback and ideas.'), icon: icons.community || icons.chat };
-        if (slug === 'character-cards') return { label: t('Character Cards'), description: t('Share, improve and discuss SillyTavern character cards.'), icon: icons.characters || icons.persona };
-        if (slug === 'lorebooks') return { label: t('Lorebooks'), description: t('Worldbuilding, entries, activation logic and Lorebook design.'), icon: icons.lore || icons.bookmark };
-        if (slug === 'extensions') return { label: t('Extensions'), description: t('Discuss SillyTavern extensions, integrations and customization.'), icon: icons.extensions || icons.plug };
-        return { label: t('General'), description: t('SillyTavern discussion, roleplay setups, questions and discoveries.'), icon: icons.chat };
-    }
-
-    channelLabel(channel) {
-        return this.channelMeta(channel).label;
+        if (slug === 'nastytavern') return { label: 'NastyTavern', icon: icons.community || icons.chat };
+        if (slug === 'character-cards') return { label: t('Character Cards'), icon: icons.characters || icons.persona };
+        if (slug === 'lorebooks') return { label: t('Lorebooks'), icon: icons.lore || icons.bookmark };
+        if (slug === 'extensions') return { label: t('Extensions'), icon: icons.extensions || icons.plug };
+        return { label: t('General'), icon: icons.chat };
     }
 
     renderWorkspace() {
+        this.setShellMode('workspace');
         const active = this.channels.find(channel => channel.id === this.activeChannelId) || null;
         const activeMeta = this.channelMeta(active);
         const globalOnlineCount = this.globalPresence.size;
@@ -949,20 +1049,16 @@ export class CommunityChat {
         const isMod = roleRank(role) >= 1;
         const muted = this.profile?.muted_until && Date.parse(this.profile.muted_until) > Date.now();
         const banned = Boolean(this.profile?.banned_at);
+        this.configureShellHeader({
+            title: t('NastyTavern Community'),
+            actionsHtml: `${isMod ? `<button type="button" data-nt-community-moderation class="${this.openReportCount > 0 ? 'has-open-reports' : ''}" title="${t('Moderation')}">${icons.alertWarning}</button>` : ''}<button type="button" class="nt-community-user-pill" data-nt-community-profile-self title="${t('Open your Community profile')}"><span class="nt-community-mini-avatar">${avatarHtml(this.profile?.avatar_url, this.profile?.username)}</span><b>${esc(this.profile?.username || '')}</b>${role !== 'member' ? `<em>${esc(roleLabel(role))}</em>` : ''}</button><button type="button" data-nt-community-signout title="${t('Sign out')}">${icons.disconnect}</button>`,
+        });
         this.shell().innerHTML = `
-          <header class="nt-community-header">
-            <div><span>${icons.community || icons.chat}</span><div><b>${t('NastyTavern Community')}</b><small>${t('SillyTavern-focused community spaces')}</small></div></div>
-            <div class="nt-community-header-actions">
-              ${isMod ? `<button type="button" data-nt-community-moderation title="${t('Moderation')}">${icons.health}</button>` : ''}
-              <button type="button" class="nt-community-user-pill" data-nt-community-profile-self title="${t('Open your Community profile')}"><span class="nt-community-mini-avatar">${this.profile?.avatar_url ? `<img src="${esc(this.profile.avatar_url)}" alt="">` : initials(this.profile?.username)}</span><b>${esc(this.profile?.username || '')}</b>${role !== 'member' ? `<em>${esc(role)}</em>` : ''}</button>
-              <button type="button" data-nt-community-signout title="${t('Sign out')}">${icons.logout || icons.close}</button><button type="button" data-nt-community-close title="${t('Close')}">${icons.arrowRight}</button>
-            </div>
-          </header>
           <div class="nt-community-workspace">
             <aside class="nt-community-channels"><nav class="nt-community-channel-list nt-community-official-list">${this.channels.map(channel => this.channelButton(channel)).join('')}</nav></aside>
             <main class="nt-community-main">
               <header class="nt-community-room-header">
-                <div class="nt-community-room-title"><span>${activeMeta.icon}</span><div><b>${active ? `# ${esc(activeMeta.label)}` : t('Community Chat')}</b><small>${active ? esc(activeMeta.description) : t('Choose a channel')}</small></div></div>
+                <div class="nt-community-room-title"><span>${activeMeta.icon}</span><div><b>${active ? `# ${esc(activeMeta.label)}` : t('Community Chat')}</b>${active ? '' : `<small>${t('Choose a channel')}</small>`}</div></div>
                 <div class="nt-community-room-meta">
                   <span title="${t('Online in Community')}">${icons.community || icons.persona}<b data-nt-community-global-online-count>${globalOnlineCount}</b></span>
                   <span class="is-online" title="${t('Online in this channel')}">● <b data-nt-community-online-count>${channelOnlineCount}</b></span>
@@ -979,10 +1075,10 @@ export class CommunityChat {
                 <span class="nt-community-composer-channel">#</span>
                 ${canUpload ? `<button type="button" class="nt-community-attach" data-nt-community-attach title="${active?.slug === 'character-cards' ? t('Share a Character Card') : t('Share a Lorebook')}">${icons.upload}</button><input type="file" data-nt-community-share-file hidden accept="${active?.slug === 'character-cards' ? '.png,.json,application/json,image/png' : '.json,.lorebook,.png,application/json,image/png'}">` : ''}
                 <textarea data-nt-community-composer rows="1" maxlength="8000" placeholder="${active ? `${t('Message')} #${esc(activeMeta.label)}…` : t('Message the community…')}" ${(active && !muted && !banned) ? '' : 'disabled'}></textarea>
-                <button type="submit" class="is-primary" ${(active && !muted && !banned) ? '' : 'disabled'}>${icons.arrowRight}</button>
+                <button type="submit" class="is-primary nt-community-send" ${(active && !muted && !banned) ? '' : 'disabled'}>${icons.arrowRight}</button>
               </form>
             </main>
-            <aside class="nt-community-members"><div class="nt-community-members-head"><div><b>${t('Community')}</b><small>${t('People in this SillyTavern space')}</small></div></div><div data-nt-community-members>${this.renderMembers()}</div></aside>
+            <aside class="nt-community-members"><div data-nt-community-members>${this.renderMembers()}</div></aside>
           </div>
           ${this.renderProfileOverlay()}
           ${this.renderModerationOverlay()}`;
@@ -1011,7 +1107,7 @@ export class CommunityChat {
         const unread = Number(this.unreadCounts.get(channel.id) || 0);
         const mentions = Number(this.mentionCounts.get(channel.id) || 0);
         const hasNotice = mentions > 0 || unread > 0;
-        return `<button type="button" class="nt-community-channel ${active ? 'is-active' : ''}" data-nt-community-channel="${esc(channel.id)}"><span>${meta.icon}</span><div><b># ${esc(meta.label)}</b><small>${esc(meta.description)}</small></div><span class="nt-community-channel-badges" data-nt-channel-badges ${hasNotice ? '' : 'hidden'}>${hasNotice ? '<span class="nt-community-unread-dot" aria-hidden="true"></span>' : ''}</span><i>${icons.arrowRight}</i></button>`;
+        return `<button type="button" class="nt-community-channel ${active ? 'is-active' : ''}" data-nt-community-channel="${esc(channel.id)}"><div><b># ${esc(meta.label)}</b></div><span class="nt-community-channel-badges" data-nt-channel-badges ${hasNotice ? '' : 'hidden'}>${hasNotice ? '<span class="nt-community-unread-dot" aria-hidden="true"></span>' : ''}</span></button>`;
     }
 
     renderMessages() {
@@ -1027,17 +1123,19 @@ export class CommunityChat {
             const attachment = message.message_type === 'attachment' ? this.renderAttachment(message) : '';
             const role = profile.role || 'member';
             return `<article class="nt-community-message ${own ? 'is-own' : ''}" data-nt-community-message="${message.id}">
-              <button type="button" class="nt-community-avatar" data-nt-community-profile="${esc(message.user_id)}">${profile.avatar_url ? `<img src="${esc(profile.avatar_url)}" alt="">` : initials(profile.username)}</button>
+              <button type="button" class="nt-community-avatar" data-nt-community-profile="${esc(message.user_id)}">${avatarHtml(profile.avatar_url, profile.username)}</button>
               <div class="nt-community-message-body">
-                <header><b>${esc(profile.username || t('Unknown user'))}${role !== 'member' ? `<em>${role === 'admin' ? t('Admin') : t('Moderator')}</em>` : ''}</b><small>${shortTime(message.created_at)}${message.edited_at ? ` · ${t('edited')}` : ''}</small><div>
+                <header><b>${esc(profile.username || t('Unknown user'))}${role !== 'member' ? `<em>${esc(roleLabel(role))}</em>` : ''}</b><small>${shortTime(message.created_at)}${message.edited_at ? ` · ${t('edited')}` : ''}</small><div>
+                  <button type="button" class="nt-community-reaction-action" data-nt-reaction-picker-toggle="${message.id}" title="${t('React')}" aria-label="${t('React')}" aria-expanded="${String(this.reactionPickerMessageId) === String(message.id)}">☺</button>
                   <button type="button" data-nt-message-action="reply" title="${t('Reply')}">${icons.arrowLeft}</button>
-                  ${own ? `<button type="button" data-nt-message-action="edit" title="${t('Edit')}">${icons.edit}</button>` : `<button type="button" data-nt-message-action="report" title="${t('Report')}">${icons.health}</button>`}
+                  ${own ? `<button type="button" data-nt-message-action="edit" title="${t('Edit')}">${icons.edit}</button>` : `<button type="button" data-nt-message-action="report" title="${t('Report')}">${icons.alertWarning}</button>`}
                   ${(own || isMod) ? `<button type="button" data-nt-message-action="delete" title="${isMod && !own ? t('Moderator delete') : t('Delete')}">${icons.trash}</button>` : ''}
+                  ${String(this.reactionPickerMessageId) === String(message.id) ? `<div class="nt-community-reaction-picker" data-nt-reaction-picker role="menu" aria-label="${t('React')}">${COMMUNITY_REACTION_EMOJIS.map(emoji => `<button type="button" data-nt-message-reaction="${emoji}" data-nt-reaction-picker-option role="menuitem" title="${emoji}"><span class="nt-community-reaction-picker-emoji" aria-hidden="true">${emoji}</span></button>`).join('')}</div>` : ''}
                 </div></header>
                 ${reply ? `<blockquote><b>${esc(reply.profile?.username || '')}</b><span>${esc(String(reply.content || '').slice(0,140))}</span></blockquote>` : ''}
                 ${message.message_type !== 'attachment' && message.content ? `<div class="nt-community-markdown">${renderMarkdown(message.content)}</div>` : ''}
                 ${attachment}
-                <div class="nt-community-reactions">${reactions}${['👍','❤️','😂'].map(emoji => `<button type="button" data-nt-message-reaction="${emoji}" title="${t('React')}">${emoji}</button>`).join('')}</div>
+                ${reactions ? `<div class="nt-community-reactions">${reactions}</div>` : ''}
               </div>
             </article>`;
         }).join('');
@@ -1050,55 +1148,29 @@ export class CommunityChat {
         const kind = meta.kind === 'lorebook' ? 'lorebook' : 'character';
         const legacyTitle = stripResourceExtension(String(message.content || '').replace(/^\s*(?:Character Card|Lorebook)\s*:\s*/i, ''));
         const title = meta.display_name || stripResourceExtension(meta.name) || legacyTitle || (kind === 'character' ? t('Character Card') : t('Lorebook'));
-        const hasImage = url && (meta.mime === 'image/png' || /\.png$/i.test(meta.name || ''));
+        const hasImage = kind === 'character' && url && (meta.mime === 'image/png' || /\.png$/i.test(meta.name || ''));
+        const stats = this.resourceStatsFor(message.id);
         return `<div class="nt-community-attachment ${kind === 'character' ? 'is-character' : 'is-lorebook'}">
           <button type="button" class="nt-community-attachment-media" data-nt-resource-info="${message.id}" title="${t('View resource details')}">
-            ${hasImage ? `<img src="${esc(url)}" alt="${esc(title)}">` : `<span>${kind === 'character' ? icons.characters : icons.lore}</span>`}
+            ${hasImage ? `<img src="${esc(url)}" alt="${esc(title)}">${this.resourceRatingSummary(message.id)}` : `<span>${kind === 'character' ? icons.characters : icons.lore}</span>`}
           </button>
           <div class="nt-community-attachment-body">
-            <button type="button" class="nt-community-attachment-main" data-nt-resource-info="${message.id}" title="${t('View resource details')}">
-              <span class="nt-community-attachment-copy">
-                <small>${kind === 'character' ? t('Character Card') : t('Lorebook')}</small>
+            <div class="nt-community-attachment-main">
+              <div class="nt-community-attachment-copy">
                 <b>${esc(title)}</b>
-                <span>${formatBytes(meta.size)}</span>
-              </span>
-            </button>
-            <div class="nt-community-attachment-actions">
-              <button type="button" data-nt-resource-info="${message.id}" title="${t('View resource details')}">${icons.info}<span>${t('Details')}</span></button>
-              <button type="button" data-nt-attachment-import="${message.id}" title="${t('Import into SillyTavern')}">${icons.download}<span>${t('Import')}</span></button>
-              <button type="button" data-nt-attachment-download="${message.id}" title="${t('Download')}">${icons.download}</button>
+                <em>description</em>
+              </div>
+              ${this.resourceRatingInput(message.id)}
+            </div>
+            <div class="nt-community-attachment-footer">
+              <div class="nt-community-attachment-actions">
+                <button type="button" data-nt-resource-info="${message.id}" title="${t('View resource details')}" aria-label="${t('Details')}">${icons.info}<span>${t('Details')}</span></button>
+                <button type="button" data-nt-attachment-import="${message.id}" title="${t('Import')}" aria-label="${t('Import')}">${icons.download}<span>${t('Import')}</span></button>
+              </div>
+              <span class="nt-community-resource-acquisitions" title="${esc(t('Unique imports/downloads'))}" aria-label="${esc(t('Unique imports/downloads'))}: ${stats.acquisition_count}">${icons.download}<span>${stats.acquisition_count}</span></span>
             </div>
           </div>
         </div>`;
-    }
-
-    ensureResourceModalRoot() {
-        if (this.resourceModalRoot?.isConnected) return this.resourceModalRoot;
-        const root = document.createElement('div');
-        root.id = 'nt-community-resource-modal';
-        root.hidden = true;
-        root.tabIndex = -1;
-        root.addEventListener('click', async event => {
-            if (event.target === root || event.target.closest('[data-nt-resource-modal-close]')) {
-                this.closeResourceDetails();
-                return;
-            }
-            const importButton = event.target.closest('[data-nt-resource-modal-import]');
-            if (importButton && this.resourceModalMessage) {
-                try { await this.downloadAttachment(this.resourceModalMessage, true); this.closeResourceDetails(); }
-                catch (error) { this.toast?.(error?.message || String(error)); }
-                return;
-            }
-            const downloadButton = event.target.closest('[data-nt-resource-modal-download]');
-            if (downloadButton && this.resourceModalMessage) {
-                try { await this.downloadAttachment(this.resourceModalMessage, false); }
-                catch (error) { this.toast?.(error?.message || String(error)); }
-            }
-        });
-        root.addEventListener('keydown', event => { if (event.key === 'Escape') this.closeResourceDetails(); });
-        document.body.append(root);
-        this.resourceModalRoot = root;
-        return root;
     }
 
     findResourceMessage(resourceOrId) {
@@ -1113,125 +1185,86 @@ export class CommunityChat {
         return pooled.find(item => String(item?.id) === id) || null;
     }
 
-    resourceTextSection(label, value) {
-        if (!String(value || '').trim()) return '';
-        return `<section class="nt-resource-info-section"><h4>${esc(label)}</h4><div class="nt-resource-info-text">${esc(value)}</div></section>`;
-    }
-
-    renderResourceDetails(message, info, previewUrl = '', error = '') {
-        const root = this.ensureResourceModalRoot();
-        const meta = message?.metadata || {};
-        const kind = meta.kind === 'lorebook' ? 'lorebook' : 'character';
-        const title = info?.name || safeResourceName(meta.display_name || stripResourceExtension(meta.name) || (kind === 'character' ? t('Character Card') : t('Lorebook')));
-        const author = message?.profile?.username || t('Unknown user');
-        const typeLabel = kind === 'character' ? t('Character Card') : t('Lorebook');
-
-        let details = '';
-        if (error) {
-            details = `<div class="nt-resource-info-error">${icons.health}<b>${t('Could not read resource details.')}</b><span>${esc(error)}</span></div>`;
-        } else if (!info) {
-            details = `<div class="nt-resource-info-loading"><span class="nt-community-spinner"></span><b>${t('Reading resource metadata…')}</b></div>`;
-        } else if (kind === 'character') {
-            const tagHtml = info.tags?.length ? `<div class="nt-resource-info-tags">${info.tags.map(tag => `<span>${esc(tag)}</span>`).join('')}</div>` : '';
-            const alternate = info.alternateGreetings?.length ? `<section class="nt-resource-info-section"><h4>${t('Alternate Greetings')} <em>${info.alternateGreetings.length}</em></h4><div class="nt-resource-info-greetings">${info.alternateGreetings.map((greeting, index) => `<details><summary>${t('Greeting')} ${index + 1}</summary><div class="nt-resource-info-text">${esc(greeting)}</div></details>`).join('')}</div></section>` : '';
-            const tech = {
-                spec: info.spec || undefined,
-                spec_version: info.specVersion || undefined,
-                character_version: info.version || undefined,
-                creator: info.creator || undefined,
-                embedded_lorebook_entries: info.embeddedLorebookEntries || undefined,
-                character_book: info.characterBook || undefined,
-                extensions: info.extensions || undefined,
-                additional_data: info.extraData && Object.keys(info.extraData).length ? info.extraData : undefined,
-            };
-            const hasTech = Object.values(tech).some(value => value !== undefined);
-            details = `${tagHtml}
-              <div class="nt-resource-info-stats">
-                ${info.creator ? `<div><small>${t('Creator')}</small><b>${esc(info.creator)}</b></div>` : ''}
-                ${info.version ? `<div><small>${t('Version')}</small><b>${esc(info.version)}</b></div>` : ''}
-                ${info.specVersion ? `<div><small>${t('Card spec')}</small><b>${esc([info.spec, info.specVersion].filter(Boolean).join(' '))}</b></div>` : ''}
-                ${info.embeddedLorebookEntries ? `<div><small>${t('Embedded Lorebook')}</small><b>${info.embeddedLorebookEntries} ${t('entries')}</b></div>` : ''}
-              </div>
-              ${this.resourceTextSection(t('Description'), info.description)}
-              ${this.resourceTextSection(t('Personality'), info.personality)}
-              ${this.resourceTextSection(t('Scenario'), info.scenario)}
-              ${this.resourceTextSection(t('First message'), info.firstMessage)}
-              ${alternate}
-              ${this.resourceTextSection(t('Example messages'), info.exampleMessages)}
-              ${this.resourceTextSection(t("Creator's Notes"), info.creatorNotes)}
-              ${this.resourceTextSection(t('System Prompt'), info.systemPrompt)}
-              ${this.resourceTextSection(t('Post-History Instructions'), info.postHistory)}
-              ${hasTech ? `<details class="nt-resource-info-technical"><summary>${t('Technical metadata')}</summary><pre>${esc(jsonForDisplay(tech))}</pre></details>` : ''}`;
-        } else {
-            const entries = info.entries || [];
-            details = `<div class="nt-resource-info-stats nt-resource-info-stats-lorebook">
-                <div><small>${t('Entries')}</small><b>${entries.length}</b></div>
-                <div><small>${t('Enabled')}</small><b>${info.enabled}</b></div>
-                <div><small>${t('Always active')}</small><b>${info.constant}</b></div>
-                <div><small>${t('Content size')}</small><b>${info.totalChars.toLocaleString()} ${t('characters')}</b></div>
-              </div>
-              <section class="nt-resource-info-section nt-resource-info-entry-section"><h4>${t('Lorebook entries')} <em>${entries.length}</em></h4>
-                <div class="nt-resource-info-entries">${entries.length ? entries.map((entry, index) => {
-                    const title = String(entry.comment || entry.name || entry.title || `${t('Entry')} ${index + 1}`).trim();
-                    const keys = asArray(entry.key || entry.keys);
-                    const secondary = asArray(entry.keysecondary || entry.secondary_keys);
-                    const advanced = Object.fromEntries(Object.entries(entry).filter(([key]) => !['__index','content','key','keys','keysecondary','secondary_keys','comment','name','title'].includes(key)));
-                    return `<details class="nt-resource-info-entry" ${index === 0 ? 'open' : ''}><summary><span><b>${esc(title)}</b><small>${entry.disable ? t('Disabled') : t('Enabled')}${entry.constant ? ` · ${t('Always active')}` : ''}</small></span><em>#${index + 1}</em></summary>
-                      <div class="nt-resource-info-entry-body">
-                        ${keys.length ? `<div class="nt-resource-info-keyline"><small>${t('Primary keys')}</small><div>${keys.map(key => `<span>${esc(key)}</span>`).join('')}</div></div>` : ''}
-                        ${secondary.length ? `<div class="nt-resource-info-keyline"><small>${t('Secondary keys')}</small><div>${secondary.map(key => `<span>${esc(key)}</span>`).join('')}</div></div>` : ''}
-                        ${entry.content ? `<div class="nt-resource-info-text">${esc(entry.content)}</div>` : ''}
-                        ${Object.keys(advanced).length ? `<details class="nt-resource-info-advanced"><summary>${t('Advanced settings')}</summary><pre>${esc(jsonForDisplay(advanced))}</pre></details>` : ''}
-                      </div></details>`;
-                }).join('') : `<small>${t('No Lorebook entries found.')}</small>`}</div>
-              </section>
-              ${info.topLevel && Object.keys(info.topLevel).length ? `<details class="nt-resource-info-technical"><summary>${t('Lorebook metadata')}</summary><pre>${esc(jsonForDisplay(info.topLevel))}</pre></details>` : ''}`;
-        }
-
-        root.innerHTML = `<div class="nt-resource-modal-backdrop" data-nt-resource-modal-close></div><section class="nt-resource-modal-card" role="dialog" aria-modal="true" aria-label="${esc(title)}">
-          <header class="nt-resource-modal-header"><div><span>${kind === 'character' ? icons.characters : icons.lore}</span><div><small>${typeLabel}</small><h2>${esc(title)}</h2></div></div><button type="button" data-nt-resource-modal-close title="${t('Close')}">${icons.close}</button></header>
-          <div class="nt-resource-modal-meta"><span>${t('Shared by {name}', { name: author })}</span><i></i><span>${formatBytes(meta.size)}</span>${message?.created_at ? `<i></i><span>${esc(resourceDate(message.created_at))}</span>` : ''}</div>
-          <div class="nt-resource-modal-content">
-            <aside class="nt-resource-modal-cover">${previewUrl ? `<img src="${esc(previewUrl)}" alt="${esc(title)}">` : `<span>${kind === 'character' ? icons.characters : icons.lore}</span>`}<small>${esc(meta.name || '')}</small></aside>
-            <main>${details}</main>
-          </div>
-          <footer><button type="button" class="is-primary" data-nt-resource-modal-import>${icons.download}<span>${t('Import into SillyTavern')}</span></button><button type="button" data-nt-resource-modal-download>${icons.download}<span>${t('Download')}</span></button></footer>
-        </section>`;
-        root.hidden = false;
-        requestAnimationFrame(() => { root.classList.add('is-open'); root.focus(); });
-    }
-
     async openResourceDetails(resourceOrId) {
         const message = this.findResourceMessage(resourceOrId);
-        if (!message?.metadata?.path) return;
-        this.resourceModalMessage = message;
-        if (this.resourceModalObjectUrl) { URL.revokeObjectURL(this.resourceModalObjectUrl); this.resourceModalObjectUrl = ''; }
-        this.renderResourceDetails(message, null);
+        if (!message?.metadata?.path) return false;
+        this.closeResourceDetails();
+        this.resourceDetailsMessage = message;
         try {
             await this.initializeBackground();
             if (!this.client || !this.user) throw new Error(t('Sign in to Community to view this resource.'));
             const { data, error } = await this.client.storage.from('community-files').download(message.metadata.path);
             if (error) throw error;
             const info = await inspectCommunityResource(data, message.metadata);
+            if (this.resourceDetailsMessage !== message) return false;
+
             let previewUrl = '';
             if (message.metadata?.mime === 'image/png' || /\.png$/i.test(message.metadata?.name || '')) {
-                this.resourceModalObjectUrl = URL.createObjectURL(data);
-                previewUrl = this.resourceModalObjectUrl;
+                this.resourceDetailsObjectUrl = URL.createObjectURL(data);
+                previewUrl = this.resourceDetailsObjectUrl;
             }
-            if (this.resourceModalMessage !== message) return;
-            this.renderResourceDetails(message, info, previewUrl);
+
+            const kind = message.metadata?.kind === 'lorebook' ? 'lorebook' : 'character';
+            const author = message?.profile?.username || t('Unknown user');
+            const stats = this.resourceStatsFor(message.id);
+            const metaItems = [
+                t('{count} downloads', { count: Number(stats.acquisition_count || 0) }),
+                t('Shared by {name}', { name: author }),
+                formatBytes(message.metadata?.size),
+                message?.created_at ? resourceDate(message.created_at) : '',
+            ].filter(Boolean);
+            const actions = [
+                {
+                    id: 'community-import',
+                    label: t('Import'),
+                    icon: icons.download,
+                    primary: true,
+                    run: async () => this.downloadAttachment(message, true),
+                },
+                {
+                    id: 'community-download',
+                    label: t('Download'),
+                    icon: icons.download,
+                    close: false,
+                    run: async () => this.downloadAttachment(message, false),
+                },
+            ];
+            const onClose = () => {
+                if (this.resourceDetailsObjectUrl) {
+                    URL.revokeObjectURL(this.resourceDetailsObjectUrl);
+                    this.resourceDetailsObjectUrl = '';
+                }
+                if (this.resourceDetailsMessage === message) this.resourceDetailsMessage = null;
+            };
+            const opened = this.callbacks.openResourceDetails?.({
+                kind,
+                card: kind === 'character' ? info.raw : null,
+                lorebook: kind === 'lorebook' ? info.raw : null,
+                title: info.name,
+                imageUrl: previewUrl,
+                context: kind === 'character' ? 'community-character' : 'community-lorebook',
+                contextLabel: kind === 'character' ? t('Character Card') : t('Lorebook'),
+                metaItems,
+                coverOverlayHtml: kind === 'character' ? this.resourceRatingSummary(message.id) : '',
+                actions,
+                onClose,
+            });
+            if (!opened) onClose();
+            return Boolean(opened);
         } catch (error) {
-            if (this.resourceModalMessage === message) this.renderResourceDetails(message, null, '', error?.message || String(error));
+            this.closeResourceDetails();
+            this.toast?.(error?.message || String(error));
+            return false;
         }
     }
 
     closeResourceDetails() {
-        if (this.resourceModalObjectUrl) { URL.revokeObjectURL(this.resourceModalObjectUrl); this.resourceModalObjectUrl = ''; }
-        this.resourceModalMessage = null;
-        if (!this.resourceModalRoot) return;
-        this.resourceModalRoot.classList.remove('is-open');
-        this.resourceModalRoot.hidden = true;
-        this.resourceModalRoot.innerHTML = '';
+        this.callbacks.closeResourceDetails?.();
+        if (this.resourceDetailsObjectUrl) {
+            URL.revokeObjectURL(this.resourceDetailsObjectUrl);
+            this.resourceDetailsObjectUrl = '';
+        }
+        this.resourceDetailsMessage = null;
     }
 
     reactionSummary(messageId) {
@@ -1261,7 +1294,7 @@ export class CommunityChat {
             const profile = member.profile || {};
             const online = this.presence.has(member.user_id);
             const role = profile.role || 'member';
-            return `<button type="button" class="nt-community-member" data-nt-community-profile="${esc(member.user_id)}"><span class="nt-community-mini-avatar">${profile.avatar_url ? `<img src="${esc(profile.avatar_url)}" alt="">` : initials(profile.username)}</span><div><b>${esc(profile.username || '')}</b><small>${role === 'admin' ? t('Admin') : role === 'moderator' ? t('Moderator') : t('Member')}</small></div><i class="${online ? 'is-online' : ''}" title="${online ? t('Online') : t('Offline')}"></i></button>`;
+            return `<button type="button" class="nt-community-member" data-nt-community-profile="${esc(member.user_id)}"><span class="nt-community-mini-avatar">${avatarHtml(profile.avatar_url, profile.username)}</span><div><b>${esc(profile.username || '')}</b><small>${esc(roleLabel(role))}</small></div><i class="${online ? 'is-online' : ''}" title="${online ? t('Online') : t('Offline')}"></i></button>`;
         }).join('');
     }
 
@@ -1273,16 +1306,16 @@ export class CommunityChat {
         const canMod = roleRank(this.profile?.role) >= 1 && !own && roleRank(role) < roleRank(this.profile?.role);
         const canBan = this.profile?.role === 'admin' && !own && role !== 'admin';
         return `<div class="nt-community-overlay" data-nt-profile-overlay><section class="nt-community-profile-card">
-          <header><b>${t('Community Profile')}</b><button type="button" data-nt-profile-close>${icons.close}</button></header>
-          <div class="nt-community-profile-hero"><span class="nt-community-profile-avatar">${p.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="">` : initials(p.username)}</span><div><h3>${esc(p.username || '')}</h3><span>${role === 'admin' ? t('Admin') : role === 'moderator' ? t('Moderator') : t('Member')}</span><small>${p.created_at ? `${t('Member since')} ${new Date(p.created_at).toLocaleDateString()}` : ''}</small></div></div>
+          <header><b>${t('Community Profile')}</b>${closeButtonHtml('nt-profile-close')}</header>
+          <div class="nt-community-profile-hero"><span class="nt-community-profile-avatar">${avatarHtml(p.avatar_url, p.username)}</span><div><h3>${esc(p.username || '')}</h3><span>${esc(roleLabel(role))}</span><small>${p.created_at ? `${t('Member since')} ${new Date(p.created_at).toLocaleDateString()}` : ''}</small></div></div>
           ${own ? `<form data-nt-community-profile-form><label><span>${t('Bio')}</span><textarea name="bio" maxlength="160" rows="3" placeholder="${t('A short Community bio…')}">${esc(p.bio || '')}</textarea></label><label class="nt-community-avatar-upload"><span>${t('Avatar')}</span><input type="file" data-nt-profile-avatar accept="image/png,image/jpeg,image/webp,image/gif"><small>${t('PNG, JPG, WEBP or GIF · 2 MB max')}</small></label><button type="submit" class="is-primary">${t('Save profile')}</button></form>` : `<p class="nt-community-profile-bio">${esc(p.bio || t('No bio yet.'))}</p>`}
-          ${(canMod || canBan || (this.profile?.role === 'admin' && !own)) ? `<div class="nt-community-mod-actions">${canMod ? `<button type="button" data-nt-mod-mute="10" data-user="${p.id}">${t('Mute 10 min')}</button><button type="button" data-nt-mod-mute="60" data-user="${p.id}">${t('Mute 1 hour')}</button><button type="button" data-nt-mod-mute="0" data-user="${p.id}">${t('Unmute')}</button>` : ''}${this.profile?.role === 'admin' && !own ? `<button type="button" data-nt-mod-role="${role === 'moderator' ? 'member' : 'moderator'}" data-user="${p.id}">${role === 'moderator' ? t('Make member') : t('Make moderator')}</button>` : ''}${canBan ? `<button type="button" class="is-danger" data-nt-mod-ban data-user="${p.id}">${p.banned_at ? t('Unban') : t('Ban')}</button>` : ''}</div>` : ''}
+          ${(canMod || canBan || (this.profile?.role === 'admin' && !own)) ? `<div class="nt-community-mod-actions">${canMod ? `<button type="button" data-nt-mod-mute="10" data-user="${p.id}">${t('Mute 10 min')}</button><button type="button" data-nt-mod-mute="60" data-user="${p.id}">${t('Mute 1 hour')}</button><button type="button" data-nt-mod-mute="0" data-user="${p.id}">${t('Unmute')}</button>` : ''}${this.profile?.role === 'admin' && !own ? `${role !== 'member' ? `<button type="button" data-nt-mod-role="member" data-user="${p.id}">${t('Make member')}</button>` : ''}${role !== 'vip' ? `<button type="button" data-nt-mod-role="vip" data-user="${p.id}">${t('Make VIP')}</button>` : ''}${role !== 'moderator' ? `<button type="button" data-nt-mod-role="moderator" data-user="${p.id}">${t('Make moderator')}</button>` : ''}` : ''}${canBan ? `<button type="button" class="is-danger" data-nt-mod-ban data-user="${p.id}">${p.banned_at ? t('Unban') : t('Ban')}</button>` : ''}</div>` : ''}
         </section></div>`;
     }
 
     renderModerationOverlay() {
         if (!this.moderationOpen) return '';
-        return `<div class="nt-community-overlay" data-nt-moderation-overlay><section class="nt-community-moderation-card"><header><div><b>${t('Moderation')}</b><small>${t('Open reports and Community safety tools')}</small></div><button type="button" data-nt-moderation-close>${icons.close}</button></header><div class="nt-community-report-list">${this.reports.length ? this.reports.map(report => {
+        return `<div class="nt-community-overlay" data-nt-moderation-overlay><section class="nt-community-moderation-card"><header><div><b>${t('Moderation')}</b><small>${t('Open reports and Community safety tools')}</small></div>${closeButtonHtml('nt-moderation-close')}</header><div class="nt-community-report-list">${this.reports.length ? this.reports.map(report => {
             const msg = this.reportMessages.get(String(report.message_id));
             const author = msg ? this.reportProfiles.get(msg.user_id) : null;
             const reporter = this.reportProfiles.get(report.reporter_id);
@@ -1318,7 +1351,86 @@ export class CommunityChat {
             .limit(150);
         if (error) throw error;
         this.messages = data || [];
-        await Promise.all([this.loadReactions(), this.hydrateAttachmentUrls()]);
+        const resourceIds = this.messages
+            .filter(message => ['attachment','character_card','lorebook'].includes(message.message_type))
+            .map(message => message.id);
+        await Promise.all([this.loadReactions(), this.hydrateAttachmentUrls(), this.loadResourceStats(resourceIds)]);
+    }
+
+    resourceStatsFor(messageId) {
+        return this.resourceStats.get(String(messageId)) || {
+            rating_average: 0,
+            rating_count: 0,
+            acquisition_count: 0,
+            my_rating: null,
+        };
+    }
+
+    async loadResourceStats(messageIds = []) {
+        if (!this.client || !this.user) return;
+        const ids = [...new Set((messageIds || []).map(Number).filter(Number.isFinite))];
+        if (!ids.length) return;
+        const { data, error } = await this.client.rpc('nt_resource_stats', { p_messages: ids });
+        if (error) {
+            console.warn('[NastyTavern] Could not load Community resource stats', error);
+            return;
+        }
+        for (const row of data || []) {
+            this.resourceStats.set(String(row.message_id), {
+                rating_average: Number(row.rating_average || 0),
+                rating_count: Number(row.rating_count || 0),
+                acquisition_count: Number(row.acquisition_count || 0),
+                my_rating: row.my_rating == null ? null : Number(row.my_rating),
+            });
+        }
+    }
+
+    resourceRatingInput(messageId) {
+        const stats = this.resourceStatsFor(messageId);
+        const selected = Number(stats.my_rating || 0);
+        const star = '<span class="nt-community-resource-rate-star" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m12 2.8 2.76 5.59 6.17.9-4.46 4.35 1.05 6.14L12 16.88 6.48 19.78l1.05-6.14L3.07 9.29l6.17-.9L12 2.8Z"/></svg></span>';
+        return `<div class="nt-community-resource-rate" role="group" aria-label="${esc(t('Rate this resource'))}">${[1,2,3,4,5].map(value => `<button type="button" data-nt-resource-rating="${value}" data-nt-resource-rating-message="${messageId}" class="${value <= selected ? 'is-selected' : ''}" title="${esc(t('Rate {value} stars', { value }))}" aria-label="${esc(t('Rate {value} stars', { value }))}" aria-pressed="${value === selected}">${star}</button>`).join('')}</div>`;
+    }
+
+    resourceRatingSummary(messageId) {
+        const stats = this.resourceStatsFor(messageId);
+        const average = Number(stats.rating_average || 0);
+        const stars = starsHtml(average);
+        return `<span class="nt-community-resource-rating-summary" title="${esc(t('Average rating {value} out of 5', { value: average ? average.toFixed(2) : '0.00' }))}" aria-label="${esc(t('Average rating {value} out of 5', { value: average ? average.toFixed(2) : '0.00' }))}"><span class="nt-community-resource-rating-stars">${stars}</span></span>`;
+    }
+
+    async rateResource(messageId, rating) {
+        const id = Number(messageId);
+        const value = Number(rating);
+        if (!Number.isFinite(id) || !Number.isInteger(value) || value < 1 || value > 5) return;
+
+        const key = String(id);
+        const previous = { ...this.resourceStatsFor(id) };
+        this.resourceStats.set(key, { ...previous, my_rating: value });
+        this.updateDynamicAreas({ scrollMessagesToBottom: false });
+
+        const { error } = await this.client.rpc('nt_rate_resource', { p_message: id, p_rating: value });
+        if (error) {
+            this.resourceStats.set(key, previous);
+            this.updateDynamicAreas({ scrollMessagesToBottom: false });
+            return this.toast?.(error.message);
+        }
+        await this.loadResourceStats([id]);
+        this.updateDynamicAreas({ scrollMessagesToBottom: false });
+        void this.refreshHomeSnapshot();
+    }
+
+    async recordResourceAcquisition(message, action) {
+        const id = Number(message?.id);
+        if (!Number.isFinite(id) || !this.client || !this.user) return;
+        const { error } = await this.client.rpc('nt_record_resource_acquisition', { p_message: id, p_action: action === 'download' ? 'download' : 'import' });
+        if (error) {
+            console.warn('[NastyTavern] Could not record Community resource acquisition', error);
+            return;
+        }
+        await this.loadResourceStats([id]);
+        this.updateDynamicAreas({ scrollMessagesToBottom: false });
+        void this.refreshHomeSnapshot();
     }
 
     async loadReactions() {
@@ -1337,11 +1449,11 @@ export class CommunityChat {
         }
     }
 
-    async ensureReadyForDirectShare() {
+    async ensureReadyForDirectShare({ signedOutAuthMode = 'signin' } = {}) {
         this.ensure();
         await this.initializeBackground();
         if (!this.user) {
-            await this.open();
+            await this.open({ authMode: signedOutAuthMode });
             return false;
         }
         if (!this.channels.length || !this.profile) await this.loadWorkspace();
@@ -1405,8 +1517,8 @@ export class CommunityChat {
         if (shared) this.toast?.(t('Shared {name} to Community.', { name: displayName }));
     }
 
-    async shareCurrentCharacterCard() {
-        if (!await this.ensureReadyForDirectShare()) return false;
+    async shareCurrentCharacterCard({ signedOutAuthMode = 'signin' } = {}) {
+        if (!await this.ensureReadyForDirectShare({ signedOutAuthMode })) return false;
         const context = window.SillyTavern?.getContext?.();
         const rawName = String(document.querySelector('#character_name_pole')?.value || context?.characters?.[context?.characterId]?.name || '').trim();
         const avatar = String(document.querySelector('#avatar_url_pole')?.value || context?.characters?.[context?.characterId]?.avatar || '').trim();
@@ -1480,12 +1592,14 @@ export class CommunityChat {
             dt.items.add(file);
             input.files = dt.files;
             input.dispatchEvent(new Event('change', { bubbles: true }));
+            await this.recordResourceAcquisition(message, 'import');
             this.close();
             this.toast?.(meta.kind === 'lorebook' ? t('Lorebook sent to SillyTavern importer.') : t('Character Card sent to SillyTavern importer.'));
             return;
         }
         const url = URL.createObjectURL(file);
         const a = document.createElement('a'); a.href = url; a.download = file.name; a.click();
+        await this.recordResourceAcquisition(message, 'download');
         setTimeout(() => URL.revokeObjectURL(url), 1200);
     }
 
@@ -1537,11 +1651,26 @@ export class CommunityChat {
         this.renderWorkspace();
     }
 
+    async loadOpenReportCount() {
+        if (roleRank(this.profile?.role) < 1 || !this.client) {
+            this.openReportCount = 0;
+            return 0;
+        }
+        const { count, error } = await this.client.from('nt_reports').select('id', { count: 'exact', head: true }).eq('status', 'open');
+        if (error) {
+            console.warn('[NastyTavern] Could not load open report count', error);
+            return this.openReportCount || 0;
+        }
+        this.openReportCount = Number(count || 0);
+        return this.openReportCount;
+    }
+
     async loadReports() {
         if (roleRank(this.profile?.role) < 1) return;
         const { data, error } = await this.client.from('nt_reports').select('id,reporter_id,message_id,reason,status,created_at').eq('status','open').order('created_at',{ascending:false}).limit(50);
         if (error) throw error;
         this.reports = data || [];
+        this.openReportCount = this.reports.length;
         const messageIds = [...new Set(this.reports.map(r => r.message_id))];
         this.reportMessages.clear(); this.reportProfiles.clear();
         if (messageIds.length) {
@@ -1589,12 +1718,15 @@ export class CommunityChat {
         if (channelOnline) channelOnline.textContent = String(channelOnlineCount);
     }
 
-    updateDynamicAreas() {
+    updateDynamicAreas({ scrollMessagesToBottom = true } = {}) {
         if (!this.root) return;
         const messages = this.root.querySelector('[data-nt-community-messages]');
         if (messages) {
+            const previousScrollTop = messages.scrollTop;
             messages.innerHTML = this.renderMessages();
-            requestAnimationFrame(() => { messages.scrollTop = messages.scrollHeight; });
+            requestAnimationFrame(() => {
+                messages.scrollTop = scrollMessagesToBottom ? messages.scrollHeight : previousScrollTop;
+            });
         }
         const members = this.root.querySelector('[data-nt-community-members]');
         if (members) members.innerHTML = this.renderMembers();
@@ -1809,10 +1941,14 @@ export class CommunityChat {
             this.toast?.(error.message || t('Could not sign out.'));
             return;
         }
+        this.user = null;
+        this.profile = null;
+        this.needsProfileOnboarding = false;
         this.channelMembers.clear();
         this.activeChannelId = null;
         this.messages = [];
         this.reactions = [];
+        this.resourceStats.clear();
         this.presence.clear();
         this.globalPresence.clear();
         this.communitySessionUserId = null;
@@ -1826,6 +1962,10 @@ export class CommunityChat {
     }
 
     async onClick(event) {
+        if (this.reactionPickerMessageId && !event.target.closest('[data-nt-reaction-picker], [data-nt-reaction-picker-toggle]')) {
+            this.reactionPickerMessageId = null;
+            this.root?.querySelector('[data-nt-reaction-picker]')?.remove();
+        }
         if (event.target.closest('[data-nt-community-close]')) return this.close();
         if (event.target.closest('[data-nt-community-retry]')) return this.initialize();
         if (event.target.closest('[data-nt-community-google]')) { await this.signInWithGoogle(); return; }
@@ -1844,11 +1984,23 @@ export class CommunityChat {
         const searchHit = event.target.closest('[data-nt-search-message]');
         if (searchHit) { const el=this.root?.querySelector(`[data-nt-community-message="${searchHit.dataset.ntSearchMessage}"]`); if(el){this.searchOpen=false;this.renderWorkspace();requestAnimationFrame(()=>this.root?.querySelector(`[data-nt-community-message="${searchHit.dataset.ntSearchMessage}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}));} return; }
         const channel = event.target.closest('[data-nt-community-channel]');
-        if (channel) return this.selectChannel(channel.dataset.ntCommunityChannel);
+        if (channel) {
+            this.root?.classList.remove('show-channels');
+            return this.selectChannel(channel.dataset.ntCommunityChannel);
+        }
         if (event.target.closest('[data-nt-community-cancel-reply]')) { this.replyTo = null; return this.updateDynamicAreas(); }
         if (event.target.closest('[data-nt-community-attach]')) return this.root?.querySelector('[data-nt-community-share-file]')?.click();
+        const resourceRating = event.target.closest('[data-nt-resource-rating]');
+        if (resourceRating) {
+            await this.rateResource(resourceRating.dataset.ntResourceRatingMessage, resourceRating.dataset.ntResourceRating);
+            return;
+        }
         const resourceInfo = event.target.closest('[data-nt-resource-info]');
-        if (resourceInfo) { await this.openResourceDetails(resourceInfo.dataset.ntResourceInfo); return; }
+        if (resourceInfo) {
+            const resourceCard = resourceInfo.closest('.nt-community-attachment') || resourceInfo;
+            await withViewOpeningState(resourceCard, () => this.openResourceDetails(resourceInfo.dataset.ntResourceInfo));
+            return;
+        }
         const importAttachment = event.target.closest('[data-nt-attachment-import]');
         if (importAttachment) { const m=this.messages.find(x=>String(x.id)===String(importAttachment.dataset.ntAttachmentImport)); try{await this.downloadAttachment(m,true);}catch(e){this.toast?.(e.message);} return; }
         const downloadAttachment = event.target.closest('[data-nt-attachment-download]');
@@ -1865,12 +2017,31 @@ export class CommunityChat {
         if(resolve){const {error}=await this.client.rpc('nt_resolve_report',{p_report:Number(resolve.dataset.ntReportResolve)});if(error)this.toast?.(error.message);else{await this.loadReports();this.renderWorkspace();}return;}
         const action = event.target.closest('[data-nt-message-action]');
         if (action) return this.messageAction(action.closest('[data-nt-community-message]')?.dataset.ntCommunityMessage, action.dataset.ntMessageAction);
+        const reactionPickerToggle = event.target.closest('[data-nt-reaction-picker-toggle]');
+        if (reactionPickerToggle) {
+            const messageId = reactionPickerToggle.dataset.ntReactionPickerToggle;
+            this.reactionPickerMessageId = String(this.reactionPickerMessageId) === String(messageId) ? null : messageId;
+            this.updateDynamicAreas({ scrollMessagesToBottom: false });
+            if (this.reactionPickerMessageId) requestAnimationFrame(() => this.root?.querySelector('[data-nt-reaction-picker] button')?.focus());
+            return;
+        }
         const reaction = event.target.closest('[data-nt-message-reaction]');
-        if (reaction) return this.toggleReaction(reaction.closest('[data-nt-community-message]')?.dataset.ntCommunityMessage, reaction.dataset.ntMessageReaction);
+        if (reaction) {
+            this.reactionPickerMessageId = null;
+            return this.toggleReaction(reaction.closest('[data-nt-community-message]')?.dataset.ntCommunityMessage, reaction.dataset.ntMessageReaction);
+        }
         if (event.target.closest('[data-nt-community-mobile-channels]')) this.root?.classList.toggle('show-channels');
     }
 
     onKeyDown(event) {
+        if (event.key === 'Escape' && this.reactionPickerMessageId) {
+            const messageId = this.reactionPickerMessageId;
+            this.reactionPickerMessageId = null;
+            this.root?.querySelector('[data-nt-reaction-picker]')?.remove();
+            this.root?.querySelector(`[data-nt-reaction-picker-toggle="${messageId}"]`)?.focus();
+            event.preventDefault();
+            return;
+        }
         const input = event.target.closest('[data-nt-community-composer]');
         if (!input) return;
         if (event.key === 'Enter' && !event.shiftKey) {
@@ -1902,6 +2073,10 @@ export class CommunityChat {
             if (!reason.trim()) return;
             const { error } = await this.client.rpc('nt_report_message', { p_message: Number(message.id), p_reason: reason.trim() });
             if (error) return this.toast?.(error.message);
+            if (roleRank(this.profile?.role) >= 1) {
+                await this.loadOpenReportCount();
+                this.syncModerationIndicator();
+            }
             return this.toast?.(t('Report sent to the moderation team.'));
         }
         if (action === 'edit' && own) {
@@ -1911,13 +2086,22 @@ export class CommunityChat {
             if (error) return this.toast?.(error.message);
         }
         if (action === 'delete') {
-            if (!window.confirm(t('Delete this message?'))) return;
+            if (!await confirmDialog(t('Delete this message?'))) return;
             if (isMod && !own) {
                 const { error } = await this.client.rpc('nt_moderate_delete_message', { p_message: Number(message.id) });
                 if (error) return this.toast?.(error.message);
             } else if (own) {
-                if (message.message_type === 'attachment' && message.metadata?.path) {
-                    try { await this.client.storage.from('community-files').remove([message.metadata.path]); } catch (_) {}
+                const resourcePath = message.metadata?.path;
+                const resourceBucket = message.metadata?.bucket || 'community-files';
+                const isSharedResource = ['attachment', 'character_card', 'lorebook'].includes(message.message_type)
+                    || ['character', 'lorebook'].includes(message.metadata?.kind);
+                if (isSharedResource && resourcePath && resourceBucket === 'community-files') {
+                    try {
+                        const { error: storageError } = await this.client.storage.from(resourceBucket).remove([resourcePath]);
+                        if (storageError) console.warn('[NastyTavern] Direct Community resource cleanup failed; queued cleanup will retry.', storageError);
+                    } catch (storageError) {
+                        console.warn('[NastyTavern] Direct Community resource cleanup failed; queued cleanup will retry.', storageError);
+                    }
                 }
                 const { error } = await this.client.from('nt_messages').delete().eq('id', message.id).eq('user_id', this.user.id);
                 if (error) return this.toast?.(error.message);
@@ -1929,22 +2113,22 @@ export class CommunityChat {
     }
 
     async toggleReaction(messageId, emoji) {
-        if (!messageId || !emoji) return;
-        const existing = this.reactions.find(row => String(row.message_id) === String(messageId) && row.user_id === this.user.id && row.emoji === emoji);
-        const query = existing
-            ? this.client.from('nt_message_reactions').delete().eq('message_id', messageId).eq('user_id', this.user.id).eq('emoji', emoji)
-            : this.client.from('nt_message_reactions').insert({ message_id: Number(messageId), user_id: this.user.id, emoji });
-        const { error } = await query;
-        if (error) return this.toast?.(error.message);
-        await this.loadReactions(); this.updateDynamicAreas();
-    }
-
-    async testConfiguration() {
-        if (!this.hasConfig()) throw new Error(t('Community Chat could not connect'));
-        const { url, key } = this.config();
-        const response = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
-        if (!response.ok) throw new Error(`${t('Supabase connection failed')} (${response.status})`);
-        return true;
+        if (!messageId || !emoji || !this.user?.id) return;
+        const pendingKey = `${messageId}:${emoji}`;
+        if (this.reactionPending.has(pendingKey)) return;
+        this.reactionPending.add(pendingKey);
+        try {
+            const existing = this.reactions.find(row => String(row.message_id) === String(messageId) && row.user_id === this.user.id && row.emoji === emoji);
+            const query = existing
+                ? this.client.from('nt_message_reactions').delete().eq('message_id', messageId).eq('user_id', this.user.id).eq('emoji', emoji)
+                : this.client.from('nt_message_reactions').insert({ message_id: Number(messageId), user_id: this.user.id, emoji });
+            const { error } = await query;
+            if (error) return this.toast?.(error.message);
+            await this.loadReactions();
+            this.updateDynamicAreas({ scrollMessagesToBottom: false });
+        } finally {
+            this.reactionPending.delete(pendingKey);
+        }
     }
 
     shell() { return this.root?.querySelector('[data-nt-community-shell]'); }
