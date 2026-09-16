@@ -3187,8 +3187,8 @@ body.mt-enabled .nt-timeline-zoom [data-nt-timeline-zoom-reset] {
 
 body.mt-enabled .nt-timeline-node {
   position: absolute;
-  width: 230px;
-  min-width: 230px;
+  width: 250px;
+  min-width: 250px;
   height: 108px;
   min-height: 108px;
   padding: 9px 10px;
@@ -3321,7 +3321,7 @@ body.mt-enabled .nt-timeline-node.is-branch::after {
 .nt-timeline-node-actions {
   min-width: 0;
   display: grid;
-  grid-template-columns: 1fr 1.25fr;
+  grid-template-columns: max-content minmax(0,1fr);
   gap: 5px;
 }
 
@@ -3339,6 +3339,8 @@ body.mt-enabled .nt-timeline-node-actions button {
   font-size: var(--nt-font-button);
   font-weight: var(--nt-weight-button);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 body.mt-enabled .nt-timeline-node-actions button:hover {
@@ -3607,11 +3609,11 @@ body.mt-enabled .nt-timeline-node.is-focus-flash {
 .nt-timeline-session {
   min-width: 0;
   min-height: 50px;
-  padding: 7px 7px 7px 9px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  padding: 8px 9px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  align-items: stretch;
+  gap: 7px;
   border: 1px solid var(--mt-border);
   border-radius: 9px;
   background: rgba(255,255,255,.018);
@@ -3647,18 +3649,21 @@ body.mt-enabled .nt-timeline-node.is-focus-flash {
 }
 
 .nt-timeline-session-actions {
-  width: 82px;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 4px;
-  flex: 0 0 auto;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
 }
 
 body.mt-enabled .nt-timeline-session-actions button {
-  width: 100%;
-  height: 26px;
-  min-height: 26px;
-  padding: 0 7px;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: max-content;
+  min-height: 30px;
+  height: 30px;
+  padding: 0 9px;
   margin: 0;
   border: 1px solid var(--mt-border);
   border-radius: 7px;
@@ -3667,6 +3672,9 @@ body.mt-enabled .nt-timeline-session-actions button {
   box-shadow: none;
   font-size: var(--nt-font-button);
   font-weight: var(--nt-weight-button);
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
 }
 
 body.mt-enabled .nt-timeline-session-actions button:hover {

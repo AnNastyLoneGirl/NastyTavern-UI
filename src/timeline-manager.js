@@ -31,7 +31,7 @@ const matchesFragments = (text, query) => {
 const currentChatId = context => {
     try { return stripExt(context?.getCurrentChatId?.() || context?.chatId || ''); } catch (_) { return stripExt(context?.chatId || ''); }
 };
-const NODE_WIDTH = 230;
+const NODE_WIDTH = 250;
 const NODE_HEIGHT = 108;
 
 export class TimelineManager {
