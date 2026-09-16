@@ -1819,9 +1819,10 @@ export class NastyTavern {
 
         const previous = entries.find(entry => entry.classList.contains('nt-lorebook-selected-entry'));
         if (previous && previous !== target) {
-            const previousOutlet = previous.querySelector('.inline-drawer-outlet');
-            if (previousOutlet && getComputedStyle(previousOutlet).display !== 'none') {
-                previous.querySelector('.inline-drawer-toggle')?.click();
+            const previousDrawer = previous.querySelector(':scope > form > .inline-drawer');
+            const previousContent = previousDrawer?.querySelector(':scope > .inline-drawer-content');
+            if (previousContent && !previousContent.hidden && getComputedStyle(previousContent).display !== 'none') {
+                previousDrawer?.querySelector(':scope > .inline-drawer-header .inline-drawer-toggle')?.click();
             }
         }
 
@@ -1836,9 +1837,17 @@ export class NastyTavern {
         state.empty.hidden = true;
         state.entriesList.classList.remove('is-empty');
 
-        const outlet = target.querySelector('.inline-drawer-outlet');
-        const toggle = target.querySelector('.inline-drawer-toggle');
-        if (toggle && (!outlet?.children.length || (outlet && getComputedStyle(outlet).display === 'none'))) toggle.click();
+        // The selected entry must stay expanded because NastyTavern hides the
+        // native drawer toggle inside the split editor. SillyTavern collapses
+        // World Info entries more aggressively on narrow/mobile layouts, and
+        // the previous check looked for the obsolete `.inline-drawer-outlet`
+        // instead of the actual `.inline-drawer-content` container. That could
+        // leave the Content editor collapsed with no visible way to reopen it.
+        const drawer = target.querySelector(':scope > form > .inline-drawer');
+        const content = drawer?.querySelector(':scope > .inline-drawer-content');
+        const toggle = drawer?.querySelector(':scope > .inline-drawer-header .inline-drawer-toggle');
+        const contentIsCollapsed = !content || content.hidden || getComputedStyle(content).display === 'none';
+        if (toggle && contentIsCollapsed) toggle.click();
 
         if (!preserveScroll) {
             state.detail.scrollTop = 0;

@@ -22071,7 +22071,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
 @media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 960px) {
   /* The selected-entry phone header should only contain the actual form block,
      with no leftover action-column spacing. */
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_thin_controls {
+  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header > .world_entry_thin_controls {
     display: block!important;
     width: 100%!important;
     min-width: 0!important;
@@ -22079,11 +22079,11 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
     padding: 0!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_thin_controls > *:not(.flex-container.alignitemscenter.wide100p) {
+  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header > .world_entry_thin_controls > *:not(.flex-container.alignitemscenter.wide100p) {
     display: none!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
+  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header > .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
     display: grid!important;
     grid-template-columns: minmax(0, 1fr)!important;
     width: 100%!important;
