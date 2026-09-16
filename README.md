@@ -11,6 +11,28 @@ On top of that, NastyTavern adds integrated tools, improved mobile support, Comm
 > **Current version:** `0.1.3`  
 > **Minimum SillyTavern version:** `1.18.0`
 
+## 📸 Screenshots
+
+### 🏠 Home
+
+![NastyTavern Home](docs/screenshots/home.png)
+
+### 🧑‍🎨 Character Editor
+
+![NastyTavern Character Editor](docs/screenshots/character-editor.png)
+
+### 📚 Nasty Catalogue
+
+![Nasty Catalogue](docs/screenshots/catalogue.png)
+
+### 🌐 Community
+
+![NastyTavern Community](docs/screenshots/community.png)
+
+### 🧰 Chat Tools & Story Timeline
+
+![NastyTavern Chat Tools](docs/screenshots/timeline.png)
+
 ---
 
 ## ✨ Highlights

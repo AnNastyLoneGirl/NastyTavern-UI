@@ -6696,12 +6696,29 @@ body.mt-enabled .nt-calendar-primary:focus-visible {
 
   .nt-timeline-body {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(55dvh,1fr) minmax(230px,45dvh);
+    /* The timeline lives inside the Chat Tools hub, so viewport-based rows
+       over-allocate height and clip the inspector footer on phones. Divide
+       the actual component height instead. */
+    grid-template-rows: minmax(0,3fr) minmax(0,2fr);
   }
 
   .nt-timeline-inspector {
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: max(18px,env(safe-area-inset-bottom,0px));
     border-left: 0;
     border-top: 1px solid var(--mt-border);
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* On phone layouts the inspector owns vertical scrolling. Let the message
+     preview grow with its content instead of trapping touch scrolling inside
+     a second nested scroller before the session actions. */
+  .nt-timeline-message-preview {
+    max-height: none;
+    overflow: visible;
   }
 
   body.mt-enabled .nt-timeline-node-actions button {
