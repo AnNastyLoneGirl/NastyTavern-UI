@@ -258,7 +258,6 @@ export class CatalogueModal {
         const { root, body } = createModalShell({
             id: 'nt-catalogue-modal',
             title: t('Nasty Catalogue'),
-            subtitle: t('Permanent Character Cards and Lorebooks shared by the NastyTavern community.'),
             icon: icons.workspace,
             size: 'large',
             modalClass: 'nt-catalogue-modal',
@@ -310,7 +309,6 @@ export class CatalogueModal {
                         <button type="button" data-nt-catalogue-section="reports" data-nt-catalogue-mod-nav hidden>${icons.alertWarning}<span>${esc(t('Reports'))}</span><small data-nt-catalogue-report-count>0</small></button>
                         <button type="button" data-nt-catalogue-section="audit" data-nt-catalogue-mod-nav hidden>${icons.history}<span>${esc(t('Audit log'))}</span></button>
                     </nav>
-                    <div class="nt-catalogue-nav-note"><b>${esc(t('Permanent catalogue'))}</b><small data-nt-catalogue-policy-note>${esc(t('Member accounts can keep up to 5 files with a 2 MiB per-file limit.'))}</small></div>
                 </aside>
                 <main class="nt-catalogue-main">
                     <div class="nt-catalogue-main-head">
@@ -753,10 +751,6 @@ export class CatalogueModal {
         const quota = unlimited ? `${used}/∞` : `${used}/${Number.isFinite(limit) ? limit : 5}`;
         this.root?.querySelectorAll('[data-nt-catalogue-quota], [data-nt-catalogue-quota-side]').forEach(node => node.textContent = quota);
         this.root?.querySelector('[data-nt-catalogue-upload]')?.removeAttribute('disabled');
-        const note = this.root?.querySelector('[data-nt-catalogue-policy-note]');
-        if (note) note.textContent = unlimited
-            ? t('VIP, moderator and administrator accounts have unlimited catalogue slots and a 5.5 MiB per-file limit.')
-            : t('Member accounts can keep up to 5 files with a 2 MiB per-file limit.');
         const uploadLimit = this.uploadRoot?.querySelector('[data-nt-catalogue-upload-limit]');
         if (uploadLimit) uploadLimit.textContent = unlimited ? t('maximum 5.5 MiB') : t('maximum 2 MiB');
         const uploadSubtitle = this.uploadRoot?.querySelector('[data-nt-catalogue-upload-policy]');

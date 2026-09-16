@@ -23919,9 +23919,6 @@ body.mt-enabled dialog#nt-extension-settings-popup.nt-extension-settings-popup-d
 }
 .nt-catalogue-nav nav button small { font-size: 10px; padding: 2px 6px; border-radius: 999px; background: var(--mt-surface-3); color: var(--mt-text-muted); }
 .nt-catalogue-nav-divider { height: 1px; margin: 5px 4px; background: var(--mt-border); }
-.nt-catalogue-nav-note { margin-top: auto; display: grid; gap: 4px; padding: 10px; border: 1px solid var(--mt-border); border-radius: 9px; background: var(--mt-surface-2); }
-.nt-catalogue-nav-note b { font-size: 12px; }
-.nt-catalogue-nav-note small { font-size: 11px; line-height: 1.35; color: var(--mt-text-muted); }
 
 .nt-catalogue-main { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0,1fr) auto; overflow: hidden; }
 .nt-catalogue-main-head { min-height: 50px; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--mt-border); }
@@ -24459,8 +24456,8 @@ body.mt-enabled .nt-catalogue-library-empty small {
 .nt-catalogue-review-badge.is-pending { color:#ffe2a8; border-color:rgba(244,184,76,.42); background:rgba(92,65,17,.78); }
 .nt-catalogue-review-badge.is-rejected { color:#ffb9c0; border-color:rgba(255,91,111,.42); background:rgba(91,20,32,.8); }
 .nt-catalogue-review-badge.is-approved { color:#bff4d0; border-color:rgba(100,214,141,.32); background:rgba(20,73,42,.7); }
-.nt-catalogue-nav [data-nt-catalogue-moderation-nav] small:not(:empty) { color:var(--mt-accent-text, #d9caff); }
-.nt-catalogue-nav [data-nt-catalogue-moderation-nav] small { min-width:22px; text-align:center; }
+.nt-catalogue-nav [data-nt-catalogue-mod-nav] small:not(:empty) { color:var(--mt-accent-text, #d9caff); }
+.nt-catalogue-nav [data-nt-catalogue-mod-nav] small { min-width:22px; text-align:center; }
 
 @media (max-width: 720px), (max-height: 560px) and (pointer: coarse) {
   .nt-catalogue-toolbar-filters { grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto; }
@@ -24474,8 +24471,8 @@ body.mt-enabled .nt-catalogue-library-empty small {
 
 
 /* Nasty Catalogue — moderation visibility hard guard */
-body.mt-enabled #nt-catalogue-modal [data-nt-catalogue-moderation-nav][hidden] {
-  display: none !important;
+body.mt-enabled #nt-catalogue-modal [data-nt-catalogue-mod-nav][hidden] {
+  display: none;
 }
 
 /* Nasty Catalogue — simplified View Card sidebar */
