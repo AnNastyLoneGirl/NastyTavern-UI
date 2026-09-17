@@ -11,9 +11,9 @@ It intentionally contains no production secrets. Supabase service-role keys, OAu
 - `supabase/policies/current-rls-storage-policies.sql` — current NastyTavern RLS/Storage policy snapshot.
 - `supabase/functions/` — source of the Community/Nasty Catalogue Edge Functions. Three catalogue functions are client-facing; `community-storage-cleanup` is server-maintenance-only.
 
-All four published Edge Functions require gateway authentication (`verify_jwt = true`). `community-storage-cleanup` additionally requires a private server-side maintenance credential and is invoked by Supabase Cron rather than the browser.
+The three client-facing catalogue Edge Functions keep gateway JWT verification enabled. `community-storage-cleanup` is deployed with gateway JWT verification disabled because it is not a user-facing endpoint; it performs its own server-only authentication with a random maintenance credential stored outside client-accessible roles. Supabase Cron supplies that credential, and ordinary browser sessions cannot invoke the cleanup successfully.
 
-## v0.1.4 security boundary
+## v0.1.5 security boundary
 
 The browser extension contains only the Supabase publishable key. Privileged service-role access exists only inside Edge Functions. Database access from the browser remains protected by PostgreSQL grants, RLS policies and role-checked RPCs.
 
