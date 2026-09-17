@@ -24,6 +24,7 @@ Update focused on supply-chain hardening and tightening the Community maintenanc
 - Removed the runtime CDN trust boundary for the Supabase browser client; the exact executed bundle is now part of the auditable release.
 - `community-storage-cleanup` now uses a private server-only maintenance credential instead of user-session authorization.
 - The maintenance credential is not exposed to `anon` or `authenticated` database roles.
+- Disabled the legacy `smart-task` cleanup deployment with an inert HTTP 410 tombstone so it can no longer perform privileged maintenance.
 
 ### Compatibility
 
