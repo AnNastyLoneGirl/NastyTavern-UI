@@ -53,6 +53,7 @@ jobs:
           readme = Path('README.md')
           text = readme.read_text()
           text = text.replace('> **Current version:** `0.1.3`', '> **Current version:** `0.1.4`')
+          text = text.replace('> **Current version:** `0.1.4`  \n', '> **Current version:** `0.1.4`\n')
           text = text.replace('**NastyTavern UI v0.1.3 is still under active development and testing.**', '**NastyTavern UI v0.1.4 is the current public release and remains under active development.**')
           readme.write_text(text)
           PY
