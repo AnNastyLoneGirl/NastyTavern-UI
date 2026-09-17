@@ -36,8 +36,6 @@ select cron.schedule(
         url := 'https://egyzkywvuvlcaguirzdm.supabase.co/functions/v1/community-storage-cleanup',
         headers := jsonb_build_object(
             'Content-Type', 'application/json',
-            'Authorization', 'Bearer sb_publishable_UBR44UD7dwhGHnPdQi-UAw_wyFQX0rK',
-            'apikey', 'sb_publishable_UBR44UD7dwhGHnPdQi-UAw_wyFQX0rK',
             'x-nt-maintenance-key', (select secret from public.nt_maintenance_secrets where name = 'community_storage_cleanup')
         ),
         body := jsonb_build_object('scheduled_at', now()),
