@@ -2134,7 +2134,7 @@ export class CommunityChat {
         const ban = event.target.closest('[data-nt-mod-ban]');
         if (ban) { const p=this.profileView; if(!p)return; const rpc=p.banned_at?'nt_unban_user':'nt_ban_user'; const args=p.banned_at?{p_user:p.id}:{p_user:p.id,p_reason:window.prompt(t('Ban reason'), '')||''}; const {error}=await this.client.rpc(rpc,args); if(error)this.toast?.(error.message); else await this.openProfile(p.id); return; }
         const modDelete = event.target.closest('[data-nt-mod-delete-message]');
-        if(modDelete){const {error}=await this.client.rpc('nt_moderate_delete_message',{p_message:Number(modDelete.dataset.ntModDeleteMessage)});if(error)this.toast?.(error.message);else{void this.runCommunityMaintenance();void this.refreshHomeSnapshot();await this.loadReports();this.renderWorkspace();}return;}
+        if(modDelete){const {error}=await this.client.rpc('nt_moderate_delete_message',{p_message:Number(modDelete.dataset.ntModDeleteMessage)});if(error)this.toast?.(error.message);else{void this.refreshHomeSnapshot();await this.loadReports();this.renderWorkspace();}return;}
         const resolve = event.target.closest('[data-nt-report-resolve]');
         if(resolve){const {error}=await this.client.rpc('nt_resolve_report',{p_report:Number(resolve.dataset.ntReportResolve)});if(error)this.toast?.(error.message);else{await this.loadReports();this.renderWorkspace();}return;}
         const action = event.target.closest('[data-nt-message-action]');
