@@ -17,6 +17,10 @@ export const defaults = Object.freeze({
     chatWidth: 940,
     messageWidth: 860,
     historyLimit: 50,
+    // Privacy-first: Community performs no external network activity until explicitly enabled.
+    communityNetworkEnabled: false,
+    // Presence is independent from Community access and remains opt-in.
+    communityPresenceEnabled: false,
     modules: {
         timeline: true,
         contextInspector: true,
@@ -26,7 +30,7 @@ export const defaults = Object.freeze({
         calendar: true,
         community: true,
     },
-    shortcutDefaultsVersion: 2,
+    shortcutDefaultsVersion: 3,
     shortcuts: {
         commandPalette: 'Ctrl+Alt+K',
         timeline: 'Ctrl+Alt+T',
@@ -36,6 +40,7 @@ export const defaults = Object.freeze({
         chatTools: 'Ctrl+Alt+N',
         calendar: 'Ctrl+Alt+C',
         community: 'Ctrl+Alt+G',
+        communityPresence: 'Ctrl+Alt+O',
         health: 'Ctrl+Alt+H',
         focusMode: 'Ctrl+Alt+F',
         nativeChat: '',
@@ -86,6 +91,11 @@ export function getSettings() {
             if (settings.shortcuts[key] === oldValue) settings.shortcuts[key] = defaults.shortcuts[key];
         }
         settings.shortcutDefaultsVersion = 2;
+        context.saveSettingsDebounced?.();
+    }
+    if ((settings.shortcutDefaultsVersion || 0) < 3) {
+        if (!Object.hasOwn(settings.shortcuts, 'communityPresence')) settings.shortcuts.communityPresence = defaults.shortcuts.communityPresence;
+        settings.shortcutDefaultsVersion = 3;
         context.saveSettingsDebounced?.();
     }
     if (Object.hasOwn(settings, 'chatBarMinimized') || Object.hasOwn(settings, 'extensionsBarMinimized')) {

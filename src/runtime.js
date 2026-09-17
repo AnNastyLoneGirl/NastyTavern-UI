@@ -172,6 +172,7 @@ export class NastyTavern {
         this.characterDetails = new CharacterDetailsModal(message => this.toast(message));
         this.communityChat = new CommunityChat(this.settings, message => this.toast(message), {
             badgeChanged: value => this.shell?.updateCommunityBadge(value),
+            accountChanged: state => this.shell?.updateCommunityAccount?.(state),
             homeChanged: () => this.homeDashboard?.sync({ view: this.currentView }),
             openResourceDetails: options => this.characterDetails?.open?.(options),
             closeResourceDetails: () => this.characterDetails?.close?.({ restoreFocus: false }),
@@ -184,6 +185,8 @@ export class NastyTavern {
             getShortcutDefinitions: () => this.getShortcutDefinitions(),
             eventToShortcut: e => this.eventToShortcut(e),
             shortcutsChanged: () => { saveSettings(); this.shell.updateCommandShortcut(this.settings.shortcuts?.commandPalette); },
+            communityPrivacyChanged: () => { void this.handleCommunityPrivacyChanged(); },
+            openCommunityPrivacy: () => this.communityChat?.openPrivacyNotice?.(),
         });
         this.healthPanel = new HealthPanel(message => this.toast(message), () => this.getHealthSnapshot());
         this.aboutPanel = new AboutPanel(() => this.healthPanel.open());
@@ -744,6 +747,7 @@ export class NastyTavern {
             { id:'chatTools', label:'Chat Tools', hint:'Open bookmarks and session notes', group:'NastyTavern' },
             { id:'calendar', label:'Calendar & Schedule', hint:'Open the per-chat calendar and weekly schedule', group:'NastyTavern' },
             { id:'community', label:'Community Chat', hint:'Open the NastyTavern real-time community chat', group:'NastyTavern' },
+            { id:'communityPresence', label:'Community presence', hint:'Switch between online and offline presence', group:'NastyTavern' },
             { id:'health', label:'Health & Performance', hint:'Open diagnostic information', group:'NastyTavern' },
             { id:'focusMode', label:'Focus mode', hint:'Hide interface chrome and keep only the essentials', group:'NastyTavern' },
             { id:'nativeChat', label:'Chat view', hint:'Return to the main chat and close native panels', group:'SillyTavern' },
@@ -771,6 +775,7 @@ export class NastyTavern {
         if (id === 'chatTools') return this.openTool('chatTools');
         if (id === 'calendar') return this.openTool('calendar');
         if (id === 'community') return this.communityChat.open();
+        if (id === 'communityPresence') return this.toggleCommunityPresence();
         if (id === 'nativeChat') return this.navigate('chat');
         if (id === 'nativeCharacters') return this.navigate('characters');
         if (id === 'nativePersonas') return this.navigate('personas');
@@ -833,7 +838,25 @@ export class NastyTavern {
         saveSettings();
     }
 
+    async handleCommunityPrivacyChanged() {
+        await this.communityChat?.handlePrivacySettingsChanged?.();
+        this.shell?.updateCommunityAccount?.(this.communityChat?.getAccountSnapshot?.());
+    }
+
+    async toggleCommunityPresence() {
+        const account = this.communityChat?.getAccountSnapshot?.() || {};
+        if (!account.communityEnabled) {
+            this.toast(t('Enable Community network access before changing presence.'));
+            return false;
+        }
+        await this.communityChat?.togglePresenceEnabled?.();
+        this.shell?.updateCommunityAccount?.(this.communityChat?.getAccountSnapshot?.());
+        if (this.preferences?.root && !this.preferences.root.hidden) this.preferences.render?.();
+        return true;
+    }
+
     async handleCommunityAuth(action) {
+        if (action === 'toggle-presence') return this.toggleCommunityPresence();
         if (action === 'signout') {
             await this.communityChat?.signOutCommunity?.();
             this.shell?.updateCommunityAccount?.(this.communityChat?.getAccountSnapshot?.());
@@ -4750,6 +4773,15 @@ export class NastyTavern {
             keywords: 'community chat realtime supabase sillytavern character cards lorebooks',
             shortcut: this.settings.shortcuts?.community || '',
             run: () => this.communityChat.open(),
+        });
+
+        actions.splice(3, 0, {
+            label: t('Community presence'),
+            icon: icons.community,
+            hint: t('Switch between online and offline presence'),
+            keywords: 'community presence online offline status realtime',
+            shortcut: this.settings.shortcuts?.communityPresence || '',
+            run: () => this.toggleCommunityPresence(),
         });
 
         actions.splice(2, 0, {

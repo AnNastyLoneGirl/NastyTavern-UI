@@ -3,6 +3,7 @@ import { t } from './i18n.js';
 import { escapeHtml as esc, formatBytes, withViewOpeningState } from './utils.js';
 import { avatarHtml, closeButtonHtml, confirmDialog, starsHtml } from './ui-templates.js';
 import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
+import { saveSettings } from './settings.js';
 
 const SDK_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0';
 const COMMUNITY_SUPABASE_URL = 'https://egyzkywvuvlcaguirzdm.supabase.co';
@@ -275,7 +276,6 @@ export class CommunityChat {
         this.configFingerprint = '';
         this.refreshTimer = null;
         this.workspaceLoadPromise = null;
-        this.communitySessionToken = makeSessionToken();
         this.communitySessionUserId = null;
         this.sessionJoinedChannels = new Set();
         this.unreadCounts = new Map();
@@ -305,22 +305,28 @@ export class CommunityChat {
     ensureCommunitySession(userId) {
         if (!userId) {
             this.communitySessionUserId = null;
-            this.communitySessionToken = makeSessionToken();
-            return;
+                return;
         }
         if (this.communitySessionUserId !== userId) {
             this.communitySessionUserId = userId;
-            this.communitySessionToken = makeSessionToken();
-            this.activeChannelId = null;
+                this.activeChannelId = null;
             this.sessionJoinedChannels.clear();
             this.unreadCounts.clear();
             this.typingUsers.clear();
         }
     }
 
+    communityEnabled() { return this.settings?.communityNetworkEnabled === true; }
+
+    presenceEnabled() { return this.communityEnabled() && this.settings?.communityPresenceEnabled === true; }
+
     mount() {
         this.ensure();
-        void this.initializeBackground();
+        if (this.communityEnabled()) void this.initializeBackground();
+        else {
+            this.homeSnapshot = { ready: true, signedIn: false, online: 0, messages: [], characterCards: [], lorebooks: [], mentions: 0 };
+            this.emitHomeChanged();
+        }
         try {
             if (localStorage.getItem(COMMUNITY_OAUTH_RETURN_KEY) === '1') {
                 localStorage.removeItem(COMMUNITY_OAUTH_RETURN_KEY);
@@ -336,6 +342,7 @@ export class CommunityChat {
         this.unsubscribeActivity();
         try { this.authSubscription?.data?.subscription?.unsubscribe?.(); } catch (_) {}
         this.authSubscription = null;
+        try { this.client?.auth?.stopAutoRefresh?.(); } catch (_) {}
         clearTimeout(this.refreshTimer);
         this.refreshTimer = null;
         clearTimeout(this.typingStopTimer);
@@ -385,6 +392,10 @@ export class CommunityChat {
         }
         this.ensure();
         showModalShell(this.root);
+        if (!this.communityEnabled()) {
+            this.renderConsent();
+            return;
+        }
         await this.initialize();
         if (this.user) {
             await this.loadMentionCounts();
@@ -395,6 +406,12 @@ export class CommunityChat {
             if (channel) await this.selectChannel(channel.id);
             else await this.ensureGeneralChannelSelected();
         }
+    }
+
+    openPrivacyNotice() {
+        this.ensure();
+        showModalShell(this.root);
+        this.renderConsent({ review: this.communityEnabled() });
     }
 
     async ensureGeneralChannelSelected() {
@@ -422,6 +439,7 @@ export class CommunityChat {
     }
 
     async loadSdk() {
+        if (!this.communityEnabled()) throw new Error(t('Community network access is disabled.'));
         if (window.supabase?.createClient) return window.supabase;
         const existing = document.querySelector('script[data-nt-supabase-sdk]');
         if (existing) {
@@ -447,6 +465,7 @@ export class CommunityChat {
     }
 
     async makeClient() {
+        if (!this.communityEnabled()) throw new Error(t('Community network access is disabled.'));
         const { url, key } = this.config();
         const fingerprint = `${url}|${key}`;
         if (this.client && this.configFingerprint === fingerprint) return this.client;
@@ -470,6 +489,10 @@ export class CommunityChat {
 
     async initialize() {
         if (!this.root) return;
+        if (!this.communityEnabled()) {
+            this.renderConsent();
+            return;
+        }
         if (!this.hasConfig()) {
             this.renderSetup();
             return;
@@ -521,6 +544,7 @@ export class CommunityChat {
 
 
     async initializeBackground() {
+        if (!this.communityEnabled()) return;
         if (this.backgroundInitPromise) return this.backgroundInitPromise;
         const task = (async () => {
             if (!this.hasConfig()) return;
@@ -558,6 +582,70 @@ export class CommunityChat {
         try { return await task; } finally { if (this.backgroundInitPromise === task) this.backgroundInitPromise = null; }
     }
 
+    async handlePrivacySettingsChanged() {
+        if (!this.communityEnabled()) {
+            this.disconnectNetwork();
+            this.callbacks.accountChanged?.(this.getAccountSnapshot());
+            if (this.root && !this.root.hidden) this.renderConsent();
+            return;
+        }
+        if (!this.presenceEnabled()) {
+            this.unsubscribeGlobalPresence();
+            this.presence.clear();
+            this.typingUsers.clear();
+            this.typingTimers.forEach(timer => clearTimeout(timer));
+            this.typingTimers.clear();
+            clearTimeout(this.typingStopTimer);
+            this.typingStopTimer = null;
+            if (this.subscription) this.subscribeChannel();
+            this.updateDynamicAreas({ scrollMessagesToBottom: false });
+        } else if (this.client && this.user && this.profile) {
+            this.subscribeGlobalPresence();
+            if (this.activeChannelId) this.subscribeChannel();
+        }
+        if (!this.client) await this.initializeBackground();
+        if (this.root && !this.root.hidden) await this.initialize();
+        this.callbacks.accountChanged?.(this.getAccountSnapshot());
+    }
+
+    disconnectNetwork() {
+        this.unsubscribeChannel();
+        this.unsubscribeGlobalPresence();
+        this.unsubscribeNotifications();
+        this.unsubscribeActivity();
+        try { this.authSubscription?.data?.subscription?.unsubscribe?.(); } catch (_) {}
+        this.authSubscription = null;
+        try { this.client?.auth?.stopAutoRefresh?.(); } catch (_) {}
+        this.client = null;
+        this.configFingerprint = '';
+        this.backgroundInitPromise = null;
+        this.workspaceLoadPromise = null;
+        this.user = null;
+        this.profile = null;
+        this.needsProfileOnboarding = false;
+        this.channels = [];
+        this.channelMembers.clear();
+        this.activeChannelId = null;
+        this.messages = [];
+        this.reactions = [];
+        this.resourceStats.clear();
+        this.presence.clear();
+        this.globalPresence.clear();
+        this.unreadCounts.clear();
+        this.mentionCounts.clear();
+        this.homeSnapshot = { ready: true, signedIn: false, online: 0, messages: [], characterCards: [], lorebooks: [], mentions: 0 };
+        this.emitBadgeChanged();
+        this.emitHomeChanged();
+    }
+
+    async enableCommunityFromConsent() {
+        this.settings.communityNetworkEnabled = true;
+        const presenceInput = this.root?.querySelector('[data-nt-community-consent-presence]');
+        this.settings.communityPresenceEnabled = !!presenceInput?.checked;
+        saveSettings();
+        await this.initialize();
+    }
+
     getAccountSnapshot() {
         const signedIn = Boolean(this.user && this.profile);
         return {
@@ -565,10 +653,28 @@ export class CommunityChat {
             username: signedIn ? String(this.profile?.username || '').trim() : '',
             avatarUrl: signedIn ? String(this.profile?.avatar_url || '').trim() : '',
             role: signedIn ? String(this.profile?.role || 'member').trim().toLowerCase() : '',
+            communityEnabled: this.communityEnabled(),
+            presenceEnabled: this.presenceEnabled(),
         };
     }
 
     getHomeSnapshot() { return structuredClone(this.homeSnapshot); }
+
+    async setPresenceEnabled(enabled) {
+        if (!this.communityEnabled()) {
+            this.settings.communityPresenceEnabled = false;
+            saveSettings();
+            return false;
+        }
+        this.settings.communityPresenceEnabled = enabled === true;
+        saveSettings();
+        await this.handlePrivacySettingsChanged();
+        return this.presenceEnabled();
+    }
+
+    async togglePresenceEnabled() {
+        return this.setPresenceEnabled(!this.presenceEnabled());
+    }
 
     emitHomeChanged() { this.callbacks.homeChanged?.(this.getHomeSnapshot()); }
 
@@ -840,6 +946,25 @@ export class CommunityChat {
         if (actions) actions.innerHTML = `${actionsHtml}${closeButtonHtml('nt-community-close')}`;
     }
 
+    renderConsent({ review = false } = {}) {
+        const reviewing = review && this.communityEnabled();
+        this.setShellMode('auth');
+        this.configureShellHeader({ title: t('NastyTavern Community'), subtitle: t('Privacy & network access') });
+        this.shell()?.classList.remove('nt-community-auth-onboarding');
+        this.shell().innerHTML = `
+          <div class="nt-community-auth-intro"><b>${t(reviewing ? 'Community network access is enabled' : 'Community is off by default')}</b><p>${t(reviewing ? 'Review the services Community can contact and change your optional presence setting at any time.' : 'NastyTavern will not contact Supabase or load the Supabase client until you explicitly enable Community network access.')}</p></div>
+          <div class="nt-community-auth-card nt-community-consent-card">
+            <h3>${t('What enabling Community connects to')}</h3>
+            <p>${t('Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is currently loaded from jsDelivr after consent.')}</p>
+            <p>${t('Character Cards, Lorebooks and SillyTavern chats are not uploaded automatically. Sharing or catalogue upload requires an explicit action.')}</p>
+            <label class="nt-community-consent-presence"><input type="checkbox" data-nt-community-consent-presence ${this.presenceEnabled() ? 'checked' : ''}><span><b>${t('Also share my online presence and typing status')}</b><small>${t('Optional. You can change this independently later in NastyTavern Settings → Modules.')}</small></span></label>
+            ${reviewing
+                ? `<button type="button" class="is-primary" data-nt-community-privacy-save>${t('Save & return')}</button>`
+                : `<button type="button" class="is-primary" data-nt-community-enable>${t('Enable Community')}</button>`}
+            <small>${t(reviewing ? 'Community network access stays enabled while you review this notice. You can disable it from NastyTavern Settings → Modules.' : 'You can disable Community again at any time. Disabling it closes active Community connections but does not delete your Supabase account or previously shared content.')}</small>
+          </div>`;
+    }
+
     renderLoading() {
         this.setShellMode('workspace');
         this.configureShellHeader({ visible: false });
@@ -878,7 +1003,7 @@ export class CommunityChat {
         const signup = this.authMode === 'signup';
         const googleIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.91h5.38a4.6 4.6 0 0 1-2 3.02v2.54h3.24c1.9-1.75 2.98-4.34 2.98-7.4Z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.63-2.37l-3.24-2.54c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.04v2.62A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.92A6.02 6.02 0 0 1 6.08 12c0-.67.11-1.31.31-1.92V7.46H3.04A10 10 0 0 0 2 12c0 1.61.39 3.13 1.04 4.54l3.35-2.62Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.51 3.83 1.5l2.87-2.88A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.96 5.46l3.35 2.62C7.18 7.71 9.39 5.95 12 5.95Z"/></svg>`;
         this.setShellMode('auth');
-        this.configureShellHeader({ title: signup ? t('Create account') : t('Sign in'), subtitle: t('NastyTavern Community') });
+        this.configureShellHeader({ title: signup ? t('Create account') : t('Sign in'), subtitle: t('NastyTavern Community'), actionsHtml: `<button type="button" data-nt-community-privacy title="${t('Privacy & network access')}">${icons.info}</button>` });
         this.shell()?.classList.remove('nt-community-auth-onboarding');
         this.shell().innerHTML = `
             <div class="nt-community-auth-intro"><b>${signup ? t('Join NastyTavern Community') : t('Welcome back')}</b><p>${signup ? t('Create your Community account to chat with other NastyTavern users.') : t('Sign in to access Community Chat and your shared spaces.')}</p></div>
@@ -890,7 +1015,7 @@ export class CommunityChat {
                 <label><span>${t('Email')}</span><input name="email" type="email" autocomplete="email" required placeholder="name@example.com"></label>
                 <label><span>${t('Password')}</span><input name="password" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}" minlength="6" required></label>
                 ${this.notice ? `<p class="nt-community-notice">${esc(this.notice)}</p>` : ''}
-                <button type="submit" class="is-primary">${signup ? t('Create account') : t('Sign in')}</button>
+                <button type="submit" class="is-primary nt-community-auth-submit">${signup ? t('Create account') : t('Sign in')}</button>
               </form>
               <button type="button" class="nt-community-auth-switch" data-nt-community-auth-tab="${signup ? 'signin' : 'signup'}">${signup ? t('Sign in') : t('Create account')}</button>
             </div>`;
@@ -898,7 +1023,7 @@ export class CommunityChat {
 
     renderUsernameOnboarding() {
         this.setShellMode('auth');
-        this.configureShellHeader({ title: t('Community profile'), subtitle: t('NastyTavern Community') });
+        this.configureShellHeader({ title: t('Community profile'), subtitle: t('NastyTavern Community'), actionsHtml: `<button type="button" data-nt-community-privacy title="${t('Privacy & network access')}">${icons.info}</button>` });
         const avatar = this.user?.user_metadata?.avatar_url || this.user?.user_metadata?.picture || '';
         const email = this.user?.email || '';
         this.shell()?.classList.add('nt-community-auth-onboarding');
@@ -911,7 +1036,7 @@ export class CommunityChat {
               <form data-nt-community-username-form>
                 <label><span>${t('Username')}</span><input name="username" autocomplete="nickname" minlength="2" maxlength="32" pattern="[A-Za-z0-9_-]{2,32}" required autofocus placeholder="${t('Choose a username')}"><small class="nt-community-field-hint">${t('2–32 characters: letters, numbers, underscore or hyphen. This username is permanent.')}</small></label>
                 ${this.notice ? `<p class="nt-community-notice">${esc(this.notice)}</p>` : ''}
-                <button type="submit" class="is-primary">${t('Join Community')}</button>
+                <button type="submit" class="is-primary nt-community-auth-submit">${t('Join Community')}</button>
               </form>
               <button type="button" class="nt-community-config-link" data-nt-community-signout>${t('Use another account')}</button>
             </div>`;
@@ -1013,7 +1138,7 @@ export class CommunityChat {
             return;
         }
         const { data, error } = await this.client.from('nt_channel_members')
-            .select('channel_id,user_id,role,joined_at,session_token,profile:nt_profiles!nt_channel_members_user_id_fkey(id,username,avatar_url,bio,role,created_at,muted_until,banned_at)')
+            .select('channel_id,user_id,role,joined_at,profile:nt_profiles!nt_channel_members_user_id_fkey(id,username,avatar_url,bio,role,created_at,muted_until,banned_at)')
             .in('channel_id', this.channels.map(channel => channel.id));
         if (error) throw error;
 
@@ -1051,7 +1176,7 @@ export class CommunityChat {
         const banned = Boolean(this.profile?.banned_at);
         this.configureShellHeader({
             title: t('NastyTavern Community'),
-            actionsHtml: `${isMod ? `<button type="button" data-nt-community-moderation class="${this.openReportCount > 0 ? 'has-open-reports' : ''}" title="${t('Moderation')}">${icons.alertWarning}</button>` : ''}<button type="button" class="nt-community-user-pill" data-nt-community-profile-self title="${t('Open your Community profile')}"><span class="nt-community-mini-avatar">${avatarHtml(this.profile?.avatar_url, this.profile?.username)}</span><b>${esc(this.profile?.username || '')}</b>${role !== 'member' ? `<em>${esc(roleLabel(role))}</em>` : ''}</button><button type="button" data-nt-community-signout title="${t('Sign out')}">${icons.disconnect}</button>`,
+            actionsHtml: `${isMod ? `<button type="button" data-nt-community-moderation class="${this.openReportCount > 0 ? 'has-open-reports' : ''}" title="${t('Moderation')}">${icons.alertWarning}</button>` : ''}<button type="button" data-nt-community-privacy title="${t('Privacy & network access')}">${icons.info}</button><button type="button" class="nt-community-user-pill" data-nt-community-profile-self title="${t('Open your Community profile')}"><span class="nt-community-mini-avatar">${avatarHtml(this.profile?.avatar_url, this.profile?.username)}</span><b>${esc(this.profile?.username || '')}</b>${role !== 'member' ? `<em>${esc(roleLabel(role))}</em>` : ''}</button><button type="button" data-nt-community-signout title="${t('Sign out')}">${icons.disconnect}</button>`,
         });
         this.shell().innerHTML = `
           <div class="nt-community-workspace">
@@ -1285,10 +1410,7 @@ export class CommunityChat {
     }
 
     renderMembers() {
-        const members = (this.channelMembers.get(this.activeChannelId) || []).filter(member => {
-            const live = this.globalPresence.get(member.user_id);
-            return Boolean(live && member.session_token && live.session_token === member.session_token);
-        });
+        const members = (this.channelMembers.get(this.activeChannelId) || []).filter(member => this.globalPresence.has(member.user_id));
         if (!members.length) return `<small class="nt-community-empty-side">${t('No members to show.')}</small>`;
         return members.map(member => {
             const profile = member.profile || {};
@@ -1332,7 +1454,7 @@ export class CommunityChat {
         this.emitBadgeChanged();
         const channel = this.channels.find(item => item.id === id);
         if (channel?.type === 'public') {
-            try { await this.client.rpc('nt_join_channel', { p_channel: id, p_session_token: this.communitySessionToken }); } catch (_) {}
+            try { await this.client.rpc('nt_join_channel', { p_channel: id }); } catch (_) {}
         }
         await this.markChannelMentionsRead(id);
         if (render) this.renderWorkspace();
@@ -1479,7 +1601,7 @@ export class CommunityChat {
             ? file
             : new File([file], downloadName, { type: contentType });
 
-        try { await this.client.rpc('nt_join_channel', { p_channel: channel.id, p_session_token: this.communitySessionToken }); } catch (_) {}
+        try { await this.client.rpc('nt_join_channel', { p_channel: channel.id }); } catch (_) {}
         this.sessionJoinedChannels.add(channel.id);
 
         const { error: uploadError } = await this.client.storage.from('community-files').upload(path, uploadFile, { upsert: false, contentType });
@@ -1685,7 +1807,7 @@ export class CommunityChat {
     }
 
     sendTyping(isTyping = true) {
-        if (!this.subscription || !this.activeChannelId || !this.user) return;
+        if (!this.presenceEnabled() || !this.subscription || !this.activeChannelId || !this.user) return;
         try { this.subscription.send({ type:'broadcast', event:'typing', payload:{ user_id:this.user.id, username:this.profile?.username || '', typing:!!isTyping } }); } catch (_) {}
         clearTimeout(this.typingStopTimer);
         if (isTyping) this.typingStopTimer = setTimeout(() => this.sendTyping(false), 2200);
@@ -1738,7 +1860,7 @@ export class CommunityChat {
     }
 
     subscribeGlobalPresence() {
-        if (!this.client || !this.user || this.profile?.banned_at) return;
+        if (!this.presenceEnabled() || !this.client || !this.user || this.profile?.banned_at) return;
         if (this.globalSubscription) return;
         const channel = this.client.channel('nt-community:global-presence', { config: { presence: { key: this.user.id } } });
         channel
@@ -1748,7 +1870,6 @@ export class CommunityChat {
                     channel.track({
                         user_id: this.user.id,
                         username: this.profile?.username || '',
-                        session_token: this.communitySessionToken,
                         online_at: new Date().toISOString(),
                     });
                 }
@@ -1785,21 +1906,27 @@ export class CommunityChat {
 
     subscribeChannel() {
         this.unsubscribeChannel();
-        if (!this.activeChannelId || !this.client) return;
+        if (!this.activeChannelId || !this.client || !this.user) return;
         const id = this.activeChannelId;
-        const channel = this.client.channel(`nt-community:${id}`, { config: { presence: { key: this.user.id } } });
+        const config = this.presenceEnabled() ? { config: { presence: { key: this.user.id } } } : undefined;
+        const channel = this.client.channel(`nt-community:${id}`, config);
         const schedule = () => this.scheduleRefresh();
         channel
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'nt_messages', filter: `channel_id=eq.${id}` }, schedule)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'nt_messages', filter: `channel_id=eq.${id}` }, schedule)
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'nt_messages' }, payload => this.handleRealtimeMessageDelete(payload))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_message_reactions' }, schedule)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_channel_members', filter: `channel_id=eq.${id}` }, schedule)
-            .on('broadcast', { event: 'typing' }, payload => this.receiveTyping(payload))
-            .on('presence', { event: 'sync' }, () => this.syncPresence(channel.presenceState()))
-            .subscribe(status => {
-                if (status === 'SUBSCRIBED') channel.track({ user_id: this.user.id, username: this.profile?.username || '', online_at: new Date().toISOString() });
-            });
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_channel_members', filter: `channel_id=eq.${id}` }, schedule);
+        if (this.presenceEnabled()) {
+            channel
+                .on('broadcast', { event: 'typing' }, payload => this.receiveTyping(payload))
+                .on('presence', { event: 'sync' }, () => this.syncPresence(channel.presenceState()));
+        }
+        channel.subscribe(status => {
+            if (status === 'SUBSCRIBED' && this.presenceEnabled()) {
+                channel.track({ user_id: this.user.id, username: this.profile?.username || '', online_at: new Date().toISOString() });
+            }
+        });
         this.subscription = channel;
     }
 
@@ -1952,7 +2079,6 @@ export class CommunityChat {
         this.presence.clear();
         this.globalPresence.clear();
         this.communitySessionUserId = null;
-        this.communitySessionToken = makeSessionToken();
         this.sessionJoinedChannels.clear();
         this.unreadCounts.clear();
         this.mentionCounts.clear();
@@ -1967,6 +2093,15 @@ export class CommunityChat {
             this.root?.querySelector('[data-nt-reaction-picker]')?.remove();
         }
         if (event.target.closest('[data-nt-community-close]')) return this.close();
+        if (event.target.closest('[data-nt-community-privacy]')) return this.openPrivacyNotice();
+        if (event.target.closest('[data-nt-community-enable]')) return this.enableCommunityFromConsent();
+        if (event.target.closest('[data-nt-community-privacy-save]')) {
+            const presenceInput = this.root?.querySelector('[data-nt-community-consent-presence]');
+            this.settings.communityPresenceEnabled = !!presenceInput?.checked;
+            saveSettings();
+            await this.handlePrivacySettingsChanged();
+            return;
+        }
         if (event.target.closest('[data-nt-community-retry]')) return this.initialize();
         if (event.target.closest('[data-nt-community-google]')) { await this.signInWithGoogle(); return; }
         if (event.target.closest('[data-nt-community-signout]')) { await this.signOutCommunity(); return; }

@@ -344,7 +344,7 @@ export class CatalogueModal {
             if (this.community) {
                 this.community.authMode = 'signup';
                 await this.community.open();
-                if (!this.community.user) this.community.renderAuth?.();
+                if (this.community.communityEnabled?.() && !this.community.user) this.community.renderAuth?.();
             }
             return false;
         }
