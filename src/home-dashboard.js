@@ -539,7 +539,7 @@ export class HomeDashboard {
             <a href="https://github.com/AnNastyLoneGirl/NastyTavern-UI" target="_blank" rel="noreferrer"><span>GitHub</span>${icons.external}</a>
             <a href="https://discord.gg/F4ps4dA7tB" target="_blank" rel="noreferrer"><span>Discord</span>${icons.external}</a>
           </div>
-          <small class="nt-home-build" title="${escapeHtml(`${version} · NastyTavern UI v0.1.4`)}">${escapeHtml(version)} · NastyTavern UI v0.1.4</small>
+          <small class="nt-home-build" title="${escapeHtml(`${version} · NastyTavern UI v0.1.5`)}">${escapeHtml(version)} · NastyTavern UI v0.1.5</small>
         </footer>`;
     }
 

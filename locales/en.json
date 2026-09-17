@@ -1089,7 +1089,6 @@
   "Community is off by default": "Community is off by default",
   "NastyTavern will not contact Supabase or load the Supabase client until you explicitly enable Community network access.": "NastyTavern will not contact Supabase or load the Supabase client until you explicitly enable Community network access.",
   "What enabling Community connects to": "What enabling Community connects to",
-  "Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is currently loaded from jsDelivr after consent.": "Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is currently loaded from jsDelivr after consent.",
   "Character Cards, Lorebooks and SillyTavern chats are not uploaded automatically. Sharing or catalogue upload requires an explicit action.": "Character Cards, Lorebooks and SillyTavern chats are not uploaded automatically. Sharing or catalogue upload requires an explicit action.",
   "Also share my online presence and typing status": "Also share my online presence and typing status",
   "Optional. You can change this independently later in NastyTavern Settings → Modules.": "Optional. You can change this independently later in NastyTavern Settings → Modules.",
@@ -1106,5 +1105,6 @@
   "Switch between online and offline presence": "Switch between online and offline presence",
   "Go online": "Go online",
   "Go offline": "Go offline",
-  "Enable Community network access before changing presence.": "Enable Community network access before changing presence."
+  "Enable Community network access before changing presence.": "Enable Community network access before changing presence.",
+  "Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is bundled with NastyTavern and loaded locally from the extension.": "Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is bundled with NastyTavern and loaded locally from the extension."
 }

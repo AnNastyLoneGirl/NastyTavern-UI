@@ -1,16 +1,17 @@
-# NastyTavern Community Backend — v0.1.4 audit source
+# NastyTavern Community Backend — v0.1.5 audit source
 
-This directory is the auditable server-side companion for NastyTavern UI v0.1.4.
+This directory is the auditable server-side companion for the NastyTavern UI v0.1.5 hardening work.
 
 It intentionally contains no production secrets. Supabase service-role keys, OAuth secrets and Cloudflare R2 credentials are deployment environment variables and must never be committed.
 
 ## Included
 
 - `supabase/migrations/20260917_v0_1_4_privacy_security_hardening.sql` — production migration applied for v0.1.4.
+- `supabase/migrations/20260917_v0_1_5_supply_chain_maintenance_hardening.sql` — schedules server-side Storage cleanup and protects its invocation with a private maintenance credential.
 - `supabase/policies/current-rls-storage-policies.sql` — current NastyTavern RLS/Storage policy snapshot.
-- `supabase/functions/` — source of the four Edge Functions directly used by the v0.1.4 Community/Nasty Catalogue client.
+- `supabase/functions/` — source of the Community/Nasty Catalogue Edge Functions. Three catalogue functions are client-facing; `community-storage-cleanup` is server-maintenance-only.
 
-All four published Edge Functions require a valid JWT (`verify_jwt = true`).
+All four published Edge Functions require gateway authentication (`verify_jwt = true`). `community-storage-cleanup` additionally requires a private server-side maintenance credential and is invoked by Supabase Cron rather than the browser.
 
 ## v0.1.4 security boundary
 

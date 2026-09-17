@@ -1,4 +1,4 @@
-# NastyTavern Supabase schema reference — v0.1.4
+# NastyTavern Supabase schema reference — v0.1.5
 
 This directory documents the production schema surface used by NastyTavern Community and Nasty Catalogue as of 2026-09-17.
 
@@ -24,6 +24,7 @@ The database includes the following application tables:
 - `nt_resource_ratings` — authenticated user ↔ shared resource rating.
 - `nt_resource_stats_live` — aggregate resource stats used by the client.
 - `nt_storage_cleanup_queue` — internal attachment cleanup queue; RLS enabled with no client policy by design.
+- `nt_maintenance_secrets` — private server-maintenance credentials; no `anon`/`authenticated` access.
 
 ## Nasty Catalogue
 
