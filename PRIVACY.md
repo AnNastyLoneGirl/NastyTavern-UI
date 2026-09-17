@@ -12,6 +12,7 @@ Disabling Community closes active NastyTavern Realtime channels and stops the Su
 
 ## Services contacted
 
+- **GitHub / raw.githubusercontent.com** — when the NastyTavern Home screen is shown, the extension reads the public `manifest.json` and `CHANGELOG.md` so the Home page can always show the latest published release notes. It also asks SillyTavern’s native extension version endpoint to compare the installed checkout with its configured Git remote, using the same update mechanism as Manage Extensions. If the checkout is behind, the Home page can offer an explicit **Update now** action through SillyTavern’s native extension update endpoint. These checks are independent of Community consent, send no SillyTavern chat/content or GitHub account token, and the Home release check is cached in the browser session for 15 minutes. As with normal Git/GitHub requests, GitHub can receive standard connection metadata such as the client IP address and user-agent.
 - **Supabase** — Community authentication, public Community profiles, messages, reactions, mentions, reports, ratings/acquisition records, Realtime, Edge Functions, and Community Storage.
 - **Google** — contacted only when the user explicitly chooses Google OAuth.
 - **Cloudflare R2** — stores Nasty Catalogue binary objects. Catalogue metadata remains in Supabase.

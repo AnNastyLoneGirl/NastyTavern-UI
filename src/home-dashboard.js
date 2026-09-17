@@ -2,6 +2,7 @@ import { icons } from './icons.js';
 import { t } from './i18n.js';
 import { getContextSafe as ctx, escapeHtml } from './utils.js';
 import { starsHtml } from './ui-templates.js';
+import { getNastyTavernUpdateInfo, updateNastyTavernExtension } from './update-checker.js';
 
 const HERO_IMAGE = new URL('../assets/home-hero.webp', import.meta.url).href;
 
@@ -69,6 +70,11 @@ export class HomeDashboard {
         this.lastCommunitySignature = '';
         this.lastResourceSignature = '';
         this.recentNodes = [];
+        this.updateInfo = null;
+        this.updateCheckPromise = null;
+        this.lastUpdateCheckAt = 0;
+        this.updateInProgress = false;
+        this.updateInstalled = false;
         this.collectionTab = 'favorites';
         this.collectionTrack = null;
         this.collectionResizeObserver = null;
@@ -107,6 +113,11 @@ export class HomeDashboard {
         this.lastCommunitySignature = '';
         this.lastResourceSignature = '';
         this.recentNodes = [];
+        this.updateInfo = null;
+        this.updateCheckPromise = null;
+        this.lastUpdateCheckAt = 0;
+        this.updateInProgress = false;
+        this.updateInstalled = false;
         document.body?.classList.remove('nt-home-active');
         this.setShellHomeHeader(false);
     }
@@ -158,6 +169,7 @@ export class HomeDashboard {
         this.root.hidden = false;
         document.body?.classList.add('nt-home-active');
         this.setShellHomeHeader(true);
+        void this.ensureUpdateCheck();
 
         const characters = this.getCharacters();
         const recent = this.getRecentCharacters(characters);
@@ -532,6 +544,113 @@ export class HomeDashboard {
         </section>`;
     }
 
+    async ensureUpdateCheck({ force = false } = {}) {
+        const now = Date.now();
+        if (!force && this.updateCheckPromise) return this.updateCheckPromise;
+        if (!force && this.lastUpdateCheckAt && now - this.lastUpdateCheckAt < 15 * 60 * 1000) return this.updateInfo;
+
+        this.lastUpdateCheckAt = now;
+        const promise = getNastyTavernUpdateInfo({ force })
+            .then(info => {
+                this.updateInfo = info;
+                this.updateUpdateNotice();
+                return info;
+            })
+            .catch(error => {
+                console.warn('[NastyTavern] Home update check failed', error);
+                return null;
+            })
+            .finally(() => {
+                if (this.updateCheckPromise === promise) this.updateCheckPromise = null;
+            });
+
+        this.updateCheckPromise = promise;
+        return promise;
+    }
+
+    updateUpdateNotice() {
+        if (!this.root?.isConnected) return;
+        const slot = this.root.querySelector('[data-nt-home-update-slot]');
+        if (!slot) return;
+        const scroll = this.root.querySelector('.nt-home-scroll');
+        const scrollTop = scroll?.scrollTop ?? 0;
+        slot.innerHTML = this.renderUpdateNotice(this.updateInfo);
+        if (scroll) {
+            scroll.scrollTop = scrollTop;
+            requestAnimationFrame(() => {
+                if (scroll.isConnected) scroll.scrollTop = scrollTop;
+            });
+        }
+    }
+
+    renderUpdateNotice(info = this.updateInfo) {
+        const loading = !info;
+        const available = info?.state === 'available';
+        const unavailable = info?.state === 'unavailable';
+        const installed = this.updateInstalled;
+        const version = info?.latestVersion || info?.localVersion || '—';
+        const changes = Array.isArray(info?.changes) ? info.changes : [];
+        const visibleChanges = changes.slice(0, 2);
+        const hiddenChanges = changes.slice(2);
+        const title = loading ? t('NastyTavern updates') : t('NastyTavern v{version}', { version });
+
+        let meta = t('Checking GitHub…');
+        if (!loading) {
+            if (installed) meta = t('Update installed · reload to apply');
+            else if (available) meta = t('Update available · installed v{installed}', { installed: info.localVersion || '—' });
+            else if (unavailable) meta = t('Could not check GitHub right now');
+            else meta = t('Latest on GitHub · up to date');
+        }
+
+        const renderChange = change => `<li><b>${escapeHtml(change.category || t('Changed'))}</b><p data-nt-no-i18n>${escapeHtml(change.text)}</p></li>`;
+        let changeList = '';
+        if (loading) {
+            changeList = `<p class="nt-home-update-no-notes">${t('Loading the latest release notes…')}</p>`;
+        } else if (changes.length) {
+            changeList = `<div class="nt-home-update-changes"><ul>${visibleChanges.map(renderChange).join('')}</ul>${hiddenChanges.length ? `<details><summary>${t('Show {count} more changes', { count: hiddenChanges.length })}</summary><ul>${hiddenChanges.map(renderChange).join('')}</ul></details>` : ''}</div>`;
+        } else {
+            changeList = `<p class="nt-home-update-no-notes">${unavailable ? t('The latest changelog could not be loaded.') : t('No release notes were found for this version.')}</p>`;
+        }
+
+        const updateAction = installed
+            ? `<button type="button" class="nt-home-update-now" data-nt-home-action="reload-update">${t('Reload to apply')}</button>`
+            : available
+                ? `<button type="button" class="nt-home-update-now" data-nt-home-action="update-now" ${this.updateInProgress ? 'disabled aria-busy="true"' : ''}>${this.updateInProgress ? t('Updating…') : t('Update now')}</button>`
+                : '';
+        const changelogLink = info?.changelogUrl || 'https://github.com/AnNastyLoneGirl/NastyTavern-UI/blob/main/CHANGELOG.md';
+
+        return `<section class="nt-home-update-notice${available ? ' is-update-available' : ''}${installed ? ' is-update-installed' : ''}" aria-label="${escapeHtml(title)}" aria-live="polite">
+          <div class="nt-home-update-heading">
+            <span class="nt-home-update-icon" aria-hidden="true">${icons.refresh}</span>
+            <div class="nt-home-update-copy">
+              <div class="nt-home-update-title-row"><h2>${title}</h2><small>${escapeHtml(meta)}</small></div>
+            </div>
+            <div class="nt-home-update-actions">
+              ${updateAction}
+              <a class="nt-home-update-link" href="${escapeHtml(changelogLink)}" target="_blank" rel="noopener noreferrer"><span>${t('View changelog')}</span>${icons.external}</a>
+            </div>
+          </div>
+          ${changeList}
+        </section>`;
+    }
+
+    async installAvailableUpdate() {
+        if (this.updateInProgress || this.updateInstalled || this.updateInfo?.state !== 'available') return;
+        this.updateInProgress = true;
+        this.updateUpdateNotice();
+        try {
+            await updateNastyTavernExtension(this.updateInfo);
+            this.updateInstalled = true;
+            this.toast?.(t('NastyTavern update installed. Reload to apply it.'));
+        } catch (error) {
+            console.error('[NastyTavern] Update failed', error);
+            this.toast?.(error?.message || t('Could not update NastyTavern.'));
+        } finally {
+            this.updateInProgress = false;
+            this.updateUpdateNotice();
+        }
+    }
+
     renderFooter(version) {
         return `<footer class="nt-home-footer">
           <div class="nt-home-resource-links">
@@ -565,6 +684,7 @@ export class HomeDashboard {
               <div class="nt-home-dashboard-grid">
                 <main class="nt-home-main-column">
                   ${this.renderCollectionPanel({ favorites, recent, community, hasCharacters })}
+                  <div class="nt-home-update-slot" data-nt-home-update-slot>${this.renderUpdateNotice()}</div>
                 </main>
 
                 <aside class="nt-home-side-column">
@@ -750,6 +870,14 @@ export class HomeDashboard {
 
         const action = event.target.closest('[data-nt-home-action]')?.dataset.ntHomeAction;
         if (!action) return;
+        if (action === 'update-now') {
+            void this.installAvailableUpdate();
+            return;
+        }
+        if (action === 'reload-update') {
+            window.location.reload();
+            return;
+        }
         if (action === 'temporary') {
             void this.openTemporaryChat();
             return;

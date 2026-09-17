@@ -10,6 +10,7 @@ Update focused on supply-chain hardening and tightening the Community maintenanc
 
 ### Added
 
+- Added a permanent Home release changelog that shows the latest version published on GitHub and exposes an explicit `Update now` action when SillyTavern reports that the installed extension is behind its Git remote.
 - Vendored the exact `@supabase/supabase-js@2.116.0` browser bundle and its license inside the extension source.
 - Added a server-scheduled Community Storage cleanup job backed by a private maintenance credential.
 
