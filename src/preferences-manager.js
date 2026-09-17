@@ -110,7 +110,7 @@ export class PreferencesManager {
           </label>`;
 
         return `<div class="nt-pref-interface">
-          <div class="nt-pref-section-head"><div><b>${t('Interface')}</b><small>${t('Appearance and layout settings for NastyTavern.')}</small></div><button data-nt-pref-reset-interface>${t('Reset')}</button></div>
+          <div class="nt-pref-section-head"><div><b>${t('Interface')}</b><small>${t('Appearance and layout settings for NastyTavern.')}</small></div><button type="button" class="nt-pref-action-button" data-nt-pref-reset-interface>${t('Reset')}</button></div>
           <section class="nt-pref-setting-group">
             <h3>${t('Appearance')}</h3>
             <label class="nt-pref-setting-row">
@@ -139,8 +139,8 @@ export class PreferencesManager {
 
     renderBackup() {
         return `<div class="nt-pref-backup">
-          <article><span>${icons.download}</span><div><b>${t('Export NastyTavern settings')}</b><p>${t('Export appearance, shortcuts and module preferences.')}</p></div><button data-nt-pref-export>${t('Export')}</button></article>
-          <article><span>${icons.upload}</span><div><b>${t('Import NastyTavern settings')}</b><p>${t('Restore a previously exported NastyTavern JSON file.')}</p></div><button data-nt-pref-import-trigger>${t('Import')}</button></article>
+          <article><span>${icons.download}</span><div><b>${t('Export NastyTavern settings')}</b><p>${t('Export appearance, shortcuts and module preferences.')}</p></div><button type="button" class="nt-pref-action-button" data-nt-pref-export>${t('Export')}</button></article>
+          <article><span>${icons.upload}</span><div><b>${t('Import NastyTavern settings')}</b><p>${t('Restore a previously exported NastyTavern JSON file.')}</p></div><button type="button" class="nt-pref-action-button" data-nt-pref-import-trigger>${t('Import')}</button></article>
         </div>`;
     }
 
@@ -155,7 +155,25 @@ export class PreferencesManager {
             ['calendar', t('Calendar & Schedule'), t('Story calendar, events and schedule tools.'), icons.calendar],
             ['community', t('Community Chat'), t('Real-time community chat powered by Supabase.'), icons.community],
         ];
-        return `<div class="nt-pref-modules"><div class="nt-pref-section-head"><div><b>${t('NastyTavern Modules')}</b><small>${t('Choose which integrated tools are shown in the Nasty Chat Bar.')}</small></div></div><div class="nt-pref-module-grid">${defs.map(([id, label, hint, icon]) => `<label class="nt-pref-module-card"><span class="nt-pref-module-icon">${icon}</span><span class="nt-pref-module-copy"><b>${esc(label)}</b><small>${esc(hint)}</small></span><input type="checkbox" data-nt-module-visible="${esc(id)}" ${modules[id] !== false ? 'checked' : ''}></label>`).join('')}</div><p class="nt-shortcut-help">${t('Hidden modules stay installed and can still be opened with their keyboard shortcut or the Command Palette.')}</p></div>`;
+        const communityEnabled = this.settings.communityNetworkEnabled === true;
+        const presenceEnabled = communityEnabled && this.settings.communityPresenceEnabled === true;
+        return `<div class="nt-pref-modules"><div class="nt-pref-section-head"><div><b>${t('NastyTavern Modules')}</b><small>${t('Choose which integrated tools are shown in the Nasty Chat Bar.')}</small></div></div><div class="nt-pref-module-grid">${defs.map(([id, label, hint, icon]) => `<label class="nt-pref-module-card"><span class="nt-pref-module-icon">${icon}</span><span class="nt-pref-module-copy"><b>${esc(label)}</b><small>${esc(hint)}</small></span><input type="checkbox" data-nt-module-visible="${esc(id)}" ${modules[id] !== false ? 'checked' : ''}></label>`).join('')}</div><p class="nt-shortcut-help">${t('Hidden modules stay installed and can still be opened with their keyboard shortcut or the Command Palette.')}</p>
+          <section class="nt-pref-setting-group nt-pref-community-privacy">
+            <h3>${t('Community & Privacy')}</h3>
+            <label class="nt-pref-setting-row nt-pref-setting-toggle">
+              <span><b>${t('Enable Community network access')}</b><small>${t('Required before NastyTavern loads the Supabase client or contacts the Community service. Supabase handles authentication and Community data; catalogue files are stored on Cloudflare R2.')}</small></span>
+              <input type="checkbox" data-nt-community-network ${communityEnabled ? 'checked' : ''}>
+            </label>
+            <label class="nt-pref-setting-row nt-pref-setting-toggle ${communityEnabled ? '' : 'is-disabled'}">
+              <span><b>${t('Share online presence and typing status')}</b><small>${t('Optional. Broadcasts your Community identity and online/typing state through Supabase Realtime while Community is active.')}</small></span>
+              <input type="checkbox" data-nt-community-presence ${presenceEnabled ? 'checked' : ''} ${communityEnabled ? '' : 'disabled'}>
+            </label>
+            <div class="nt-pref-setting-row">
+              <span><b>${t('Privacy notice')}</b><small>${t('Review what Community connects to and how Community data is handled.')}</small></span>
+              <button type="button" class="nt-pref-action-button" data-nt-community-privacy-review>${t('Review')}</button>
+            </div>
+            <p class="nt-shortcut-help">${t('Community remains visible when network access is disabled, but opening it shows the privacy notice instead of making a connection.')}</p>
+          </section></div>`;
     }
 
     renderShortcuts() {
@@ -167,8 +185,8 @@ export class PreferencesManager {
             if (!group) { group = { name, items: [] }; groups.push(group); }
             group.items.push(definition);
         }
-        const rows = groups.map(group => `<section class="nt-shortcut-group"><div class="nt-shortcut-group-title">${esc(t(group.name))}</div>${group.items.map(definition => `<article><div><b>${esc(t(definition.label))}</b><small>${esc(t(definition.hint || ''))}</small></div><button class="nt-shortcut-record ${this.recording === definition.id ? 'is-recording' : ''}" data-nt-shortcut="${esc(definition.id)}">${esc(this.recording === definition.id ? t('Press shortcut…') : (this.settings.shortcuts?.[definition.id] || t('Unassigned')))}</button></article>`).join('')}</section>`).join('');
-        return `<div class="nt-shortcuts"><div class="nt-pref-section-head"><div><b>${t('Keyboard Shortcuts')}</b><small>${t('Click a shortcut and press the new key combination.')}</small></div><button data-nt-pref-reset-shortcuts>${t('Reset')}</button></div>${rows}<p class="nt-shortcut-help">${t('Duplicate shortcuts are rejected automatically.')} ${t('Press Backspace or Delete while recording to clear a shortcut.')} ${t('Some browser shortcuts cannot be overridden.')}</p></div>`;
+        const rows = groups.map(group => `<section class="nt-shortcut-group"><div class="nt-shortcut-group-title">${esc(t(group.name))}</div>${group.items.map(definition => `<article><div><b>${esc(t(definition.label))}</b><small>${esc(t(definition.hint || ''))}</small></div><button type="button" class="nt-pref-action-button nt-shortcut-record ${this.recording === definition.id ? 'is-recording' : ''}" data-nt-shortcut="${esc(definition.id)}">${esc(this.recording === definition.id ? t('Press shortcut…') : (this.settings.shortcuts?.[definition.id] || t('Unassigned')))}</button></article>`).join('')}</section>`).join('');
+        return `<div class="nt-shortcuts"><div class="nt-pref-section-head"><div><b>${t('Keyboard Shortcuts')}</b><small>${t('Click a shortcut and press the new key combination.')}</small></div><button type="button" class="nt-pref-action-button" data-nt-pref-reset-shortcuts>${t('Reset')}</button></div>${rows}<p class="nt-shortcut-help">${t('Duplicate shortcuts are rejected automatically.')} ${t('Press Backspace or Delete while recording to clear a shortcut.')} ${t('Some browser shortcuts cannot be overridden.')}</p></div>`;
     }
 
     updateInterfaceSetting(input) {
@@ -191,6 +209,23 @@ export class PreferencesManager {
     onChange(event) {
         const setting = event.target.closest('[data-nt-pref-setting]');
         if (setting) { this.updateInterfaceSetting(setting); return; }
+        const communityNetwork = event.target.closest('[data-nt-community-network]');
+        if (communityNetwork) {
+            this.settings.communityNetworkEnabled = !!communityNetwork.checked;
+            if (!this.settings.communityNetworkEnabled) this.settings.communityPresenceEnabled = false;
+            saveSettings();
+            this.callbacks.communityPrivacyChanged?.();
+            this.render();
+            return;
+        }
+        const communityPresence = event.target.closest('[data-nt-community-presence]');
+        if (communityPresence) {
+            this.settings.communityPresenceEnabled = this.settings.communityNetworkEnabled === true && !!communityPresence.checked;
+            saveSettings();
+            this.callbacks.communityPrivacyChanged?.();
+            this.render();
+            return;
+        }
         const toggle = event.target.closest('[data-nt-module-visible]');
         if (!toggle) return;
         const id = toggle.dataset.ntModuleVisible;
@@ -207,6 +242,11 @@ export class PreferencesManager {
         if (tab) { this.cancelRecording(false); this.tab = tab.dataset.ntPrefTab; return this.render(); }
         if (event.target.closest('[data-nt-pref-export]')) return this.exportSettings();
         if (event.target.closest('[data-nt-pref-import-trigger]')) return this.root.querySelector('[data-nt-pref-import]').click();
+        if (event.target.closest('[data-nt-community-privacy-review]')) {
+            this.close();
+            this.callbacks.openCommunityPrivacy?.();
+            return;
+        }
         if (event.target.closest('[data-nt-pref-reset-interface]')) {
             for (const key of interfaceSettingKeys) this.settings[key] = structuredClone(defaults[key]);
             applySettings(this.settings);
