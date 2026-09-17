@@ -6,6 +6,8 @@ on:
       - security/v0.1.5-hardening
     paths:
       - '.github/workflows/prepare-v015-hardening.yml'
+      - '.release/prepare-v015.sh'
+      - '.release/run-v015.sh'
 
 permissions:
   contents: write
@@ -23,13 +25,13 @@ jobs:
 
       - name: Prepare and validate v0.1.5
         shell: bash
-        run: bash .release/prepare-v015.sh
+        run: bash .release/run-v015.sh
 
       - name: Remove temporary preparation files and commit
         shell: bash
         run: |
           set -euo pipefail
-          rm -f .release/prepare-v015.sh
+          rm -f .release/prepare-v015.sh .release/run-v015.sh
           rm -f .github/workflows/prepare-v015-hardening.yml
           rmdir .release 2>/dev/null || true
           rmdir .github/workflows 2>/dev/null || true
