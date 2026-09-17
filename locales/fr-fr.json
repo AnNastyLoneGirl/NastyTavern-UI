@@ -1089,7 +1089,6 @@
   "Community is off by default": "Community est désactivé par défaut",
   "NastyTavern will not contact Supabase or load the Supabase client until you explicitly enable Community network access.": "NastyTavern ne contactera pas Supabase et ne chargera pas le client Supabase tant que vous n’aurez pas explicitement activé l’accès réseau Community.",
   "What enabling Community connects to": "Services contactés lors de l’activation de Community",
-  "Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is currently loaded from jsDelivr after consent.": "Supabase est utilisé pour l’authentification Community, les messages, profils, Realtime et le stockage Community. Les fichiers binaires du Nasty Catalogue sont stockés sur Cloudflare R2. Google n’est contacté que si vous choisissez la connexion Google. Le client JavaScript Supabase est actuellement chargé depuis jsDelivr après consentement.",
   "Character Cards, Lorebooks and SillyTavern chats are not uploaded automatically. Sharing or catalogue upload requires an explicit action.": "Les Character Cards, Lorebooks et conversations SillyTavern ne sont pas envoyés automatiquement. Un partage ou un upload vers le Catalogue nécessite une action explicite.",
   "Also share my online presence and typing status": "Partager également mon statut en ligne et mon indicateur de saisie",
   "Optional. You can change this independently later in NastyTavern Settings → Modules.": "Optionnel. Vous pourrez modifier ce choix indépendamment plus tard dans Paramètres NastyTavern → Modules.",
@@ -1106,5 +1105,6 @@
   "Switch between online and offline presence": "Basculer entre présence en ligne et hors ligne",
   "Go online": "Passer en ligne",
   "Go offline": "Passer hors ligne",
-  "Enable Community network access before changing presence.": "Activez l’accès réseau Community avant de modifier la présence."
+  "Enable Community network access before changing presence.": "Activez l’accès réseau Community avant de modifier la présence.",
+  "Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is bundled with NastyTavern and loaded locally from the extension.": "Supabase est utilisé pour l’authentification Community, les messages, les profils, Realtime et le stockage Community. Les fichiers binaires du Nasty Catalogue sont stockés sur Cloudflare R2. Google n’est contacté que si vous choisissez la connexion Google. Le client JavaScript Supabase est intégré à NastyTavern et chargé localement depuis l’extension."
 }

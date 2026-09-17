@@ -4,6 +4,34 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
+## v0.1.5
+
+Update focused on supply-chain hardening and tightening the Community maintenance trust boundary.
+
+### Added
+
+- Vendored the exact `@supabase/supabase-js@2.116.0` browser bundle and its license inside the extension source.
+- Added a server-scheduled Community Storage cleanup job backed by a private maintenance credential.
+
+### Changed
+
+- Community now loads the Supabase JavaScript client from the installed NastyTavern extension instead of jsDelivr.
+- Community clients no longer invoke the global `community-storage-cleanup` maintenance function.
+- Storage cleanup is now invoked by a Supabase Cron job instead of ordinary authenticated browsers.
+
+### Security
+
+- Removed the runtime CDN trust boundary for the Supabase browser client; the exact executed bundle is now part of the auditable release.
+- `community-storage-cleanup` now uses a private server-only maintenance credential instead of user-session authorization.
+- The maintenance credential is not exposed to `anon` or `authenticated` database roles.
+- Disabled the legacy `smart-task` cleanup deployment with an inert HTTP 410 tombstone so it can no longer perform privileged maintenance.
+
+### Compatibility
+
+- Community behavior and user-facing account flows are unchanged; the hardening only changes dependency delivery and backend maintenance execution.
+
+---
+
 ## v0.1.4
 
 Update focused on Community privacy controls, backend transparency, security hardening, and interface consistency.

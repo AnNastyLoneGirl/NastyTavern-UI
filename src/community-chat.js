@@ -5,7 +5,7 @@ import { avatarHtml, closeButtonHtml, confirmDialog, starsHtml } from './ui-temp
 import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
 import { saveSettings } from './settings.js';
 
-const SDK_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0';
+const SDK_URL = new URL('../vendor/supabase-js/supabase.js', import.meta.url).href;
 const COMMUNITY_SUPABASE_URL = 'https://egyzkywvuvlcaguirzdm.supabase.co';
 const COMMUNITY_SUPABASE_KEY = 'sb_publishable_UBR44UD7dwhGHnPdQi-UAw_wyFQX0rK';
 
@@ -454,7 +454,6 @@ export class CommunityChat {
             const script = document.createElement('script');
             script.src = SDK_URL;
             script.async = true;
-            script.crossOrigin = 'anonymous';
             script.dataset.ntSupabaseSdk = '1';
             script.onload = resolve;
             script.onerror = () => reject(new Error('Could not load Supabase client.'));
@@ -955,7 +954,7 @@ export class CommunityChat {
           <div class="nt-community-auth-intro"><b>${t(reviewing ? 'Community network access is enabled' : 'Community is off by default')}</b><p>${t(reviewing ? 'Review the services Community can contact and change your optional presence setting at any time.' : 'NastyTavern will not contact Supabase or load the Supabase client until you explicitly enable Community network access.')}</p></div>
           <div class="nt-community-auth-card nt-community-consent-card">
             <h3>${t('What enabling Community connects to')}</h3>
-            <p>${t('Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is currently loaded from jsDelivr after consent.')}</p>
+            <p>${t('Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is bundled with NastyTavern and loaded locally from the extension.')}</p>
             <p>${t('Character Cards, Lorebooks and SillyTavern chats are not uploaded automatically. Sharing or catalogue upload requires an explicit action.')}</p>
             <label class="nt-community-consent-presence"><input type="checkbox" data-nt-community-consent-presence ${this.presenceEnabled() ? 'checked' : ''}><span><b>${t('Also share my online presence and typing status')}</b><small>${t('Optional. You can change this independently later in NastyTavern Settings → Modules.')}</small></span></label>
             ${reviewing
@@ -1621,7 +1620,6 @@ export class CommunityChat {
             await this.client.storage.from('community-files').remove([path]).catch(() => {});
             throw error;
         }
-        void this.runCommunityMaintenance();
         void this.refreshHomeSnapshot();
         if (this.activeChannelId === channel.id) {
             await this.loadMessages();
@@ -1684,16 +1682,6 @@ export class CommunityChat {
         const shared = await this.shareResourceFile(file, 'lorebook', name, 'lorebooks');
         if (shared) this.toast?.(t('Shared {name} to Community.', { name }));
         return shared;
-    }
-
-    async runCommunityMaintenance() {
-        if (!this.client || !this.user) return;
-        try {
-            const { error } = await this.client.functions.invoke('community-storage-cleanup', { body: {} });
-            if (error) console.warn('[NastyTavern] Community maintenance could not run', error);
-        } catch (error) {
-            console.warn('[NastyTavern] Community maintenance unavailable', error);
-        }
     }
 
     async downloadAttachment(message, importIntoSillyTavern = false) {
@@ -1979,7 +1967,6 @@ export class CommunityChat {
         const { error } = await this.client.from('nt_messages').insert({ channel_id: this.activeChannelId, user_id: this.user.id, content: text, reply_to: this.replyTo || null });
         if (error) throw error;
         this.replyTo = null;
-        void this.runCommunityMaintenance();
         void this.refreshHomeSnapshot();
     }
 
@@ -2241,8 +2228,7 @@ export class CommunityChat {
                 const { error } = await this.client.from('nt_messages').delete().eq('id', message.id).eq('user_id', this.user.id);
                 if (error) return this.toast?.(error.message);
             } else return;
-            void this.runCommunityMaintenance();
-            void this.refreshHomeSnapshot();
+                void this.refreshHomeSnapshot();
         }
         await this.loadMessages(); this.updateDynamicAreas();
     }

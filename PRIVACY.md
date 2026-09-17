@@ -1,10 +1,10 @@
-# NastyTavern Community — Privacy & Data Flow (v0.1.4)
+# NastyTavern Community — Privacy & Data Flow (v0.1.5)
 
-This document describes the Community and Nasty Catalogue network behavior shipped with NastyTavern UI v0.1.4.
+This document describes the Community and Nasty Catalogue network behavior prepared for NastyTavern UI v0.1.5.
 
 ## Network consent
 
-Community network access is disabled by default. NastyTavern does not load the Supabase JavaScript SDK and does not contact the NastyTavern Supabase project until the user explicitly enables **Community network access**.
+Community network access is disabled by default. NastyTavern does not contact the NastyTavern Supabase project until the user explicitly enables **Community network access**. The pinned Supabase JavaScript client is vendored with the extension and is loaded locally from NastyTavern rather than from a third-party CDN.
 
 Presence is a separate opt-in. Enabling Community does not automatically broadcast online presence or typing activity.
 
@@ -13,7 +13,6 @@ Disabling Community closes active NastyTavern Realtime channels and stops the Su
 ## Services contacted
 
 - **Supabase** — Community authentication, public Community profiles, messages, reactions, mentions, reports, ratings/acquisition records, Realtime, Edge Functions, and Community Storage.
-- **jsDelivr** — loads the pinned browser build of `@supabase/supabase-js` after Community consent.
 - **Google** — contacted only when the user explicitly chooses Google OAuth.
 - **Cloudflare R2** — stores Nasty Catalogue binary objects. Catalogue metadata remains in Supabase.
 - **esm.sh / JSR** — runtime dependency delivery used by deployed Supabase Edge Functions.
@@ -42,7 +41,7 @@ When the user enables the separate presence option, NastyTavern uses Supabase Re
 
 Global presence broadcasts the user's Community UUID, Community username and an `online_at` timestamp. Channel presence broadcasts the Community UUID, username and `online_at`. Typing broadcasts the UUID, username and whether the user is currently typing.
 
-v0.1.4 no longer writes a Community session correlation token to `nt_channel_members`. Existing persisted token values were cleared by the v0.1.4 backend migration. The old column remains temporarily for v0.1.3 server compatibility but is unused by v0.1.4.
+Since v0.1.4, NastyTavern no longer writes a Community session correlation token to `nt_channel_members`. Existing persisted token values were cleared by the v0.1.4 backend migration. The old column remains temporarily for v0.1.3 server compatibility but is unused by current clients.
 
 `nt_channel_members` still records persistent channel membership metadata (`channel_id`, `user_id`, `role`, `joined_at`). Explicit Community sign-out removes the current user's channel membership rows.
 
@@ -52,7 +51,7 @@ Community chat attachments use the private Supabase Storage bucket `community-fi
 
 Community avatars use the public `community-avatars` bucket. Writes/updates/deletes are restricted to the authenticated user's folder and the bucket limit is 1 MiB.
 
-Deleted Community message attachments are queued for cleanup. The cleanup Edge Function also removes unreferenced Community files that have been orphaned for at least one hour.
+Deleted Community message attachments are queued for cleanup. A server-side Supabase Cron job invokes the cleanup Edge Function on a schedule; ordinary Community clients cannot trigger this global maintenance operation. The cleanup function also removes unreferenced Community files that have been orphaned for at least one hour.
 
 Nasty Catalogue binary objects are stored in Cloudflare R2. Supabase stores catalogue metadata, ownership, hashes, moderation state, lineage data and the resource payload used by the catalogue backend.
 
@@ -72,4 +71,4 @@ Nasty Catalogue uses `nt_catalog_acquisitions`, which associates an authenticate
 
 ## Backend transparency
 
-The v0.1.4 source bundle includes the production privacy/security migration, RLS/Storage policy snapshot and the Edge Function sources used by Community/Nasty Catalogue. Secrets such as service-role keys and Cloudflare R2 credentials are intentionally not included.
+The v0.1.5 source includes the v0.1.4 privacy/security migration, the v0.1.5 maintenance hardening migration, RLS/Storage policy snapshots, the vendored Supabase browser bundle metadata, and the Edge Function sources used by Community/Nasty Catalogue. Secrets such as service-role keys and Cloudflare R2 credentials are intentionally not included.
