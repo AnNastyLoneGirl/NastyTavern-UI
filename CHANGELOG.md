@@ -4,7 +4,7 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
-## v0.1.5 — Unreleased
+## v0.1.5
 
 Update focused on supply-chain hardening and tightening the Community maintenance trust boundary.
 
