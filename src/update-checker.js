@@ -6,7 +6,7 @@ const REMOTE_CHANGELOG_URL = 'https://raw.githubusercontent.com/AnNastyLoneGirl/
 const CHANGELOG_URL = `${REPOSITORY_URL}/blob/main/CHANGELOG.md`;
 const LOCAL_MANIFEST_URL = new URL('../manifest.json', import.meta.url).href;
 const LOCAL_CHANGELOG_URL = new URL('../CHANGELOG.md', import.meta.url).href;
-const CACHE_KEY = 'nt:update-check:v2';
+const CACHE_KEY = 'nt:update-check:v3';
 const CACHE_TTL = 15 * 60 * 1000;
 const REQUEST_TIMEOUT = 7000;
 const UPDATE_TIMEOUT = 60 * 1000;
@@ -226,10 +226,14 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
     const latestVersion = remoteVersion || base.localVersion;
 
     let state = 'unavailable';
-    if (nativeStatus && typeof nativeStatus.isUpToDate === 'boolean') {
-        state = nativeStatus.isUpToDate ? 'current' : 'available';
-    } else if (remoteVersion) {
+    if (remoteVersion) {
+        // The published manifest version is the release source of truth.
+        // Git can report a checkout as behind even when the installed files already
+        // match the latest published version (for example after installing a ZIP
+        // over an older Git checkout). That must not surface a false update action.
         state = compareVersions(remoteVersion, base.localVersion) > 0 ? 'available' : 'current';
+    } else if (nativeStatus && nativeStatus.isUpToDate === true) {
+        state = 'current';
     }
 
     let changes = remoteChangelog
@@ -253,13 +257,25 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
 }
 
 export async function updateNastyTavernExtension(info = {}) {
-    const extensionName = String(info.extensionName || getInstalledExtensionName()).trim();
+    // Re-check immediately before mutating the checkout so a stale Home card can
+    // never launch a Git pull after the installed version has already caught up.
+    const freshInfo = await getNastyTavernUpdateInfo({ force: true });
+    if (!freshInfo || freshInfo.state !== 'available') {
+        return { skipped: true, upToDate: true };
+    }
+    if (!freshInfo.nativeManaged) {
+        throw new Error('This NastyTavern installation is not managed by SillyTavern Git updates.');
+    }
+
+    const extensionName = String(freshInfo.extensionName || info.extensionName || getInstalledExtensionName()).trim();
     if (!extensionName) throw new Error('Could not determine the NastyTavern extension folder.');
 
-    const preferredGlobal = typeof info.extensionGlobal === 'boolean' ? info.extensionGlobal : false;
-    const attempts = typeof info.extensionGlobal === 'boolean'
+    const preferredGlobal = typeof freshInfo.extensionGlobal === 'boolean'
+        ? freshInfo.extensionGlobal
+        : (typeof info.extensionGlobal === 'boolean' ? info.extensionGlobal : false);
+    const attempts = typeof freshInfo.extensionGlobal === 'boolean'
         ? [preferredGlobal]
-        : [false, true];
+        : (typeof info.extensionGlobal === 'boolean' ? [preferredGlobal] : [false, true]);
 
     let lastError = null;
     for (const global of attempts) {
