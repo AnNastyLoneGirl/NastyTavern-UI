@@ -42,3 +42,5 @@ jobs:
           git diff --cached --check
           git commit -m 'security: harden v0.1.5 dependency and maintenance boundaries'
           git push origin HEAD:security/v0.1.5-hardening
+
+# Preparation runner: v0.1.5 hardening
