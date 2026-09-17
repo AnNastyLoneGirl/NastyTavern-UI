@@ -6,11 +6,7 @@
   "js": "index.js",
   "css": "style.css",
   "author": "AnNastyLoneGirl + OpenAI",
-<<<<<<< HEAD
   "version": "0.1.6",
-=======
-  "version": "0.1.5",
->>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
   "homePage": "https://github.com/AnNastyLoneGirl/NastyTavern-UI",
   "auto_update": false,
   "minimum_client_version": "1.18.0",

@@ -1125,12 +1125,8 @@
   "Updating…": "Mise à jour…",
   "Reload to apply": "Recharger pour appliquer",
   "NastyTavern update installed. Reload to apply it.": "La mise à jour NastyTavern est installée. Rechargez pour l’appliquer.",
-<<<<<<< HEAD
   "Could not update NastyTavern.": "Impossible de mettre NastyTavern à jour.",
   "Character Library": "Character Library",
   "Character Library is not available.": "Character Library n’est pas disponible.",
   "Maintenance update available · installed v{installed}": "Mise à jour de maintenance disponible · version installée v{installed}"
-=======
-  "Could not update NastyTavern.": "Impossible de mettre NastyTavern à jour."
->>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
 }

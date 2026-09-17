@@ -26719,7 +26719,6 @@ body.mt-enabled.waifuMode #nt-chat-toolbar {
   }
 }
 
-<<<<<<< HEAD
 /* Native movable popouts — one docked workspace geometry contract.
    SillyTavern may restore very small Moving UI dimensions inline; NastyTavern
    owns geometry while enabled so every supported popout opens usable by default. */
@@ -27040,8 +27039,6 @@ html body.mt-enabled.nt-native-side-panel-maximized :is(#floatingPrompt.nt-autho
   }
 }
 
-=======
->>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
 /* NastyTavern 0.1.4 — quick Community presence switch */
 body.mt-enabled .mt-account-auth > button.mt-community-presence-toggle {
   grid-template-columns: 20px minmax(0, 1fr) 32px;

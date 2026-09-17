@@ -1125,12 +1125,8 @@
   "Updating…": "Updating…",
   "Reload to apply": "Reload to apply",
   "NastyTavern update installed. Reload to apply it.": "NastyTavern update installed. Reload to apply it.",
-<<<<<<< HEAD
   "Could not update NastyTavern.": "Could not update NastyTavern.",
   "Character Library": "Character Library",
   "Character Library is not available.": "Character Library is not available.",
   "Maintenance update available · installed v{installed}": "Maintenance update available · installed v{installed}"
-=======
-  "Could not update NastyTavern.": "Could not update NastyTavern."
->>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
 }

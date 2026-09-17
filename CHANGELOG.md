@@ -4,7 +4,6 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
-<<<<<<< HEAD
 ## v0.1.6
 
 Update focused on responsive chat scaling, native utility panels, NastyTavern Settings cleanup, Character Library integration, and large-library performance.
@@ -38,19 +37,13 @@ Update focused on responsive chat scaling, native utility panels, NastyTavern Se
 
 ---
 
-=======
->>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
 ## v0.1.5
 
 Update focused on supply-chain hardening and tightening the Community maintenance trust boundary.
 
 ### Added
 
-<<<<<<< HEAD
 - Added a permanent Home release changelog that shows the latest build published on GitHub and exposes an explicit `Update now` action when a newer version or maintenance revision is available.
-=======
-- Added a permanent Home release changelog that shows the latest version published on GitHub and exposes an explicit `Update now` action when SillyTavern reports that the installed extension is behind its Git remote.
->>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
 - Vendored the exact `@supabase/supabase-js@2.116.0` browser bundle and its license inside the extension source.
 - Added a server-scheduled Community Storage cleanup job backed by a private maintenance credential.
 
@@ -67,13 +60,10 @@ Update focused on supply-chain hardening and tightening the Community maintenanc
 - The maintenance credential is not exposed to `anon` or `authenticated` database roles.
 - Disabled the legacy `smart-task` cleanup deployment with an inert HTTP 410 tombstone so it can no longer perform privileged maintenance.
 
-<<<<<<< HEAD
 ### Fixed
 
 - The Home updater now supports a manifest maintenance revision, so fixes published on the same semantic version are detected without relying on Git checkout state.
 
-=======
->>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
 ### Compatibility
 
 - Community behavior and user-facing account flows are unchanged; the hardening only changes dependency delivery and backend maintenance execution.
@@ -102,10 +92,6 @@ Update focused on Community privacy controls, backend transparency, security har
 - Community sign-in and sign-up fields and actions now share the same NastyTavern form and button styling.
 
 ### Fixed
-<<<<<<< HEAD
-=======
-
->>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
 - Community module visibility no longer acts as a substitute for network and privacy consent.
 - Disabling Community now closes active Community Realtime subscriptions and stops the extension's Supabase auth refresh loop.
 - Fixed unstyled `Reset`, `Export`, and `Import` actions in NastyTavern Settings.
