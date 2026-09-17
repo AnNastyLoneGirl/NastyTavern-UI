@@ -1,0 +1,38 @@
+name: Fix v0.1.5 preparation count
+
+on:
+  push:
+    branches:
+      - security/v0.1.5-hardening
+    paths:
+      - '.github/workflows/fix-v015-prep.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: security/v0.1.5-hardening
+          fetch-depth: 0
+      - shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('.release/prepare-v015.sh')
+          s = p.read_text()
+          s = s.replace("if text.count(calls) != 2:", "if text.count(calls) != 3:")
+          s = s.replace("Expected two client maintenance calls", "Expected three client maintenance calls")
+          p.write_text(s)
+          PY
+          rm -f .github/workflows/fix-v015-prep.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'fix: account for all client maintenance calls'
+          git push origin HEAD:security/v0.1.5-hardening
