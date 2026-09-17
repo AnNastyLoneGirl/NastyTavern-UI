@@ -41,8 +41,8 @@ if text.count(old_sdk) != 1:
 text = text.replace(old_sdk, new_sdk)
 text = text.replace("            script.crossOrigin = 'anonymous';\n", '')
 calls = "        void this.runCommunityMaintenance();\n"
-if text.count(calls) != 2:
-    raise SystemExit(f'Expected two client maintenance calls, found {text.count(calls)}')
+if text.count(calls) != 3:
+    raise SystemExit(f'Expected three client maintenance calls, found {text.count(calls)}')
 text = text.replace(calls, '')
 method = """    async runCommunityMaintenance() {
         if (!this.client || !this.user) return;
