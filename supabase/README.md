@@ -10,6 +10,7 @@ It intentionally contains no production secrets. Supabase service-role keys, OAu
 - `supabase/migrations/20260917_v0_1_5_supply_chain_maintenance_hardening.sql` — schedules server-side Storage cleanup and protects its invocation with a private maintenance credential.
 - `supabase/policies/current-rls-storage-policies.sql` — current NastyTavern RLS/Storage policy snapshot.
 - `supabase/functions/` — source of the Community/Nasty Catalogue Edge Functions. Three catalogue functions are client-facing; `community-storage-cleanup` is server-maintenance-only.
+- `supabase/functions/smart-task/` — tombstone for the legacy cleanup deployment name; it always returns HTTP 410 and performs no privileged work.
 
 The three client-facing catalogue Edge Functions keep gateway JWT verification enabled. `community-storage-cleanup` is deployed with gateway JWT verification disabled because it is not a user-facing endpoint; it performs its own server-only authentication with a random maintenance credential stored outside client-accessible roles. Supabase Cron supplies that credential, and ordinary browser sessions cannot invoke the cleanup successfully.
 
