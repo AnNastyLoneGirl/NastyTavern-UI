@@ -2715,7 +2715,14 @@ export class NastyTavern {
         // we only overwrite fields represented by the current editor.
         data.nt_description = String(this.characterCreateModalRoot?.querySelector('[data-nt-character-description]')?.value ?? '');
         data.nt_contexte = String(this.characterCreateModalRoot?.querySelector('[data-nt-character-context]')?.value ?? '');
-        data.tags = this.characterCreateSelectedTagNames(panel);
+        // SillyTavern's character save/export contract uses the native `tags` form
+        // field as the source of truth, then mirrors it to both V1 `tags` and
+        // V2 `data.tags` server-side. Keep the same contract here instead of
+        // relying on json_data alone (which SillyTavern overwrites from FormData).
+        const selectedTags = this.characterCreateSelectedTagNames(panel);
+        json.tags = [...selectedTags];
+        data.tags = [...selectedTags];
+        if (formData instanceof FormData) formData.set('tags', selectedTags.join(','));
         data.name = String(this.characterCreateModalRoot?.querySelector('[data-nt-character-edit-name]')?.value
             ?? panel.querySelector('#character_name_pole')?.value
             ?? data.name
