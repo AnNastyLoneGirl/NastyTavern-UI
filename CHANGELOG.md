@@ -22,7 +22,7 @@ Update focused on supply-chain hardening and tightening the Community maintenanc
 ### Security
 
 - Removed the runtime CDN trust boundary for the Supabase browser client; the exact executed bundle is now part of the auditable release.
-- `community-storage-cleanup` now requires a private server-side maintenance credential in addition to Edge Function gateway authentication.
+- `community-storage-cleanup` now uses a private server-only maintenance credential instead of user-session authorization.
 - The maintenance credential is not exposed to `anon` or `authenticated` database roles.
 
 ### Compatibility
