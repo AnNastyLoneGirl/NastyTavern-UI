@@ -1,0 +1,65 @@
+name: Publish v0.1.4 frontend
+
+on:
+  push:
+    branches:
+      - chore/open-source-backend-v0.1.4
+    paths:
+      - '.release/v014.patch.gz.b64.part*'
+      - '.github/workflows/publish-v014-frontend.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: chore/open-source-backend-v0.1.4
+          fetch-depth: 0
+
+      - name: Apply v0.1.4 frontend release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .release/v014.patch.gz.b64.part* | base64 -d | gunzip > /tmp/v014.patch
+          git apply --check /tmp/v014.patch
+          git apply /tmp/v014.patch
+
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('README.md')
+          text = p.read_text()
+          text = text.replace('> **Current version:** `0.1.3`', '> **Current version:** `0.1.4`')
+          text = text.replace('**NastyTavern UI v0.1.3 is still under active development and testing.**', '**NastyTavern UI v0.1.4 is the current public release and remains under active development.**')
+          p.write_text(text)
+          PY
+
+          rm -f .release/v014.patch.gz.b64.part*
+          rm -f .github/workflows/publish-v014-frontend.yml
+          rmdir .release 2>/dev/null || true
+          rmdir .github/workflows 2>/dev/null || true
+          rmdir .github 2>/dev/null || true
+
+      - name: Validate release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          node -e "for (const f of ['manifest.json','locales/en.json','locales/fr-fr.json']) JSON.parse(require('fs').readFileSync(f,'utf8')); const m=require('./manifest.json'); if(m.version!=='0.1.4'||m.display_name!=='NastyTavern UI') process.exit(1);"
+          git diff --check
+
+      - name: Commit release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'release: publish NastyTavern UI v0.1.4'
+          git push origin HEAD:chore/open-source-backend-v0.1.4
