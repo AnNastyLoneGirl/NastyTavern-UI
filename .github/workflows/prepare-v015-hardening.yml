@@ -1,0 +1,386 @@
+name: Prepare v0.1.5 hardening
+
+on:
+  push:
+    branches:
+      - security/v0.1.5-hardening
+    paths:
+      - '.github/workflows/prepare-v015-hardening.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hardening branch
+        uses: actions/checkout@v4
+        with:
+          ref: security/v0.1.5-hardening
+          fetch-depth: 0
+
+      - name: Vendor pinned Supabase browser client
+        shell: bash
+        run: |
+          set -euo pipefail
+          workdir="$(mktemp -d)"
+          pushd "$workdir" >/dev/null
+          tarball="$(npm pack @supabase/supabase-js@2.116.0 --silent)"
+          integrity="$(npm view @supabase/supabase-js@2.116.0 dist.integrity --json | tr -d '"')"
+          mkdir package-extract
+          tar -xzf "$tarball" -C package-extract
+          test -f package-extract/package/dist/umd/supabase.js
+          test -f package-extract/package/LICENSE
+          popd >/dev/null
+          mkdir -p vendor/supabase-js
+          cp "$workdir/package-extract/package/dist/umd/supabase.js" vendor/supabase-js/supabase.js
+          cp "$workdir/package-extract/package/LICENSE" vendor/supabase-js/LICENSE
+          bundle_sha="$(sha256sum vendor/supabase-js/supabase.js | awk '{print $1}')"
+          cat > vendor/supabase-js/README.md <<EOF
+          # Vendored Supabase JavaScript client
+
+          - Package: \`@supabase/supabase-js\`
+          - Version: \`2.116.0\`
+          - Source: npm registry package \`@supabase/supabase-js@2.116.0\`
+          - npm integrity: \`${integrity}\`
+          - Vendored bundle: \`dist/umd/supabase.js\`
+          - Bundle SHA-256: \`${bundle_sha}\`
+
+          This file is committed with NastyTavern so the exact browser code executed by the extension is auditable and no third-party CDN is trusted at runtime.
+          EOF
+          rm -rf "$workdir"
+
+      - name: Apply frontend and documentation hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          community = Path('src/community-chat.js')
+          text = community.read_text()
+          old_sdk = "const SDK_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0';"
+          new_sdk = "const SDK_URL = new URL('../vendor/supabase-js/supabase.js', import.meta.url).href;"
+          if text.count(old_sdk) != 1:
+              raise SystemExit('Expected exactly one remote Supabase SDK URL')
+          text = text.replace(old_sdk, new_sdk)
+          text = text.replace("            script.crossOrigin = 'anonymous';\n", '')
+          calls = "        void this.runCommunityMaintenance();\n"
+          if text.count(calls) != 2:
+              raise SystemExit(f'Expected two client maintenance calls, found {text.count(calls)}')
+          text = text.replace(calls, '')
+          method = """    async runCommunityMaintenance() {
+              if (!this.client || !this.user) return;
+              try {
+                  const { error } = await this.client.functions.invoke('community-storage-cleanup', { body: {} });
+                  if (error) console.warn('[NastyTavern] Community maintenance could not run', error);
+              } catch (error) {
+                  console.warn('[NastyTavern] Community maintenance unavailable', error);
+              }
+          }
+
+"""
+          if text.count(method) != 1:
+              raise SystemExit('Could not locate client maintenance method')
+          text = text.replace(method, '')
+          old_notice = "Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is currently loaded from jsDelivr after consent."
+          new_notice = "Supabase is used for Community authentication, messages, profiles, Realtime and Community Storage. Nasty Catalogue binary files are stored on Cloudflare R2. Google is contacted only if you choose Google sign-in. The Supabase JavaScript client is bundled with NastyTavern and loaded locally from the extension."
+          if text.count(old_notice) != 1:
+              raise SystemExit('Could not locate Community consent SDK disclosure')
+          text = text.replace(old_notice, new_notice)
+          community.write_text(text)
+
+          en_path = Path('locales/en.json')
+          fr_path = Path('locales/fr-fr.json')
+          en = json.loads(en_path.read_text())
+          fr = json.loads(fr_path.read_text())
+          if old_notice not in en or old_notice not in fr:
+              raise SystemExit('Could not locate old consent translation key')
+          en.pop(old_notice)
+          en[new_notice] = new_notice
+          fr.pop(old_notice)
+          fr[new_notice] = "Supabase est utilisé pour l’authentification Community, les messages, les profils, Realtime et le stockage Community. Les fichiers binaires du Nasty Catalogue sont stockés sur Cloudflare R2. Google n’est contacté que si vous choisissez la connexion Google. Le client JavaScript Supabase est intégré à NastyTavern et chargé localement depuis l’extension."
+          en_path.write_text(json.dumps(en, ensure_ascii=False, indent=2) + '\n')
+          fr_path.write_text(json.dumps(fr, ensure_ascii=False, indent=2) + '\n')
+
+          manifest_path = Path('manifest.json')
+          manifest = json.loads(manifest_path.read_text())
+          manifest['display_name'] = 'NastyTavern Test'
+          manifest['version'] = '0.1.5'
+          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
+
+          for path in ['src/about-panel.js', 'src/health-panel.js', 'src/shell.js', 'src/home-dashboard.js']:
+              p = Path(path)
+              content = p.read_text()
+              if '0.1.4' not in content:
+                  raise SystemExit(f'{path}: expected v0.1.4 marker')
+              p.write_text(content.replace('0.1.4', '0.1.5'))
+
+          changelog = Path('CHANGELOG.md')
+          ch = changelog.read_text()
+          marker = '## v0.1.4\n'
+          if marker not in ch:
+              raise SystemExit('CHANGELOG v0.1.4 marker not found')
+          section = """## v0.1.5 — Unreleased
+
+Update focused on supply-chain hardening and tightening the Community maintenance trust boundary.
+
+### Added
+
+- Vendored the exact `@supabase/supabase-js@2.116.0` browser bundle and its license inside the extension source.
+- Added a server-scheduled Community Storage cleanup job backed by a private maintenance credential.
+
+### Changed
+
+- Community now loads the Supabase JavaScript client from the installed NastyTavern extension instead of jsDelivr.
+- Community clients no longer invoke the global `community-storage-cleanup` maintenance function.
+- Storage cleanup is now invoked by a Supabase Cron job instead of ordinary authenticated browsers.
+
+### Security
+
+- Removed the runtime CDN trust boundary for the Supabase browser client; the exact executed bundle is now part of the auditable release.
+- `community-storage-cleanup` now requires a private server-side maintenance credential in addition to Edge Function gateway authentication.
+- The maintenance credential is not exposed to `anon` or `authenticated` database roles.
+
+### Compatibility
+
+- Community behavior and user-facing account flows are unchanged; the hardening only changes dependency delivery and backend maintenance execution.
+
+---
+
+"""
+          changelog.write_text(ch.replace(marker, section + marker, 1))
+
+          privacy = Path('PRIVACY.md')
+          pr = privacy.read_text()
+          pr = pr.replace('# NastyTavern Community — Privacy & Data Flow (v0.1.4)', '# NastyTavern Community — Privacy & Data Flow (v0.1.5)')
+          pr = pr.replace('This document describes the Community and Nasty Catalogue network behavior shipped with NastyTavern UI v0.1.4.', 'This document describes the Community and Nasty Catalogue network behavior prepared for NastyTavern UI v0.1.5.')
+          pr = pr.replace('Community network access is disabled by default. NastyTavern does not load the Supabase JavaScript SDK and does not contact the NastyTavern Supabase project until the user explicitly enables **Community network access**.', 'Community network access is disabled by default. NastyTavern does not contact the NastyTavern Supabase project until the user explicitly enables **Community network access**. The pinned Supabase JavaScript client is vendored with the extension and is loaded locally from NastyTavern rather than from a third-party CDN.')
+          pr = pr.replace('- **jsDelivr** — loads the pinned browser build of `@supabase/supabase-js` after Community consent.\n', '')
+          pr = pr.replace('Deleted Community message attachments are queued for cleanup. The cleanup Edge Function also removes unreferenced Community files that have been orphaned for at least one hour.', 'Deleted Community message attachments are queued for cleanup. A server-side Supabase Cron job invokes the cleanup Edge Function on a schedule; ordinary Community clients cannot trigger this global maintenance operation. The cleanup function also removes unreferenced Community files that have been orphaned for at least one hour.')
+          pr = pr.replace('v0.1.4 no longer writes a Community session correlation token to `nt_channel_members`.', 'Since v0.1.4, NastyTavern no longer writes a Community session correlation token to `nt_channel_members`.')
+          pr = pr.replace('The old column remains temporarily for v0.1.3 server compatibility but is unused by v0.1.4.', 'The old column remains temporarily for v0.1.3 server compatibility but is unused by current clients.')
+          pr = pr.replace('The v0.1.4 source bundle includes the production privacy/security migration, RLS/Storage policy snapshot and the Edge Function sources used by Community/Nasty Catalogue.', 'The v0.1.5 source includes the v0.1.4 privacy/security migration, the v0.1.5 maintenance hardening migration, RLS/Storage policy snapshots, the vendored Supabase browser bundle metadata, and the Edge Function sources used by Community/Nasty Catalogue.')
+          privacy.write_text(pr)
+
+          data_flow = Path('supabase/schema/data-flows.md')
+          df = data_flow.read_text()
+          df = df.replace('# Data-flow summary — v0.1.4', '# Data-flow summary — v0.1.5')
+          df = df.replace('- Browser → jsDelivr: load pinned `@supabase/supabase-js@2.116.0`.\n', '- Browser → local NastyTavern extension asset: load the vendored `@supabase/supabase-js@2.116.0` browser bundle; no third-party CDN is contacted for the client SDK.\n')
+          df = df.replace('When disabled, the v0.1.4 client', 'When disabled, the v0.1.5 client')
+          df = df.replace('persisted by v0.1.4.', 'persisted by v0.1.5.')
+          df += "\n## Server-side maintenance\n\nCommunity Storage cleanup is scheduled by Supabase Cron. The database supplies a private maintenance credential to `community-storage-cleanup`; browser clients do not invoke this function.\n"
+          data_flow.write_text(df)
+
+          schema_readme = Path('supabase/schema/README.md')
+          sr = schema_readme.read_text().replace('# NastyTavern Supabase schema reference — v0.1.4', '# NastyTavern Supabase schema reference — v0.1.5')
+          queue_line = '- `nt_storage_cleanup_queue` — internal attachment cleanup queue; RLS enabled with no client policy by design.\n'
+          if queue_line not in sr:
+              raise SystemExit('Schema cleanup queue line not found')
+          schema_readme.write_text(sr.replace(queue_line, queue_line + '- `nt_maintenance_secrets` — private server-maintenance credentials; no `anon`/`authenticated` access.\n'))
+
+          supabase_readme = Path('supabase/README.md')
+          sbr = supabase_readme.read_text()
+          sbr = sbr.replace('# NastyTavern Community Backend — v0.1.4 audit source', '# NastyTavern Community Backend — v0.1.5 audit source')
+          sbr = sbr.replace('This directory is the auditable server-side companion for NastyTavern UI v0.1.4.', 'This directory is the auditable server-side companion for the NastyTavern UI v0.1.5 hardening work.')
+          sbr = sbr.replace('- `supabase/migrations/20260917_v0_1_4_privacy_security_hardening.sql` — production migration applied for v0.1.4.', '- `supabase/migrations/20260917_v0_1_4_privacy_security_hardening.sql` — production migration applied for v0.1.4.\n- `supabase/migrations/20260917_v0_1_5_supply_chain_maintenance_hardening.sql` — schedules server-side Storage cleanup and protects its invocation with a private maintenance credential.')
+          sbr = sbr.replace('- `supabase/functions/` — source of the four Edge Functions directly used by the v0.1.4 Community/Nasty Catalogue client.\n\nAll four published Edge Functions require a valid JWT (`verify_jwt = true`).', '- `supabase/functions/` — source of the Community/Nasty Catalogue Edge Functions. Three catalogue functions are client-facing; `community-storage-cleanup` is server-maintenance-only.\n\nAll four published Edge Functions require gateway authentication (`verify_jwt = true`). `community-storage-cleanup` additionally requires a private server-side maintenance credential and is invoked by Supabase Cron rather than the browser.')
+          supabase_readme.write_text(sbr)
+          PY
+
+      - name: Write backend hardening source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > supabase/functions/community-storage-cleanup/index.ts <<'EOF'
+          import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+          import { createClient } from "jsr:@supabase/supabase-js@2";
+
+          const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+            status,
+            headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+          });
+
+          const digest = async (value: string) => new Uint8Array(
+            await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)),
+          );
+
+          const secureEqual = async (left: string, right: string) => {
+            const a = await digest(left);
+            const b = await digest(right);
+            let diff = 0;
+            for (let i = 0; i < a.length; i += 1) diff |= a[i] ^ b[i];
+            return diff === 0;
+          };
+
+          Deno.serve(async (req: Request) => {
+            if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+            const url = Deno.env.get("SUPABASE_URL");
+            const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+            if (!url || !serviceRole) return json({ error: "Supabase environment is not configured" }, 500);
+            const providedMaintenanceKey = (req.headers.get("x-nt-maintenance-key") || "").trim();
+            if (!providedMaintenanceKey) return json({ error: "Maintenance authorization required" }, 401);
+
+            const admin = createClient(url, serviceRole, { auth: { persistSession: false, autoRefreshToken: false } });
+            const { data: secretRow, error: secretError } = await admin
+              .from("nt_maintenance_secrets")
+              .select("secret")
+              .eq("name", "community_storage_cleanup")
+              .maybeSingle();
+            if (secretError || !secretRow?.secret) {
+              console.error("[NastyTavern] Storage cleanup maintenance secret is unavailable", secretError);
+              return json({ error: "Maintenance authorization is not configured" }, 500);
+            }
+            if (!await secureEqual(providedMaintenanceKey, String(secretRow.secret))) {
+              return json({ error: "Maintenance authorization rejected" }, 403);
+            }
+
+            let queuedDeleted = 0;
+            let orphanDeleted = 0;
+            const { data: queue, error: queueError } = await admin
+              .from("nt_storage_cleanup_queue")
+              .select("id,bucket,path")
+              .order("created_at", { ascending: true })
+              .limit(200);
+            if (queueError) return json({ error: queueError.message }, 500);
+
+            const byBucket = new Map<string, { ids: number[]; paths: string[] }>();
+            for (const row of queue || []) {
+              const bucket = String(row.bucket || "community-files");
+              const group = byBucket.get(bucket) || { ids: [], paths: [] };
+              group.ids.push(Number(row.id));
+              group.paths.push(String(row.path));
+              byBucket.set(bucket, group);
+            }
+            for (const [bucket, group] of byBucket) {
+              const { error } = await admin.storage.from(bucket).remove(group.paths);
+              if (error) {
+                console.error(`[NastyTavern] Storage cleanup failed for ${bucket}`, error);
+                continue;
+              }
+              const { error: clearError } = await admin.from("nt_storage_cleanup_queue").delete().in("id", group.ids);
+              if (!clearError) queuedDeleted += group.paths.length;
+            }
+
+            const cutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+            const { data: objects, error: objectsError } = await admin
+              .schema("storage")
+              .from("objects")
+              .select("name,created_at")
+              .eq("bucket_id", "community-files")
+              .lt("created_at", cutoff)
+              .limit(500);
+            if (!objectsError && objects?.length) {
+              const { data: messageRows } = await admin
+                .from("nt_messages")
+                .select("metadata")
+                .in("message_type", ["attachment", "character_card", "lorebook"]);
+              const referenced = new Set((messageRows || []).map((row: any) => row?.metadata?.path).filter(Boolean).map(String));
+              const orphanPaths = objects.map((row: any) => String(row.name || "")).filter((name: string) => name && !referenced.has(name)).slice(0, 100);
+              if (orphanPaths.length) {
+                const { error } = await admin.storage.from("community-files").remove(orphanPaths);
+                if (!error) orphanDeleted = orphanPaths.length;
+              }
+            }
+            return json({ ok: true, queuedDeleted, orphanDeleted });
+          });
+          EOF
+
+          cat > supabase/migrations/20260917_v0_1_5_supply_chain_maintenance_hardening.sql <<'EOF'
+          -- NastyTavern UI v0.1.5 — supply-chain & maintenance trust-boundary hardening
+          -- Makes Community Storage cleanup server-scheduled and removes arbitrary authenticated invocation.
+
+          create extension if not exists pg_net;
+          create extension if not exists pg_cron with schema pg_catalog;
+          grant usage on schema cron to postgres;
+          grant all privileges on all tables in schema cron to postgres;
+
+          create table if not exists public.nt_maintenance_secrets (
+              name text primary key,
+              secret text not null,
+              created_at timestamptz not null default now(),
+              rotated_at timestamptz not null default now()
+          );
+          alter table public.nt_maintenance_secrets enable row level security;
+          revoke all on table public.nt_maintenance_secrets from public, anon, authenticated;
+          grant select on table public.nt_maintenance_secrets to service_role;
+
+          insert into public.nt_maintenance_secrets (name, secret)
+          values ('community_storage_cleanup', encode(extensions.gen_random_bytes(32), 'hex'))
+          on conflict (name) do nothing;
+
+          do $$
+          begin
+              if exists (select 1 from cron.job where jobname = 'nastytavern-community-storage-cleanup') then
+                  perform cron.unschedule('nastytavern-community-storage-cleanup');
+              end if;
+          end
+          $$;
+
+          select cron.schedule(
+              'nastytavern-community-storage-cleanup',
+              '*/15 * * * *',
+              $cron$
+              select net.http_post(
+                  url := 'https://egyzkywvuvlcaguirzdm.supabase.co/functions/v1/community-storage-cleanup',
+                  headers := jsonb_build_object(
+                      'Content-Type', 'application/json',
+                      'Authorization', 'Bearer sb_publishable_UBR44UD7dwhGHnPdQi-UAw_wyFQX0rK',
+                      'apikey', 'sb_publishable_UBR44UD7dwhGHnPdQi-UAw_wyFQX0rK',
+                      'x-nt-maintenance-key', (select secret from public.nt_maintenance_secrets where name = 'community_storage_cleanup')
+                  ),
+                  body := jsonb_build_object('scheduled_at', now()),
+                  timeout_milliseconds := 10000
+              ) as request_id;
+              $cron$
+          );
+          EOF
+
+          cat > supabase/schema/maintenance.md <<'EOF'
+          # Server-side maintenance — v0.1.5
+
+          `community-storage-cleanup` is no longer invoked by NastyTavern browser clients.
+
+          Supabase Cron runs `nastytavern-community-storage-cleanup` every 15 minutes through `pg_net`. The request includes a random maintenance credential stored in `nt_maintenance_secrets`. That table has RLS enabled, grants no access to `anon` or `authenticated`, and only grants direct read access to `service_role`.
+
+          The Edge Function compares the supplied credential against the private server-side value before using service-role privileges. A normal authenticated Community session is therefore insufficient to trigger global cleanup.
+
+          The job processes the internal cleanup queue and removes unreferenced `community-files` objects older than one hour.
+          EOF
+
+      - name: Validate hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          node --check vendor/supabase-js/supabase.js
+          node -e "for (const f of ['manifest.json','locales/en.json','locales/fr-fr.json']) JSON.parse(require('fs').readFileSync(f,'utf8')); const m=require('./manifest.json'); if(m.version!=='0.1.5'||m.display_name!=='NastyTavern Test') process.exit(1);"
+          test -s vendor/supabase-js/supabase.js
+          test -s vendor/supabase-js/LICENSE
+          grep -q "new URL('../vendor/supabase-js/supabase.js', import.meta.url).href" src/community-chat.js
+          ! grep -q "cdn.jsdelivr.net/npm/@supabase/supabase-js" src/community-chat.js
+          ! grep -q "runCommunityMaintenance" src/community-chat.js
+          ! grep -q "functions.invoke('community-storage-cleanup'" src/community-chat.js
+          ! grep -q "jsDelivr" PRIVACY.md
+          ! grep -q "Browser → jsDelivr" supabase/schema/data-flows.md
+          grep -q "nt_maintenance_secrets" supabase/functions/community-storage-cleanup/index.ts
+          grep -q "x-nt-maintenance-key" supabase/functions/community-storage-cleanup/index.ts
+          grep -q "cron.schedule" supabase/migrations/20260917_v0_1_5_supply_chain_maintenance_hardening.sql
+          git diff --check
+
+      - name: Remove temporary workflow and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/prepare-v015-hardening.yml
+          rmdir .github/workflows 2>/dev/null || true
+          rmdir .github 2>/dev/null || true
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'security: harden v0.1.5 dependency and maintenance boundaries'
+          git push origin HEAD:security/v0.1.5-hardening
