@@ -8,7 +8,7 @@ The underlying SillyTavern features remain intact: chats, Character Cards, Perso
 
 On top of that, NastyTavern adds integrated tools, improved mobile support, Community features, and the Nasty Catalogue for discovering and sharing Character Cards and Lorebooks.
 
-> **Current version:** `0.1.3`  
+> **Current release version:** `0.1.6`
 > **Minimum SillyTavern version:** `1.18.0`
 
 ## 📸 Screenshots
@@ -210,7 +210,7 @@ NastyTavern is designed around a few simple ideas:
 
 # 🛠 Current status
 
-**NastyTavern UI v0.1.3 is still under active development and testing.**
+**NastyTavern UI v0.1.6 is the current public release.**
 
 Most major features are already usable, but some compatibility or responsive issues may still appear depending on:
 
@@ -233,99 +233,4 @@ Your support helps with testing, future features, Community infrastructure, and 
 
 ---
 
-# 📝 Patch Notes
-
-## v0.1.3
-
-Major update focused on **Nasty Catalogue** and improving the main SillyTavern interfaces.
-
-### 📚 Nasty Catalogue
-
-- Added the new **Nasty Catalogue** for Character Cards and Lorebooks.
-- Added Discover, Popular, Newest and Top Rated sections.
-- Added Character Card and Lorebook search.
-- Added SFW / NSFW filtering.
-- Added resource ratings.
-- Added creator pages.
-- Added direct download and **Import into SillyTavern**.
-- Added resource collections.
-- Added public and private collections.
-- Added Character Card versions and modifications.
-- Added automatic protection against duplicate uploads.
-- Added resource reporting.
-
-### 🧑‍🎨 Characters
-
-- Redesigned Character Management.
-- Improved character creation and editing.
-- Improved tags and filtering.
-- Improved dialogue example editing.
-- Improved Groups integration.
-- Added Character Card details.
-- Added direct Nasty Catalogue access.
-- Added easier Character Card publishing and sharing.
-
-### 📖 Lorebooks
-
-- Redesigned the Lorebook interface.
-- Improved entry navigation.
-- Improved the editing workspace.
-- Improved portrait mobile support.
-- Improved landscape mobile support.
-- Added better Community and Catalogue integration.
-
-### 🧩 Extensions
-
-- Redesigned the Extensions interface.
-- Improved access to installed extensions.
-- Improved access to extension settings.
-
-### 🏠 Home & Community
-
-- Added Nasty Catalogue access from Home.
-- Improved Community resource integration.
-- Improved user profiles.
-- Improved resource statistics.
-- Improved mobile layouts.
-- Various Community and interface fixes.
-
-### 📱 General improvements
-
-- Improved responsive behavior.
-- Improved several mobile interfaces.
-- Improved navigation between NastyTavern sections.
-- Improved consistency between the different interfaces.
-- Various UI, compatibility, and usability fixes.
-
-> v0.1.3 is still being tested and may receive additional fixes.
-
----
-
-## v0.1.2
-
-Major update focused on the **Home Dashboard** and the new **NastyTavern Community** experience.
-
-- 🏠 Added the **Home Dashboard** with recent characters, favorites, quick actions, and Community panels.
-- 🌐 Added **NastyTavern Community Chat**.
-- 🔐 Added email/password and Google authentication.
-- 🔴 Added mentions and unread indicators.
-- 🔎 Added typing indicators and message search.
-- 👤 Added Community profiles.
-- 📦 Added Character Card and Lorebook sharing.
-- 📥 Added direct download and **Import into SillyTavern**.
-- ↗️ Added Community sharing actions inside SillyTavern.
-- 🧾 Added Character Card and Lorebook detail views.
-- 📱 Improved Home and Community mobile layouts.
-
----
-
-## v0.1.1
-
-Major update focused on integrated tools, mobile support, and usability.
-
-- 📱 Added full phone responsiveness for portrait and landscape.
-- 💬 Added the **Nasty Chat Bar**.
-- 🧰 Added Story Timeline, Context / Token Inspector, Variable Manager, World Info Inspector, Bookmarks, Notes, and Calendar & Schedule.
-- ⚙️ Expanded NastyTavern Settings and keyboard shortcut management.
-- ❤️ Added Health & Performance diagnostics.
-- 🔎 Added Focus Mode and general navigation improvements.
+Release history and patch notes are maintained in **[CHANGELOG.md](CHANGELOG.md)**.

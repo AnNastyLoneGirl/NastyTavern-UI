@@ -54,7 +54,7 @@ export class AppShell {
             <div class="mt-brand">
               <span class="mt-brandmark">${icons.logo}</span>
               <span class="mt-brandtext"><b>NastyTavern</b><small>SillyTavern UI</small></span>
-              <span class="mt-brand-version">0.1.3</span>
+              <span class="mt-brand-version">0.1.6</span>
             </div>
             <nav class="mt-nav">
               ${NAV.map(([id,label,icon]) => `<button data-mt-nav="${id}" title="${t(label)}"><span class="mt-nav-icon">${icon}</span><span class="mt-nav-label">${t(label)}</span></button>`).join('')}
@@ -104,6 +104,11 @@ export class AppShell {
                   </div>
                   <div class="mt-account-auth">
                     <button type="button" data-mt-community-auth="signin" role="menuitem"><span>${icons.characters}</span><b>${t('Connect')}</b></button>
+                    <button type="button" class="mt-community-presence-toggle" data-mt-community-presence role="menuitemcheckbox" aria-checked="false" hidden>
+                      <span class="mt-community-presence-status" aria-hidden="true"><i></i></span>
+                      <b data-mt-community-presence-label>${t('Offline')}</b>
+                      <span class="mt-community-presence-switch" aria-hidden="true"></span>
+                    </button>
                     <button type="button" data-mt-community-auth="signout" role="menuitem" hidden><span>${icons.disconnect}</span><b>${t('Disconnect')}</b></button>
                   </div>
                 </div>
@@ -202,6 +207,12 @@ export class AppShell {
             this.toggleAccountMenu();
             return;
         }
+        const externalNav = event.target.closest('[data-mt-nav-external]');
+        if (externalNav) {
+            this.closeAccountMenu();
+            this.onNavigate(externalNav.dataset.mtNavExternal);
+            return;
+        }
         const nav = event.target.closest('[data-mt-nav]');
         if (nav) {
             this.closeAccountMenu();
@@ -238,6 +249,11 @@ export class AppShell {
         }
         if (event.target.closest('[data-mt-native-account]')) {
             document.querySelector('#account_button')?.click?.();
+        }
+        const presenceToggle = event.target.closest('[data-mt-community-presence]');
+        if (presenceToggle) {
+            this.onCommunityAuth?.('toggle-presence');
+            return;
         }
         const communityAuth = event.target.closest('[data-mt-community-auth]');
         if (communityAuth) {
@@ -544,6 +560,10 @@ export class AppShell {
         const grade = root.querySelector('[data-mt-account-grade]');
         const signin = root.querySelector('[data-mt-community-auth="signin"]');
         const signout = root.querySelector('[data-mt-community-auth="signout"]');
+        const presenceToggle = root.querySelector('[data-mt-community-presence]');
+        const presenceLabel = root.querySelector('[data-mt-community-presence-label]');
+        const presenceEnabled = state.presenceEnabled === true;
+        const communityEnabled = state.communityEnabled !== false;
         const role = String(state.role || 'member').trim().toLowerCase();
         const roleLabel = role === 'admin' ? t('Admin') : role === 'moderator' ? t('Moderator') : t('Member');
         toggle?.classList.toggle('is-signed-in', signedIn);
@@ -558,6 +578,13 @@ export class AppShell {
         if (grade) grade.textContent = signedIn ? roleLabel : '';
         if (signin) signin.hidden = signedIn;
         if (signout) signout.hidden = !signedIn;
+        if (presenceToggle) {
+            presenceToggle.hidden = !signedIn || !communityEnabled;
+            presenceToggle.classList.toggle('is-online', signedIn && presenceEnabled);
+            presenceToggle.setAttribute('aria-checked', presenceEnabled ? 'true' : 'false');
+            presenceToggle.title = presenceEnabled ? t('Go offline') : t('Go online');
+        }
+        if (presenceLabel) presenceLabel.textContent = presenceEnabled ? t('Online') : t('Offline');
         if (image) {
             image.hidden = !signedIn || !avatarUrl;
             if (signedIn && avatarUrl) image.src = avatarUrl;
@@ -567,6 +594,35 @@ export class AppShell {
             fallback.hidden = !signedIn || Boolean(avatarUrl);
             fallback.textContent = username.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join('') || 'NT';
         }
+    }
+
+    setCharacterLibraryAvailable(available) {
+        const root = this.root || document.querySelector('#mt-root');
+        const nav = root?.querySelector('.mt-nav');
+        if (!nav) return;
+
+        let button = nav.querySelector('[data-mt-nav-external="character-library"]');
+        if (!available) {
+            button?.remove();
+            return;
+        }
+
+        if (!button) {
+            button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.mtNavExternal = 'character-library';
+            button.className = 'mt-nav-character-library';
+            button.innerHTML = `<span class="mt-nav-icon">${icons.folder}</span><span class="mt-nav-label"></span>`;
+            const charactersButton = nav.querySelector('[data-mt-nav="characters"]');
+            if (charactersButton) charactersButton.insertAdjacentElement('afterend', button);
+            else nav.prepend(button);
+        }
+
+        const label = t('Character Library');
+        button.title = label;
+        button.setAttribute('aria-label', label);
+        const labelNode = button.querySelector('.mt-nav-label');
+        if (labelNode) labelNode.textContent = label;
     }
 
     updateCommunityBadge(value) {
