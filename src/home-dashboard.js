@@ -597,7 +597,10 @@ export class HomeDashboard {
         let meta = t('Checking GitHub…');
         if (!loading) {
             if (installed) meta = t('Update installed · reload to apply');
+<<<<<<< HEAD
             else if (available && info.maintenanceUpdate) meta = t('Maintenance update available · installed v{installed}', { installed: info.localVersion || '—' });
+=======
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
             else if (available) meta = t('Update available · installed v{installed}', { installed: info.localVersion || '—' });
             else if (unavailable) meta = t('Could not check GitHub right now');
             else meta = t('Latest on GitHub · up to date');
@@ -659,7 +662,11 @@ export class HomeDashboard {
             <a href="https://github.com/AnNastyLoneGirl/NastyTavern-UI" target="_blank" rel="noreferrer"><span>GitHub</span>${icons.external}</a>
             <a href="https://discord.gg/F4ps4dA7tB" target="_blank" rel="noreferrer"><span>Discord</span>${icons.external}</a>
           </div>
+<<<<<<< HEAD
           <small class="nt-home-build" title="${escapeHtml(`${version} · NastyTavern UI v0.1.6`)}">${escapeHtml(version)} · NastyTavern UI v0.1.6</small>
+=======
+          <small class="nt-home-build" title="${escapeHtml(`${version} · NastyTavern UI v0.1.5`)}">${escapeHtml(version)} · NastyTavern UI v0.1.5</small>
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
         </footer>`;
     }
 

@@ -6,7 +6,11 @@ const REMOTE_CHANGELOG_URL = 'https://raw.githubusercontent.com/AnNastyLoneGirl/
 const CHANGELOG_URL = `${REPOSITORY_URL}/blob/main/CHANGELOG.md`;
 const LOCAL_MANIFEST_URL = new URL('../manifest.json', import.meta.url).href;
 const LOCAL_CHANGELOG_URL = new URL('../CHANGELOG.md', import.meta.url).href;
+<<<<<<< HEAD
 const CACHE_KEY = 'nt:update-check:v4';
+=======
+const CACHE_KEY = 'nt:update-check:v3';
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
 const CACHE_TTL = 15 * 60 * 1000;
 const REQUEST_TIMEOUT = 7000;
 const UPDATE_TIMEOUT = 60 * 1000;
@@ -32,6 +36,7 @@ export const compareVersions = (left, right) => {
     return 0;
 };
 
+<<<<<<< HEAD
 const cleanRevision = value => {
     const revision = Number.parseInt(value, 10);
     return Number.isFinite(revision) && revision > 0 ? revision : 0;
@@ -44,6 +49,8 @@ const compareReleaseIdentity = (remoteVersion, remoteRevision, localVersion, loc
     return revisionDiff === 0 ? 0 : (revisionDiff > 0 ? 1 : -1);
 };
 
+=======
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
 const stripInlineMarkdown = value => String(value ?? '')
     .replace(/`([^`]+)`/g, '$1')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
@@ -110,10 +117,17 @@ const parseChangelog = (markdown, predicate) => {
     return entries;
 };
 
+<<<<<<< HEAD
 const readCache = (localVersion, localRevision) => {
     try {
         const parsed = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
         if (!parsed || parsed.localVersion !== localVersion || cleanRevision(parsed.localRevision) !== cleanRevision(localRevision)) return null;
+=======
+const readCache = localVersion => {
+    try {
+        const parsed = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+        if (!parsed || parsed.localVersion !== localVersion) return null;
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
         if (!Number.isFinite(parsed.checkedAt) || Date.now() - parsed.checkedAt > CACHE_TTL) return null;
         return parsed.data || null;
     } catch (_) {
@@ -121,9 +135,15 @@ const readCache = (localVersion, localRevision) => {
     }
 };
 
+<<<<<<< HEAD
 const writeCache = (localVersion, localRevision, data) => {
     try {
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({ localVersion, localRevision: cleanRevision(localRevision), checkedAt: Date.now(), data }));
+=======
+const writeCache = (localVersion, data) => {
+    try {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ localVersion, checkedAt: Date.now(), data }));
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
     } catch (_) {}
 };
 
@@ -191,9 +211,12 @@ const makeBaseResult = manifest => ({
     state: 'unavailable',
     localVersion: cleanVersion(manifest?.version),
     latestVersion: cleanVersion(manifest?.version),
+<<<<<<< HEAD
     localRevision: cleanRevision(manifest?.revision),
     latestRevision: cleanRevision(manifest?.revision),
     maintenanceUpdate: false,
+=======
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
     changes: [],
     repositoryUrl: REPOSITORY_URL,
     changelogUrl: CHANGELOG_URL,
@@ -224,7 +247,11 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
     if (!base.localVersion) return null;
 
     if (!force) {
+<<<<<<< HEAD
         const cached = readCache(base.localVersion, base.localRevision);
+=======
+        const cached = readCache(base.localVersion);
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
         if (cached) return cached;
     }
 
@@ -238,6 +265,7 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
     const remoteChangelog = changelogResult.status === 'fulfilled' ? changelogResult.value : '';
     const nativeStatus = nativeResult.status === 'fulfilled' ? nativeResult.value : null;
     const remoteVersion = cleanVersion(remoteManifest?.version);
+<<<<<<< HEAD
     const remoteRevision = cleanRevision(remoteManifest?.revision);
     const latestVersion = remoteVersion || base.localVersion;
     const latestRevision = remoteVersion ? remoteRevision : base.localRevision;
@@ -257,6 +285,17 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
         // fixes without falling back to Git's checkout state, which can be misleading
         // after ZIP installs or local file changes.
         state = releaseComparison > 0 ? 'available' : 'current';
+=======
+    const latestVersion = remoteVersion || base.localVersion;
+
+    let state = 'unavailable';
+    if (remoteVersion) {
+        // The published manifest version is the release source of truth.
+        // Git can report a checkout as behind even when the installed files already
+        // match the latest published version (for example after installing a ZIP
+        // over an older Git checkout). That must not surface a false update action.
+        state = compareVersions(remoteVersion, base.localVersion) > 0 ? 'available' : 'current';
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
     } else if (nativeStatus && nativeStatus.isUpToDate === true) {
         state = 'current';
     }
@@ -272,14 +311,21 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
         ...base,
         state,
         latestVersion,
+<<<<<<< HEAD
         latestRevision,
         maintenanceUpdate,
+=======
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
         changes,
         extensionGlobal: nativeStatus?.extensionGlobal ?? null,
         nativeManaged: Boolean(nativeStatus),
     };
 
+<<<<<<< HEAD
     writeCache(base.localVersion, base.localRevision, result);
+=======
+    writeCache(base.localVersion, result);
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
     return result;
 }
 

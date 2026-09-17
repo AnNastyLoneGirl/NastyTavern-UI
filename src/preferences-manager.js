@@ -109,7 +109,11 @@ export class PreferencesManager {
           </label>`;
 
         return `<div class="nt-pref-interface">
+<<<<<<< HEAD
           <div class="nt-pref-section-head"><div><b>${t('Interface')}</b><small>${t('Appearance settings for NastyTavern.')}</small></div><button type="button" class="nt-pref-action-button" data-nt-pref-reset-interface>${t('Reset')}</button></div>
+=======
+          <div class="nt-pref-section-head"><div><b>${t('Interface')}</b><small>${t('Appearance and layout settings for NastyTavern.')}</small></div><button type="button" class="nt-pref-action-button" data-nt-pref-reset-interface>${t('Reset')}</button></div>
+>>>>>>> 958714dafe6d211ed568feb67f3f56c391e03f1e
           <section class="nt-pref-setting-group">
             <h3>${t('Appearance')}</h3>
             <label class="nt-pref-setting-row">

@@ -1,0 +1,23 @@
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Supabase local state
+supabase/.temp/
+supabase/.branches/
+
+# Credentials and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
