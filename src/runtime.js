@@ -160,6 +160,7 @@ export class NastyTavern {
         this.characterLibraryPerformanceState = null;
         this.characterPaginationStateRef = null;
         this.thirdPartyLauncherState = new Map();
+        this.thirdPartyWorkspacePassThrough = '';
         this.viewSyncTimer = null;
         this.active = false;
         this.retagTimer = null;
@@ -238,6 +239,10 @@ export class NastyTavern {
             panel?.querySelector?.('[data-nt-native-side-panel-title="generated"]')?.remove();
         });
         this.nativeSidePanels.clear();
+        document.querySelectorAll('.nt-third-party-workspace-panel,.nt-third-party-workspace-surface,.nt-third-party-fixed-workspace,.nt-third-party-native-heading,.nt-third-party-native-trigger').forEach(element => {
+            element.classList.remove('nt-third-party-workspace-panel', 'nt-third-party-workspace-surface', 'nt-third-party-fixed-workspace', 'nt-third-party-native-heading', 'nt-third-party-native-trigger');
+            delete element.dataset.ntThirdPartyWorkspace;
+        });
         document.body?.classList.remove('nt-native-side-panel-open', 'nt-native-side-panel-maximized');
         document.documentElement.style.removeProperty('--nt-native-side-panel-width');
         clearInterval(this.interval); this.interval = null;
@@ -442,6 +447,182 @@ export class NastyTavern {
         // Remove the previous app-bar bridge if upgrading without a full reload.
         host?.querySelector('[data-nt-third-party-launcher="datacat"]')?.remove();
         if (host) host.hidden = !host.childElementCount;
+    }
+
+    thirdPartyWorkspaceDefinition(view) {
+        const providers = {
+            personas: {
+                key: 'persona-library',
+                label: 'Persona Library',
+                panelSelector: '#PersonaManagement',
+                triggerSelectors: ['#persona-management-button > .drawer-toggle', '#persona-management-button > .drawer-toggle .drawer-icon'],
+                assetTokens: ['persona-library'],
+                surfaceSelectors: [
+                    '[id*="persona-library" i]', '[class*="persona-library" i]',
+                    '[id*="personalibrary" i]', '[class*="personalibrary" i]',
+                    '[data-extension-name*="persona library" i]', '[aria-label*="persona library" i]',
+                ],
+            },
+            lorebooks: {
+                key: 'world-info-gallery',
+                label: 'World Info Gallery',
+                panelSelector: '#WorldInfo',
+                triggerSelectors: ['#WI-SP-button > .drawer-toggle', '#WIDrawerIcon'],
+                assetTokens: ['world-info-gallery'],
+                surfaceSelectors: [
+                    '[id*="world-info-gallery" i]', '[class*="world-info-gallery" i]',
+                    '[id*="worldinfogallery" i]', '[class*="worldinfogallery" i]',
+                    '[data-extension-name*="world info gallery" i]', '[aria-label*="world info gallery" i]',
+                ],
+            },
+        };
+        return providers[view] || null;
+    }
+
+    thirdPartyWorkspaceAvailable(view) {
+        const provider = this.thirdPartyWorkspaceDefinition(view);
+        if (!provider) return false;
+
+        const assets = document.querySelectorAll('script[src], link[href]');
+        for (const asset of assets) {
+            const url = String(asset.getAttribute('src') || asset.getAttribute('href') || '').toLowerCase();
+            if (provider.assetTokens.some(token => url.includes(token))) return true;
+        }
+        return provider.surfaceSelectors.some(selector => {
+            try { return Boolean(document.querySelector(selector)); }
+            catch (_) { return false; }
+        });
+    }
+
+    elementIsVisible(element) {
+        if (!(element instanceof HTMLElement) || !element.isConnected || element.hidden) return false;
+        const style = getComputedStyle(element);
+        return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' && element.getClientRects().length > 0;
+    }
+
+    findThirdPartyWorkspaceSurface(view) {
+        const provider = this.thirdPartyWorkspaceDefinition(view);
+        if (!provider) return null;
+        const panel = document.querySelector(provider.panelSelector);
+        const candidates = [];
+
+        for (const selector of provider.surfaceSelectors) {
+            let nodes = [];
+            try { nodes = [...document.querySelectorAll(selector)]; }
+            catch (_) { continue; }
+            for (const node of nodes) {
+                if (!(node instanceof HTMLElement) || !this.elementIsVisible(node)) continue;
+                if (node === panel || node.closest('script,style,template')) continue;
+                candidates.push(node);
+            }
+        }
+
+        // Extensions do not have a shared UI API. As a compatibility fallback,
+        // accept a visible dialog/popup whose own heading names the provider.
+        if (!candidates.length) {
+            const label = provider.label.toLowerCase();
+            const semantic = document.querySelectorAll('dialog, [role="dialog"], .popup, .popup-content, body > div');
+            for (const node of semantic) {
+                if (!(node instanceof HTMLElement) || !this.elementIsVisible(node)) continue;
+                const heading = node.querySelector('h1,h2,h3,[role="heading"],.title,.header');
+                const text = String(heading?.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+                if (text.includes(label)) candidates.push(node);
+            }
+        }
+
+        if (candidates.length) {
+            candidates.sort((a, b) => {
+                const ar = a.getBoundingClientRect();
+                const br = b.getBoundingClientRect();
+                return (br.width * br.height) - (ar.width * ar.height);
+            });
+            return candidates[0];
+        }
+        return this.elementIsVisible(panel) ? panel : null;
+    }
+
+    decorateThirdPartyWorkspace(view) {
+        const provider = this.thirdPartyWorkspaceDefinition(view);
+        if (!provider || !this.thirdPartyWorkspaceAvailable(view)) return false;
+        const panel = document.querySelector(provider.panelSelector);
+        if (panel instanceof HTMLElement) {
+            panel.classList.add('nt-third-party-workspace-panel');
+            panel.dataset.ntThirdPartyWorkspace = provider.key;
+            panel.querySelector(':scope > .mt-workspace-chrome')?.remove();
+
+            // World Info Gallery replaces the native World Info browsing surface.
+            // Keep SillyTavern's controls in the DOM for compatibility, but remove
+            // the redundant native heading while the gallery owns this workspace.
+            if (view === 'lorebooks') {
+                const nativeHeadingLabel = panel.querySelector('span[data-i18n="Worlds/Lorebooks"]');
+                nativeHeadingLabel?.closest('h3')?.classList.add('nt-third-party-native-heading');
+
+                // The native World Info drawer trigger is redundant once the gallery
+                // owns the Lorebooks workspace. Keep it in the DOM because SillyTavern
+                // and the provider still use it as the programmatic open hook, but do
+                // not render it beside the integrated workspace.
+                const nativeTrigger = document.querySelector('#WI-SP-button > .drawer-toggle')
+                    || document.querySelector('#WIDrawerIcon')?.closest('.drawer-toggle')
+                    || document.querySelector('#WIDrawerIcon');
+                nativeTrigger?.classList.add('nt-third-party-native-trigger');
+            }
+        }
+
+        const surface = this.findThirdPartyWorkspaceSurface(view);
+        if (surface instanceof HTMLElement) {
+            surface.classList.add('nt-third-party-workspace-surface');
+            surface.dataset.ntThirdPartyWorkspace = provider.key;
+            const position = getComputedStyle(surface).position;
+            if (surface !== panel && position === 'fixed') surface.classList.add('nt-third-party-fixed-workspace');
+        }
+        return Boolean(surface || panel);
+    }
+
+    async waitForThirdPartyWorkspace(view, timeout = 2400) {
+        const provider = this.thirdPartyWorkspaceDefinition(view);
+        if (!provider) return null;
+        const startedAt = performance.now();
+        while (performance.now() - startedAt < timeout) {
+            const surface = this.findThirdPartyWorkspaceSurface(view);
+            const panel = document.querySelector(provider.panelSelector);
+            if (surface || this.elementIsVisible(panel)) return surface || panel;
+            await wait(50);
+        }
+        return null;
+    }
+
+    async openThirdPartyWorkspace(view) {
+        const provider = this.thirdPartyWorkspaceDefinition(view);
+        if (!provider || !this.thirdPartyWorkspaceAvailable(view)) return false;
+
+        // The provider owns the feature. NastyTavern only supplies the workspace
+        // boundary and navigation, keeping the extension's real DOM/listeners intact.
+        if (view === 'personas' && this.isPersonaModalOpen()) await this.closePersonaModal({ restoreFocus: false });
+        if (view === 'lorebooks' && this.isLorebookModalOpen()) await this.closeLorebookModal({ restoreFocus: false });
+
+        const existing = this.findThirdPartyWorkspaceSurface(view);
+        const panel = document.querySelector(provider.panelSelector);
+        if (existing || this.elementIsVisible(panel)) {
+            this.decorateThirdPartyWorkspace(view);
+            this.setView(view, provider.label);
+            return true;
+        }
+
+        const trigger = provider.triggerSelectors.map(selector => document.querySelector(selector)).find(Boolean);
+        if (!(trigger instanceof HTMLElement)) return false;
+
+        this.thirdPartyWorkspacePassThrough = view;
+        try {
+            trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+            const opened = await this.waitForThirdPartyWorkspace(view);
+            if (!opened) return false;
+            this.decorateThirdPartyWorkspace(view);
+            this.setView(view, provider.label);
+            requestAnimationFrame(() => this.decorateThirdPartyWorkspace(view));
+            return true;
+        } finally {
+            this.thirdPartyWorkspacePassThrough = '';
+        }
     }
 
     ensureNativeSidePanelHeader(panel) {
@@ -762,6 +943,10 @@ export class NastyTavern {
         };
         document.querySelectorAll('.mt-native-panel').forEach(panel => {
             const module = panel.dataset.mtModule || 'workspace';
+            if (panel.classList.contains('nt-third-party-workspace-panel')) {
+                panel.querySelector(':scope > .mt-workspace-chrome')?.remove();
+                return;
+            }
             if (module === 'characters') {
                 panel.querySelector(':scope > .mt-workspace-chrome')?.remove();
                 return;
@@ -834,8 +1019,21 @@ export class NastyTavern {
             queueMicrotask(() => this.openCharacterModal());
             return;
         }
-        const nativePersonaToggle = target?.closest?.('#persona-management-button, #persona-management-button .drawer-icon');
+        // Only intercept the native drawer launcher itself. Third-party Persona
+        // workspaces live inside the drawer content; matching the whole drawer
+        // would swallow their card/detail clicks during capture phase.
+        const nativePersonaToggle = target?.closest?.('#persona-management-button > .drawer-toggle');
         if (nativePersonaToggle && !this.isPersonaModalOpen()) {
+            if (this.thirdPartyWorkspaceAvailable('personas')) {
+                if (this.thirdPartyWorkspacePassThrough === 'personas') {
+                    queueMicrotask(() => this.decorateThirdPartyWorkspace('personas'));
+                    return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                queueMicrotask(() => this.openThirdPartyWorkspace('personas'));
+                return;
+            }
             // openPersonaModal() must briefly click the native Persona toggle so
             // SillyTavern can initialize its own controls. Let that one internal
             // click pass through instead of intercepting it and recursively
@@ -869,8 +1067,20 @@ export class NastyTavern {
             return;
         }
 
-        const nativeLorebookToggle = target?.closest?.('#WI-SP-button, #WI-SP-button .drawer-icon, #WIDrawerIcon');
+        // Same rule for World Info: the drawer content belongs to the active
+        // workspace provider, so only the real launcher may be intercepted.
+        const nativeLorebookToggle = target?.closest?.('#WI-SP-button > .drawer-toggle');
         if (nativeLorebookToggle && !this.isLorebookModalOpen()) {
+            if (this.thirdPartyWorkspaceAvailable('lorebooks')) {
+                if (this.thirdPartyWorkspacePassThrough === 'lorebooks') {
+                    queueMicrotask(() => this.decorateThirdPartyWorkspace('lorebooks'));
+                    return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                queueMicrotask(() => this.openThirdPartyWorkspace('lorebooks'));
+                return;
+            }
             // Like Personas, Lorebooks must let one internal native click through
             // so SillyTavern can initialize the World Info editor before we mount
             // those same controls in the NastyTavern modal.
@@ -5060,6 +5270,10 @@ export class NastyTavern {
     }
 
     nativePanelIsOpen(view) {
+        if (this.thirdPartyWorkspaceAvailable(view)) {
+            const surface = this.findThirdPartyWorkspaceSurface(view);
+            if (surface && this.elementIsVisible(surface)) return true;
+        }
         if (view === 'personas' && this.isPersonaModalOpen()) return true;
         if (view === 'backgrounds' && this.isBackgroundModalOpen()) return true;
         if (view === 'lorebooks' && this.isLorebookModalOpen()) return true;
@@ -5074,6 +5288,7 @@ export class NastyTavern {
 
     syncNativePanelView() {
         if (this.currentView === 'chat') return;
+        if (this.thirdPartyWorkspaceAvailable(this.currentView)) this.decorateThirdPartyWorkspace(this.currentView);
         if (this.nativePanelIsOpen(this.currentView)) return;
         this.setView('chat');
     }
@@ -5126,8 +5341,10 @@ export class NastyTavern {
             case 'datacat':
                 return this.openDataCat();
             case 'personas':
+                if (this.thirdPartyWorkspaceAvailable('personas')) return this.openThirdPartyWorkspace('personas');
                 return this.openPersonaModal();
             case 'lorebooks':
+                if (this.thirdPartyWorkspaceAvailable('lorebooks')) return this.openThirdPartyWorkspace('lorebooks');
                 return this.openLorebookModal();
             case 'formatting':
                 await this.clickAndTag('formatting', ['Advanced Formatting','AI Response Formatting','Context Template','Instruct Template'], 'formatting');

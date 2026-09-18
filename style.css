@@ -612,6 +612,54 @@ body.mt-enabled.mt-panel-switching .mt-native-panel {
   animation: none;
 }
 
+/* Third-party workspace providers ------------------------------------------------
+   Persona Library and World Info Gallery own their feature DOM and behavior.
+   NastyTavern only supplies the application workspace boundary when those
+   extensions replace the native Persona / World Info surfaces. */
+html body.mt-enabled.mt-dock-panels .mt-native-panel.nt-third-party-workspace-panel {
+  top: var(--mt-workspace-top);
+  left: var(--mt-workspace-left);
+  right: 0;
+  bottom: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+body.mt-enabled .nt-third-party-workspace-surface {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* A provider workspace owns its own title/chrome. Preserve the native node for
+   SillyTavern/extension logic, but do not render the duplicate World Info title. */
+body.mt-enabled #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"] .nt-third-party-native-heading,
+body.mt-enabled[data-mt-view="lorebooks"] .nt-third-party-native-trigger {
+  display: none;
+}
+
+html body.mt-enabled .nt-third-party-workspace-surface.nt-third-party-fixed-workspace {
+  position: fixed !important;
+  top: var(--mt-workspace-top) !important;
+  left: var(--mt-workspace-left) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+}
+
 body.mt-enabled.mt-dock-panels .mt-native-panel h2, body.mt-enabled.mt-dock-panels .mt-native-panel h3 {
   position: sticky;
   top: -18px;

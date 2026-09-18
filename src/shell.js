@@ -275,7 +275,7 @@ export class AppShell {
         const modelStatus = event.target.closest('[data-mt-model-status]');
         if (modelStatus && modelStatus.closest('.mt-connection')?.classList.contains('is-offline')) {
             this.closeAccountMenu();
-            this.onNavigate('models');
+            this.openSettingsHub('models');
             return;
         }
         if (event.target.closest('[data-mt-profile-prev]')) this.cycleConnectionProfile(-1);
@@ -331,15 +331,16 @@ export class AppShell {
         if (restoreFocus) toggle?.focus();
     }
 
-    openSettingsHub() {
+    openSettingsHub(sectionId = 'user-theme') {
         const root = this.root || document.querySelector('#mt-root');
         const hub = root?.querySelector('#mt-settings-hub');
         if (!hub) return;
+        const section = String(sectionId || 'user-theme');
         showModalShell(hub);
         this.setSettingsSidebarHidden(false);
         this.mountSettingsUtilities();
-        this.setSettingsSection('user-theme');
-        requestAnimationFrame(() => hub.querySelector('[data-mt-settings-section="user-theme"]')?.focus());
+        this.setSettingsSection(section);
+        requestAnimationFrame(() => hub.querySelector(`[data-mt-settings-section="${section}"]`)?.focus());
     }
 
 

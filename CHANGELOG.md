@@ -10,12 +10,14 @@ Release focused on large-library performance, responsive navigation, and compati
 
 ### Added
 
+- Added first-class **Persona Library** and **World Info Gallery** workspace integration: the `Personas` and `Lorebooks` navigation automatically delegates to the installed extension while keeping NastyTavern's native workflows as fallback.
 - Added Moonlit Echoes settings-popout integration to the shared NastyTavern side-panel/modal system.
 - Added a **Character Libraries** flyout in the main navigation, grouping Character Library and DataCat without adding separate global launchers.
 
 ### Changed
 
 - Community shared Character Cards now use `nt_description` as their primary short description, with the legacy `description` field kept as a compatibility fallback.
+- Character Libraries now behaves like a normal primary navigation destination and opens its available library sources in a compact flyout to the right of the sidebar.
 - Phone and narrow layouts now always use the compact main navigation while preserving the user's desktop expanded/compact preference when returning to desktop.
 - MovingUI keeps ownership of its saved movable geometry when enabled instead of being overridden by NastyTavern layout rules.
 
@@ -27,12 +29,14 @@ Release focused on large-library performance, responsive navigation, and compati
 ### Fixed
 
 - Fixed the remaining artificial right-side reservation so a 100% chat width can use the full available workspace.
-- Fixed Moonlit Echoes compatibility across Character Management, including card geometry and the Create/Edit Character layout, action bar, spacing, and scrolling behavior.
+- Fixed the disconnected model status so clicking `No connection…` opens NastyTavern Settings directly on the Model section instead of exposing the native Models & API workspace.
+- Fixed Character Management card geometry and label alignment across the default UI and Moonlit Echoes, including the Create/Edit Character layout, action bar, spacing, and scrolling behavior.
 - Fixed compact navigation alignment for the Character Libraries launcher.
 - Fixed third-party controls injected into SillyTavern's top bar being visible but unclickable by removing the full-width NastyTavern click shield while keeping NastyTavern's own controls interactive. This also restores DataCat's native top launcher without a DataCat-specific click workaround.
 
 ### Compatibility
 
+- Persona Library and World Info Gallery keep ownership of their own DOM, click handlers, detail/editor windows.
 - Audited NastyTavern overlay, pointer-event, z-index, and movable-panel behavior to reduce interference with third-party extension interfaces and preserve native extension click handlers where possible.
 
 ---
