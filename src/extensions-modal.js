@@ -346,7 +346,6 @@ export class ExtensionsModal {
             this.PopupClass = module.Popup;
             return this.PopupClass;
         } catch (error) {
-            console.warn('[NastyTavern] Could not import SillyTavern Popup helper.', error);
             return null;
         }
     }

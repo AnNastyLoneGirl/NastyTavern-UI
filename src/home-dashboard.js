@@ -557,7 +557,6 @@ export class HomeDashboard {
                 return info;
             })
             .catch(error => {
-                console.warn('[NastyTavern] Home update check failed', error);
                 return null;
             })
             .finally(() => {
@@ -642,9 +641,12 @@ export class HomeDashboard {
         try {
             await updateNastyTavernExtension(this.updateInfo);
             this.updateInstalled = true;
-            this.toast?.(t('NastyTavern update installed. Reload to apply it.'));
+            this.toast?.(t('NastyTavern update installed. Reloading to apply it.'));
+            // The updater replaces extension files on disk while the current page
+            // is still running the previous bundle. Reload automatically so the
+            // newly installed build becomes active without requiring a manual step.
+            window.setTimeout(() => window.location.reload(), 450);
         } catch (error) {
-            console.error('[NastyTavern] Update failed', error);
             this.toast?.(error?.message || t('Could not update NastyTavern.'));
         } finally {
             this.updateInProgress = false;
@@ -659,7 +661,7 @@ export class HomeDashboard {
             <a href="https://github.com/AnNastyLoneGirl/NastyTavern-UI" target="_blank" rel="noreferrer"><span>GitHub</span>${icons.external}</a>
             <a href="https://discord.gg/F4ps4dA7tB" target="_blank" rel="noreferrer"><span>Discord</span>${icons.external}</a>
           </div>
-          <small class="nt-home-build" title="${escapeHtml(`${version} · NastyTavern UI v0.1.7`)}">${escapeHtml(version)} · NastyTavern UI v0.1.7</small>
+          <small class="nt-home-build" title="${escapeHtml(`${version} · NastyTavern UI v0.1.8`)}">${escapeHtml(version)} · NastyTavern UI v0.1.8</small>
         </footer>`;
     }
 
@@ -799,7 +801,6 @@ export class HomeDashboard {
         const context = ctx();
         const execute = context?.executeSlashCommandsWithOptions;
         if (typeof execute !== 'function') {
-            console.error('[NastyTavern] Slash command API unavailable; cannot open temporary chat.');
             this.toast?.(t('Could not open temporary chat.'));
             return false;
         }
@@ -821,7 +822,6 @@ export class HomeDashboard {
             document.querySelector('#send_textarea')?.focus?.({ preventScroll: true });
             return true;
         } catch (error) {
-            console.error('[NastyTavern] Could not open temporary chat', error);
             this.toast?.(t('Could not open temporary chat.'));
             this.sync({ view: 'chat' });
             return false;

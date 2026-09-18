@@ -33,13 +33,9 @@
   --mt-accent: #7c6cff;
   --mt-accent-contrast: #fff;
   --mt-radius: 10px;
-  --mt-blur: 8px;
   --mt-nav-width-user: 222px;
   --mt-nav-width: var(--mt-nav-width-user);
-  --mt-chat-width: 940px;
-  --mt-message-width: 860px;
-  /* Effective chat geometry follows SillyTavern's native Chat Width setting.
-     Separate variables keep legacy NastyTavern preferences from overriding ST. */
+  /* Effective chat geometry follows SillyTavern's native Chat Width setting. */
   --nt-chat-inline-size: var(--sheldWidth, 50vw);
   --nt-message-inline-size: 100%;
   --mt-appbar-height: 58px;
@@ -63,6 +59,8 @@
   --mt-favorite: #f8d300;
   --mt-shadow: 0 14px 36px rgba(0,0,0,.28);
   --mt-ease: cubic-bezier(.2,.8,.2,1);
+  /* Feedback must remain visible above NastyTavern modals and floating tools. */
+  --nt-layer-toast: 52000;
 }
 
 body.mt-enabled {
@@ -643,7 +641,8 @@ body.mt-enabled .nt-third-party-workspace-surface {
 /* A provider workspace owns its own title/chrome. Preserve the native node for
    SillyTavern/extension logic, but do not render the duplicate World Info title. */
 body.mt-enabled #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"] .nt-third-party-native-heading,
-body.mt-enabled[data-mt-view="lorebooks"] .nt-third-party-native-trigger {
+body.mt-enabled[data-mt-view="lorebooks"] .nt-third-party-native-trigger,
+body.mt-enabled[data-mt-view="lorebooks"] #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"] .nt-third-party-native-pin {
   display: none;
 }
 
@@ -834,6 +833,10 @@ body.mt-enabled .select2-container--default .select2-selection--single, body.mt-
 body.mt-enabled .select2-results__option--highlighted {
   background: color-mix(in srgb,var(--mt-accent) 20%,rgba(255,255,255,.03));
   color: #fff;
+}
+
+body.mt-enabled #toast-container {
+  z-index: var(--nt-layer-toast) !important;
 }
 
 body.mt-enabled #toast-container>div {
@@ -7039,8 +7042,6 @@ body.mt-enabled .nt-calendar-primary:focus-visible {
 
   :root {
     --mt-appbar-height: 52px;
-    --mt-chat-width: 100%;
-    --mt-message-width: 100%;
     --nt-chat-inline-size: 100%;
     --nt-message-inline-size: 100%;
   }
@@ -7283,6 +7284,76 @@ body.mt-enabled .nt-calendar-primary:focus-visible {
   body.mt-enabled #chat .mes .mes_text {
     font-size: var(--nt-font-body);
     line-height: 1.48;
+  }
+
+  /* Phone message structure: row 1 is avatar + metadata, row 2 is the
+     native message block at full width. The avatar stays in normal grid flow,
+     so its real rendered height defines the top row instead of overlapping text. */
+  body.mt-enabled #chat .mes.nt-mobile-message-structured:not(.smallSysMes) {
+    display: grid!important;
+    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    align-items: start;
+    position: relative;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured:not(.smallSysMes) > .mesAvatarWrapper {
+    position: static!important;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    margin: 0;
+    padding: 0!important;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured > .nt-mobile-message-header {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured > .nt-mobile-message-header > .ch_name {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding-left: 0;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured:not(.smallSysMes) > .mes_block {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    margin: 8px 0 0!important;
+    padding-left: 0!important;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured .mes_text {
+    width: 100%;
+    min-width: 0;
+    padding-right: 0;
+  }
+
+  body.mt-enabled #chat .mes.last_mes:not(.smallSysMes),
+  body.mt-enabled.swipeAllMessages #chat .mes:not(.smallSysMes) {
+    padding-bottom: 48px;
+  }
+
+  body.mt-enabled #chat .mes:not(.smallSysMes) > .swipe_left {
+    left: 10px;
+    bottom: 21px;
+  }
+
+  body.mt-enabled #chat .mes:not(.smallSysMes) > .swipeRightBlock {
+    right: 8px;
+    bottom: 4px;
   }
 
   body.mt-enabled #send_form,
@@ -7714,8 +7785,6 @@ body.mt-focus-mode.mt-dock-panels .mt-native-panel {
 @media (orientation:landscape) and (max-height:520px) and (max-width:1024px) {
   :root {
     --mt-appbar-height: 44px;
-    --mt-chat-width: 100%;
-    --mt-message-width: 100%;
     --nt-chat-inline-size: 100%;
     --nt-message-inline-size: 100%;
   }
@@ -7968,6 +8037,73 @@ body.mt-focus-mode.mt-dock-panels .mt-native-panel {
   body.mt-enabled #chat .mes .mes_text {
     font-size: var(--nt-font-body);
     line-height: 1.44;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured:not(.smallSysMes) {
+    display: grid!important;
+    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 9px;
+    align-items: start;
+    position: relative;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured:not(.smallSysMes) > .mesAvatarWrapper {
+    position: static!important;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    margin: 0;
+    padding: 0!important;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured > .nt-mobile-message-header {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured > .nt-mobile-message-header > .ch_name {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding-left: 0;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured:not(.smallSysMes) > .mes_block {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    margin: 7px 0 0!important;
+    padding-left: 0!important;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-structured .mes_text {
+    width: 100%;
+    min-width: 0;
+    padding-right: 0;
+  }
+
+  body.mt-enabled #chat .mes.last_mes:not(.smallSysMes),
+  body.mt-enabled.swipeAllMessages #chat .mes:not(.smallSysMes) {
+    padding-bottom: 44px;
+  }
+
+  body.mt-enabled #chat .mes:not(.smallSysMes) > .swipe_left {
+    left: 9px;
+    bottom: 19px;
+  }
+
+  body.mt-enabled #chat .mes:not(.smallSysMes) > .swipeRightBlock {
+    right: 7px;
+    bottom: 3px;
   }
 
   body.mt-enabled #send_form,
@@ -8614,15 +8750,6 @@ body.mt-enabled #nt-chat-tools .nt-tool-empty > span svg {
     border-radius: 10px;
   }
 
-  body.mt-enabled #nt-lorebook-modal #world_popup > .flex-container.alignitemscenter:first-of-type > .nt-lorebook-settings-launcher {
-    grid-column: 4 / span 2;
-    grid-row: 2;
-    width: 100%!important;
-    height: 40px!important;
-    min-height: 40px!important;
-    border-radius: 10px;
-  }
-
   body.mt-enabled #WorldInfo #world_import_button,
   body.mt-enabled #WorldInfo #world_popup_export,
   body.mt-enabled #WorldInfo #world_popup_name_button,
@@ -9245,16 +9372,6 @@ body.mt-enabled #nt-chat-tools .nt-tool-empty > span svg {
     display: flex!important;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    border-radius: 8px;
-  }
-
-  body.mt-enabled #nt-lorebook-modal #world_popup > .flex-container.alignitemscenter:first-of-type > .nt-lorebook-settings-launcher {
-    grid-column: span 2;
-    width: 100%!important;
-    height: 34px!important;
-    min-height: 34px!important;
-    padding-inline: 8px;
     gap: 5px;
     border-radius: 8px;
   }
@@ -11893,7 +12010,6 @@ body.mt-enabled .nt-community-channel.is-active {
   place-items: center;
   color: var(--mt-accent);
   background: color-mix(in srgb,var(--mt-accent) 9%,rgba(255,255,255,.025));
-  font-weight: var(--nt-weight-body);
 }
 
 .nt-community-composer>button svg {
@@ -17171,10 +17287,6 @@ body.mt-enabled.nt-mobile-nav-forced .mt-nav-submenu {
   padding-left: 0;
 }
 
-body.mt-enabled.nt-mobile-nav-forced .mt-nav-library-group .mt-nav-group-chevron {
-  display: none;
-}
-
 body.mt-enabled.nt-mobile-nav-forced .mt-nav-submenu > .mt-nav-subitem {
   justify-content: center;
   padding-inline: 0;
@@ -17587,7 +17699,12 @@ body.mt-enabled .mt-account-grade {
 
 #nt-community-panel.is-auth-modal .nt-community-auth-modal-body {
   min-height: 0;
-  overflow: auto;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: 20px;
   display: grid;
   grid-template-columns: minmax(0, .8fr) minmax(320px, 1fr);
@@ -17652,7 +17769,7 @@ body.mt-enabled .mt-account-grade {
   #nt-community-panel.is-auth-modal .nt-community-auth-modal-body {
     grid-template-columns: 1fr;
     gap: 14px;
-    padding: 16px;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom, 0px));
   }
 
   #nt-community-panel.is-auth-modal .nt-community-auth-intro {
@@ -17800,7 +17917,6 @@ body.mt-enabled #nt-community-panel:not(.is-auth-modal) .nt-community-user-pill 
 
 /* Community workspace refinement — compact channels + member list only */
 #nt-community-panel .nt-community-channel {
-  grid-template-columns: minmax(0, 1fr) auto;
   padding: 9px 12px;
   gap: 8px;
   align-items: center;
@@ -18125,7 +18241,6 @@ body.mt-enabled .nt-community-attachment .nt-community-resource-rate button {
   display: grid;
   place-items: center;
   background: transparent;
-  color: var(--mt-text-3);
   font-size: 20px;
   line-height: 1;
   box-shadow: none;
@@ -18149,8 +18264,6 @@ body.mt-enabled .nt-community-resource-rating-summary {
   justify-content: center;
   gap: 4px;
   border-radius: 5px;
-  background: rgba(4, 6, 12, .72);
-  color: rgba(239, 242, 248, .58);
   font-size: 11px;
   line-height: 1;
   pointer-events: none;
@@ -18163,13 +18276,6 @@ body.mt-enabled .nt-community-resource-rating-stars {
   gap: 0;
 }
 
-
-body.mt-enabled .nt-community-resource-rating-summary small {
-  color: var(--mt-text);
-  font-size: 10px;
-  font-weight: var(--nt-weight-label);
-  line-height: 1;
-}
 
 body.mt-enabled .nt-community-attachment-copy {
   min-width: 0;
@@ -18346,10 +18452,6 @@ body.mt-enabled .nt-community-attachment.is-lorebook button.nt-community-attachm
 }
 
 /* NastyTavern 0.1.3 — resource ratings: accent stars + live Home overlays */
-body.mt-enabled .nt-community-resource-rating-summary .is-empty {
-  color: color-mix(in srgb, var(--mt-text-3) 62%, transparent);
-}
-
 body.mt-enabled .nt-home-shared-rating-stars .is-empty {
   color: color-mix(in srgb, var(--mt-accent) 34%, var(--mt-text-3));
 }
@@ -18357,12 +18459,6 @@ body.mt-enabled .nt-home-shared-rating-stars .is-empty {
 body.mt-enabled .nt-community-resource-rating-summary .is-filled,
 body.mt-enabled .nt-home-shared-rating-stars .is-filled {
   color: var(--mt-accent);
-}
-
-body.mt-enabled .nt-community-resource-rating-summary .is-half {
-  background: linear-gradient(90deg,
-    var(--mt-accent) 0 50%,
-    color-mix(in srgb, var(--mt-text-3) 62%, transparent) 50% 100%);
 }
 
 body.mt-enabled .nt-home-shared-rating-stars .is-half {
@@ -18444,16 +18540,6 @@ body.mt-enabled .nt-home-shared-downloads svg {
 }
 
 /* NastyTavern 0.1.3 — Community resource rating: stronger accent visibility */
-body.mt-enabled .nt-community-attachment .nt-community-resource-rate button {
-  color: color-mix(in srgb, var(--mt-accent) 42%, var(--mt-text-3));
-}
-
-body.mt-enabled .nt-community-attachment .nt-community-resource-rate button:hover,
-body.mt-enabled .nt-community-attachment .nt-community-resource-rate button:focus-visible,
-body.mt-enabled .nt-community-attachment .nt-community-resource-rate button.is-selected {
-  color: var(--mt-accent);
-}
-
 body.mt-enabled .nt-community-resource-rating-summary {
   border: 1px solid color-mix(in srgb, var(--mt-accent) 38%, transparent);
   background: color-mix(in srgb, var(--mt-accent) 12%, rgba(4, 6, 12, .82));
@@ -18475,9 +18561,6 @@ body.mt-enabled .nt-community-resource-rating-summary .is-half {
   -webkit-background-clip: text;
   background-clip: text;
 }
-
-/* NastyTavern 0.1.3 — Community personal rating input: neutral base, Accent selection */
-
 
 /* NastyTavern 0.1.3 — deterministic personal resource rating stars */
 body.mt-enabled .nt-community-attachment .nt-community-resource-rate button {
@@ -18529,11 +18612,74 @@ body.mt-enabled .nt-community-attachment .nt-community-resource-rate button:not(
 }
 
 
-/* Characters uses the shared NastyTavern modal shell. The complete native
-   SillyTavern drawer is temporarily hosted inside the modal so native DOM
-   relationships and event handlers remain intact, while header and scrolling
-   belong to the modal rather than the drawer. */
-#nt-character-modal .nt-character-modal-body {
+/* Native application workspaces ------------------------------------------------
+   Characters, Lorebooks and Backgrounds are first-class NastyTavern views,
+   not overlay modals. The persistent app bar/sidebar remain visible while the
+   native SillyTavern DOM is temporarily hosted in the remaining workspace. */
+:is(#nt-character-workspace,#nt-lorebook-workspace,#nt-background-workspace)[hidden] {
+  display: none!important;
+}
+
+body.mt-enabled :is(#nt-character-workspace,#nt-lorebook-workspace,#nt-background-workspace) {
+  position: fixed;
+  top: var(--mt-workspace-top);
+  right: 0;
+  bottom: 0;
+  left: var(--mt-workspace-left);
+  z-index: 2950;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--mt-bg);
+  color: var(--mt-text);
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+
+body.mt-enabled #nt-character-workspace {
+  display: flex;
+  flex-direction: column;
+}
+
+body.mt-enabled #nt-character-workspace .nt-character-workspace-host {
+  container-type: inline-size;
+  container-name: nt-character-library;
+}
+
+body.mt-enabled #nt-lorebook-workspace,
+body.mt-enabled #nt-background-workspace {
+  display: flex;
+  flex-direction: column;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-workspace-host,
+body.mt-enabled #nt-background-workspace .nt-background-workspace-host {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-workspace-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  display: none;
+}
+
+@media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 960px) {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-workspace-toggle {
+    display: inline-grid;
+    place-items: center;
+  }
+}
+
+/* Characters keeps the complete native SillyTavern drawer hierarchy inside
+   the application workspace so existing DOM relationships and event handlers
+   remain intact while NastyTavern owns layout and scrolling. */
+#nt-character-workspace .nt-character-workspace-host {
   flex: 1 1 auto;
   width: 100%;
   max-width: 100%;
@@ -18546,8 +18692,8 @@ body.mt-enabled .nt-community-attachment .nt-community-resource-rate button:not(
 }
 
 /* Preserve the native right-nav drawer hierarchy, but neutralize drawer
-   positioning only while it is mounted inside the Characters modal. */
-body.mt-enabled #nt-character-modal #rightNavHolder.nt-character-modal-drawer {
+   positioning only while it is mounted inside the Characters workspace. */
+body.mt-enabled #nt-character-workspace #rightNavHolder.nt-character-workspace-drawer {
   position: static;
   width: 100%;
   min-width: 0;
@@ -18561,13 +18707,13 @@ body.mt-enabled #nt-character-modal #rightNavHolder.nt-character-modal-drawer {
   overflow: visible;
 }
 
-body.mt-enabled #nt-character-modal #rightNavHolder.nt-character-modal-drawer > .drawer-toggle,
-body.mt-enabled #nt-character-modal #rightNavHolder.nt-character-modal-drawer > .drawer-header {
+body.mt-enabled #nt-character-workspace #rightNavHolder.nt-character-workspace-drawer > .drawer-toggle,
+body.mt-enabled #nt-character-workspace #rightNavHolder.nt-character-workspace-drawer > .drawer-header {
   display: none!important;
 }
 
-body.mt-enabled.mt-dock-panels #nt-character-modal #right-nav-panel.mt-native-panel[data-mt-module="characters"],
-body.mt-enabled #nt-character-modal #right-nav-panel[data-mt-module="characters"] {
+body.mt-enabled.mt-dock-panels #nt-character-workspace #right-nav-panel.mt-native-panel[data-mt-module="characters"],
+body.mt-enabled #nt-character-workspace #right-nav-panel[data-mt-module="characters"] {
   position: static;
   inset: auto;
   top: auto!important;
@@ -18581,7 +18727,7 @@ body.mt-enabled #nt-character-modal #right-nav-panel[data-mt-module="characters"
   visibility: visible;
   /* SillyTavern mobile-styles.css forces #right-nav-panel / .drawer-content
      to 100dvw with !important. Once the native drawer lives inside this
-     modal that viewport width is wider than the modal and gets clipped on
+     workspace that viewport width is wider than its host and gets clipped on
      the right, making every Characters block look off-centre. These scoped
      overrides only neutralize those native mobile constraints. */
   width: 100%!important;
@@ -18602,7 +18748,7 @@ body.mt-enabled #nt-character-modal #right-nav-panel[data-mt-module="characters"
 }
 
 /* Characters must never leak back into the workspace as a docked panel. */
-body.mt-enabled.mt-dock-panels #right-nav-panel.mt-native-panel[data-mt-module="characters"]:not(.nt-character-modal-native):not(.nt-character-create-modal-native) {
+body.mt-enabled.mt-dock-panels #right-nav-panel.mt-native-panel[data-mt-module="characters"]:not(.nt-character-workspace-native):not(.nt-character-create-modal-native) {
   display: none!important;
 }
 
@@ -18610,11 +18756,11 @@ body.mt-enabled.mt-dock-panels #right-nav-panel.mt-native-panel[data-mt-module="
    Keep SillyTavern's native controls and behavior, but organize the library
    as a NastyTavern tool: quick actions, search/filter toolbar, pagination,
    then the character collection. Only the modal body scrolls. */
-body.mt-enabled #nt-character-modal #right-nav-panelheader {
+body.mt-enabled #nt-character-workspace #right-nav-panelheader {
   display: none!important;
 }
 
-body.mt-enabled #nt-character-modal #right-nav-panel[data-mt-module="characters"] {
+body.mt-enabled #nt-character-workspace #right-nav-panel[data-mt-module="characters"] {
   display: flex!important;
   flex: 0 0 auto;
   flex-direction: column;
@@ -18625,10 +18771,10 @@ body.mt-enabled #nt-character-modal #right-nav-panel[data-mt-module="characters"
   overflow: visible;
 }
 
-body.mt-enabled #nt-character-modal #right-nav-panel .scrollableInner,
-body.mt-enabled #nt-character-modal #rm_print_characters_block,
-body.mt-enabled #nt-character-modal #rm_ch_create_block,
-body.mt-enabled #nt-character-modal #form_create {
+body.mt-enabled #nt-character-workspace #right-nav-panel .scrollableInner,
+body.mt-enabled #nt-character-workspace #rm_print_characters_block,
+body.mt-enabled #nt-character-workspace #rm_ch_create_block,
+body.mt-enabled #nt-character-workspace #form_create {
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -18637,47 +18783,47 @@ body.mt-enabled #nt-character-modal #form_create {
   overflow: visible;
 }
 
-body.mt-enabled #nt-character-modal #right-nav-panel .scrollableInner {
+body.mt-enabled #nt-character-workspace #right-nav-panel .scrollableInner {
   margin: 0;
   padding: 0;
 }
 
 
 /* Characters quick actions reuse the exact Home Quick Actions primitive. */
-body.mt-enabled #nt-character-modal .nt-character-quick-actions {
+body.mt-enabled #nt-character-workspace .nt-character-quick-actions {
   --nt-character-actions-width: min(100%, 48rem);
   width: 100%;
   padding: 0 0 14px;
   border-bottom: 1px solid var(--mt-border);
 }
 
-body.mt-enabled #nt-character-modal .nt-character-quick-grid {
+body.mt-enabled #nt-character-workspace .nt-character-quick-grid {
   width: var(--nt-character-actions-width);
   margin-inline: auto;
   grid-template-columns: repeat(5,minmax(0,1fr));
 }
 
-body.mt-enabled #nt-character-modal .nt-character-native-quick-source {
+body.mt-enabled #nt-character-workspace .nt-character-native-quick-source {
   display: none!important;
 }
 
 /* The native HotSwap/favorites row is redundant in the Characters modal.
    Favorites remain available through the character collection itself and Home. */
-body.mt-enabled #nt-character-modal #CharListButtonAndHotSwaps {
+body.mt-enabled #nt-character-workspace #CharListButtonAndHotSwaps {
   display: none!important;
 }
 
 /* Selected-character information belongs to edit mode, not the library. */
-body.mt-enabled #nt-character-modal #rm_PinAndTabs:has(#rm_button_selected_ch h2:empty) #right-nav-panel-tabs {
+body.mt-enabled #nt-character-workspace #rm_PinAndTabs:has(#rm_button_selected_ch h2:empty) #right-nav-panel-tabs {
   display: none;
 }
 
-body.mt-enabled #nt-character-modal #rm_PinAndTabs #right-nav-panel-tabs {
+body.mt-enabled #nt-character-workspace #rm_PinAndTabs #right-nav-panel-tabs {
   padding: 10px 18px 0;
 }
 
 /* Main library controls. */
-body.mt-enabled #nt-character-modal #rm_characters_block.nt-character-library {
+body.mt-enabled #nt-character-workspace #rm_characters_block.nt-character-library {
   --nt-character-library-pad: 18px;
   width: calc(100% - var(--nt-character-library-pad) - var(--nt-character-library-pad));
   min-width: 0;
@@ -18686,7 +18832,7 @@ body.mt-enabled #nt-character-modal #rm_characters_block.nt-character-library {
   box-sizing: border-box;
 }
 
-body.mt-enabled #nt-character-modal #charListFixedTop {
+body.mt-enabled #nt-character-workspace #charListFixedTop {
   display: grid;
   grid-template-columns: minmax(0,1fr);
   grid-template-areas:
@@ -18698,7 +18844,7 @@ body.mt-enabled #nt-character-modal #charListFixedTop {
   border-bottom: 0;
 }
 
-body.mt-enabled #nt-character-modal #rm_button_bar {
+body.mt-enabled #nt-character-workspace #rm_button_bar {
   grid-area: actions;
   display: flex;
   flex-wrap: nowrap;
@@ -18707,7 +18853,7 @@ body.mt-enabled #nt-character-modal #rm_button_bar {
   min-width: 0;
 }
 
-body.mt-enabled #nt-character-modal #rm_button_bar .menu_button {
+body.mt-enabled #nt-character-workspace #rm_button_bar .menu_button {
   width: 36px;
   min-width: 36px;
   max-width: 36px;
@@ -18723,7 +18869,7 @@ body.mt-enabled #nt-character-modal #rm_button_bar .menu_button {
   font-size: var(--nt-font-control,16px);
 }
 
-body.mt-enabled #nt-character-modal #character_sort_order {
+body.mt-enabled #nt-character-workspace #character_sort_order {
   order: 2;
   flex: 0 1 170px;
   width: clamp(138px,16cqi,190px);
@@ -18737,11 +18883,11 @@ body.mt-enabled #nt-character-modal #character_sort_order {
 
 /* Search is a primary library tool, so it stays visible instead of requiring
    a separate toggle button. */
-body.mt-enabled #nt-character-modal #rm_button_search {
+body.mt-enabled #nt-character-workspace #rm_button_search {
   display: none!important;
 }
 
-body.mt-enabled #nt-character-modal .nt-character-quick-actions #form_character_search_form {
+body.mt-enabled #nt-character-workspace .nt-character-quick-actions #form_character_search_form {
   width: var(--nt-character-actions-width);
   max-width: none;
   margin: 10px auto 0;
@@ -18749,7 +18895,7 @@ body.mt-enabled #nt-character-modal .nt-character-quick-actions #form_character_
   min-width: 0;
 }
 
-body.mt-enabled #nt-character-modal #character_search_bar {
+body.mt-enabled #nt-character-workspace #character_search_bar {
   width: 100%;
   min-width: 0;
   height: 38px;
@@ -18760,7 +18906,7 @@ body.mt-enabled #nt-character-modal #character_search_bar {
   font-size: var(--nt-font-body,17px);
 }
 
-body.mt-enabled #nt-character-modal #charListFixedTop > .rm_tag_controls {
+body.mt-enabled #nt-character-workspace #charListFixedTop > .rm_tag_controls {
   grid-area: filters;
   min-width: 0;
   margin: 0;
@@ -18772,21 +18918,21 @@ body.mt-enabled #nt-character-modal #charListFixedTop > .rm_tag_controls {
   overflow-y: hidden;
 }
 
-body.mt-enabled #nt-character-modal #charListFixedTop > .rm_tag_controls .tags {
+body.mt-enabled #nt-character-workspace #charListFixedTop > .rm_tag_controls .tags {
   min-width: max-content;
 }
 
 /* Keep the native paginator as the functional source of truth. Its view and
    library controls stay immediately above the character collection, while
    page navigation itself is rendered separately at the bottom of the modal. */
-body.mt-enabled #nt-character-modal #rm_characters_block.nt-character-library {
+body.mt-enabled #nt-character-workspace #rm_characters_block.nt-character-library {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
-body.mt-enabled #nt-character-modal #rm_print_characters_pagination {
+body.mt-enabled #nt-character-workspace #rm_print_characters_pagination {
   width: 100%;
   min-width: 0;
   min-height: 42px;
@@ -18801,11 +18947,11 @@ body.mt-enabled #nt-character-modal #rm_print_characters_pagination {
 
 /* NastyTavern owns page navigation in the modal footer. Keep page-size,
    sorting, grid/list and bulk tools above the library; the item-range total is redundant. */
-body.mt-enabled #nt-character-modal #rm_print_characters_pagination .paginationjs-pages {
+body.mt-enabled #nt-character-workspace #rm_print_characters_pagination .paginationjs-pages {
   display: none!important;
 }
 
-body.mt-enabled #nt-character-modal #rm_print_characters_pagination .paginationjs {
+body.mt-enabled #nt-character-workspace #rm_print_characters_pagination .paginationjs {
   order: 1;
   flex: 0 0 auto;
   min-width: 0;
@@ -18817,18 +18963,18 @@ body.mt-enabled #nt-character-modal #rm_print_characters_pagination .paginationj
   flex-wrap: wrap;
 }
 
-body.mt-enabled #nt-character-modal #rm_print_characters_pagination .paginationjs-nav {
+body.mt-enabled #nt-character-workspace #rm_print_characters_pagination .paginationjs-nav {
   display: none!important;
 }
 
-body.mt-enabled #nt-character-modal #rm_print_characters_pagination .paginationjs-size-changer {
+body.mt-enabled #nt-character-workspace #rm_print_characters_pagination .paginationjs-size-changer {
   margin: 0;
   color: var(--mt-text-2);
   font-size: var(--nt-font-secondary,15px);
   line-height: 1.2;
 }
 
-body.mt-enabled #nt-character-modal #rm_print_characters_pagination .paginationjs-size-changer select {
+body.mt-enabled #nt-character-workspace #rm_print_characters_pagination .paginationjs-size-changer select {
   height: 34px;
   min-height: 34px;
   margin: 0;
@@ -18840,10 +18986,10 @@ body.mt-enabled #nt-character-modal #rm_print_characters_pagination .paginationj
   font-size: var(--nt-font-control,16px);
 }
 
-body.mt-enabled #nt-character-modal #charListGridToggle,
-body.mt-enabled #nt-character-modal #bulkEditButton,
-body.mt-enabled #nt-character-modal #bulkSelectAllButton,
-body.mt-enabled #nt-character-modal #bulkDeleteButton {
+body.mt-enabled #nt-character-workspace #charListGridToggle,
+body.mt-enabled #nt-character-workspace #bulkEditButton,
+body.mt-enabled #nt-character-workspace #bulkSelectAllButton,
+body.mt-enabled #nt-character-workspace #bulkDeleteButton {
   order: 4;
   width: 34px;
   min-width: 34px;
@@ -18861,32 +19007,32 @@ body.mt-enabled #nt-character-modal #bulkDeleteButton {
   line-height: 1;
 }
 
-body.mt-enabled #nt-character-modal #charListGridToggle:hover,
-body.mt-enabled #nt-character-modal #bulkEditButton:hover,
-body.mt-enabled #nt-character-modal #bulkSelectAllButton:hover,
-body.mt-enabled #nt-character-modal #bulkDeleteButton:hover,
-body.mt-enabled #nt-character-modal #charListGridToggle:focus-visible,
-body.mt-enabled #nt-character-modal #bulkEditButton:focus-visible,
-body.mt-enabled #nt-character-modal #bulkSelectAllButton:focus-visible,
-body.mt-enabled #nt-character-modal #bulkDeleteButton:focus-visible {
+body.mt-enabled #nt-character-workspace #charListGridToggle:hover,
+body.mt-enabled #nt-character-workspace #bulkEditButton:hover,
+body.mt-enabled #nt-character-workspace #bulkSelectAllButton:hover,
+body.mt-enabled #nt-character-workspace #bulkDeleteButton:hover,
+body.mt-enabled #nt-character-workspace #charListGridToggle:focus-visible,
+body.mt-enabled #nt-character-workspace #bulkEditButton:focus-visible,
+body.mt-enabled #nt-character-workspace #bulkSelectAllButton:focus-visible,
+body.mt-enabled #nt-character-workspace #bulkDeleteButton:focus-visible {
   border-color: color-mix(in srgb,var(--mt-accent) 42%,var(--mt-border));
   background: color-mix(in srgb,var(--mt-accent) 8%,rgba(255,255,255,.025));
   color: var(--mt-text);
 }
 
-body.mt-enabled #nt-character-modal #bulkSelectedCount:empty {
+body.mt-enabled #nt-character-workspace #bulkSelectedCount:empty {
   display: none!important;
 }
 
-body.mt-enabled #nt-character-modal #bulkEditButton,
-body.mt-enabled #nt-character-modal #bulkSelectAllButton,
-body.mt-enabled #nt-character-modal #bulkDeleteButton {
+body.mt-enabled #nt-character-workspace #bulkEditButton,
+body.mt-enabled #nt-character-workspace #bulkSelectAllButton,
+body.mt-enabled #nt-character-workspace #bulkDeleteButton {
   order: 5;
 }
 
-/* Pagination is a real modal footer: it is outside the scrollable Characters
-   body, so it stays attached to the bottom edge without overlaying content. */
-body.mt-enabled #nt-character-modal .nt-character-modal-footer {
+/* Pagination is a workspace footer outside the scrollable Characters body,
+   so it stays attached to the bottom edge without overlaying content. */
+body.mt-enabled #nt-character-workspace .nt-character-workspace-footer {
   flex: 0 0 auto;
   width: 100%;
   min-height: 52px;
@@ -18898,11 +19044,11 @@ body.mt-enabled #nt-character-modal .nt-character-modal-footer {
   background: rgba(14,17,23,.985);
 }
 
-body.mt-enabled #nt-character-modal .nt-character-modal-footer[hidden] {
+body.mt-enabled #nt-character-workspace .nt-character-workspace-footer[hidden] {
   display: none!important;
 }
 
-body.mt-enabled #nt-character-modal .nt-character-pagination {
+body.mt-enabled #nt-character-workspace .nt-character-pagination {
   width: 100%;
   min-height: 34px;
   margin: 0;
@@ -18913,7 +19059,7 @@ body.mt-enabled #nt-character-modal .nt-character-pagination {
   gap: 6px;
 }
 
-body.mt-enabled #nt-character-modal .nt-character-pagination button {
+body.mt-enabled #nt-character-workspace .nt-character-pagination button {
   width: 34px;
   min-width: 34px;
   height: 34px;
@@ -18932,23 +19078,23 @@ body.mt-enabled #nt-character-modal .nt-character-pagination button {
   cursor: pointer;
 }
 
-body.mt-enabled #nt-character-modal .nt-character-pagination button:hover:not(:disabled) {
+body.mt-enabled #nt-character-workspace .nt-character-pagination button:hover:not(:disabled) {
   border-color: color-mix(in srgb,var(--mt-accent) 42%,var(--mt-border));
   background: color-mix(in srgb,var(--mt-accent) 8%,rgba(255,255,255,.025));
   color: var(--mt-text);
 }
 
-body.mt-enabled #nt-character-modal .nt-character-pagination button:focus-visible {
+body.mt-enabled #nt-character-workspace .nt-character-pagination button:focus-visible {
   outline: 2px solid color-mix(in srgb,var(--mt-accent) 72%,transparent);
   outline-offset: 2px;
 }
 
-body.mt-enabled #nt-character-modal .nt-character-pagination button:disabled {
+body.mt-enabled #nt-character-workspace .nt-character-pagination button:disabled {
   opacity: .36;
   cursor: default;
 }
 
-body.mt-enabled #nt-character-modal .nt-character-page-current {
+body.mt-enabled #nt-character-workspace .nt-character-page-current {
   min-width: 34px;
   height: 34px;
   padding: 0 6px;
@@ -18963,7 +19109,7 @@ body.mt-enabled #nt-character-modal .nt-character-page-current {
 
 /* Character collection. List mode is deliberately row-based; grid mode keeps
    each character as the one legitimate card-like unit. */
-body.mt-enabled #nt-character-modal #rm_print_characters_block {
+body.mt-enabled #nt-character-workspace #rm_print_characters_block {
   width: 100%;
   min-width: 0;
   min-height: 0;
@@ -18977,19 +19123,19 @@ body.mt-enabled #nt-character-modal #rm_print_characters_block {
 /* Large libraries: preserve SillyTavern's native nodes and event handlers but
    skip layout/paint for off-screen entries, mirroring the virtual-rendering
    principle used by dedicated Character Library implementations. */
-body.mt-enabled #nt-character-modal #rm_print_characters_block.nt-character-performance-list > :is(.character_select, .group_select, .bogus_folder_select) {
+body.mt-enabled #nt-character-workspace #rm_print_characters_block.nt-character-performance-list > :is(.character_select, .group_select, .bogus_folder_select) {
   content-visibility: auto;
   contain: layout paint style;
   contain-intrinsic-size: auto 72px;
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block.nt-character-performance-list > :is(.character_select, .group_select, .bogus_folder_select) {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block.nt-character-performance-list > :is(.character_select, .group_select, .bogus_folder_select) {
   contain-intrinsic-size: auto 188px;
 }
 
-body.mt-enabled:not(.charListGrid) #nt-character-modal #rm_print_characters_block .character_select,
-body.mt-enabled:not(.charListGrid) #nt-character-modal #rm_print_characters_block .group_select,
-body.mt-enabled:not(.charListGrid) #nt-character-modal #rm_print_characters_block .bogus_folder_select {
+body.mt-enabled:not(.charListGrid) #nt-character-workspace #rm_print_characters_block .character_select,
+body.mt-enabled:not(.charListGrid) #nt-character-workspace #rm_print_characters_block .group_select,
+body.mt-enabled:not(.charListGrid) #nt-character-workspace #rm_print_characters_block .bogus_folder_select {
   width: 100%;
   min-width: 0;
   margin: 0;
@@ -19000,14 +19146,14 @@ body.mt-enabled:not(.charListGrid) #nt-character-modal #rm_print_characters_bloc
   background: transparent;
 }
 
-body.mt-enabled:not(.charListGrid) #nt-character-modal #rm_print_characters_block .character_select:hover,
-body.mt-enabled:not(.charListGrid) #nt-character-modal #rm_print_characters_block .group_select:hover,
-body.mt-enabled:not(.charListGrid) #nt-character-modal #rm_print_characters_block .bogus_folder_select:hover {
+body.mt-enabled:not(.charListGrid) #nt-character-workspace #rm_print_characters_block .character_select:hover,
+body.mt-enabled:not(.charListGrid) #nt-character-workspace #rm_print_characters_block .group_select:hover,
+body.mt-enabled:not(.charListGrid) #nt-character-workspace #rm_print_characters_block .bogus_folder_select:hover {
   background: rgba(255,255,255,.028);
   border-bottom-color: var(--mt-border);
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block {
   display: grid!important;
   grid-template-columns: repeat(auto-fill,minmax(132px,1fr));
   align-items: start;
@@ -19015,9 +19161,9 @@ body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block {
   padding-top: 6px;
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .character_select,
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .group_select,
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .bogus_folder_select {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .character_select,
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .group_select,
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .bogus_folder_select {
   width: 100%;
   min-width: 0;
   max-width: none;
@@ -19034,31 +19180,31 @@ body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .bog
   box-shadow: none;
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .character_select:hover,
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .group_select:hover,
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .bogus_folder_select:hover {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .character_select:hover,
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .group_select:hover,
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .bogus_folder_select:hover {
   border-color: var(--mt-border-strong);
   background: rgba(255,255,255,.035);
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .avatar {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .avatar {
   margin: 0 auto;
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .avatar img {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .avatar img {
   box-shadow: none;
   border-color: color-mix(in srgb,var(--mt-border-strong) 78%,transparent);
   border-radius: 8px;
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .character_select_container,
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .group_select_container {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .character_select_container,
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .group_select_container {
   width: 100%;
   min-width: 0;
   max-width: none;
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .character_name_block {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .character_name_block {
   width: 100%;
   min-width: 0;
   margin: 0;
@@ -19069,7 +19215,7 @@ body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .cha
   gap: 4px;
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .ch_name {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .ch_name {
   display: block;
   width: 100%;
   min-width: 0;
@@ -19084,93 +19230,93 @@ body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .ch_
   white-space: nowrap;
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .ch_additional_info,
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .character_version {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .ch_additional_info,
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .character_version {
   color: var(--mt-text-3);
   font-size: var(--nt-font-meta-xs,13px);
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .ch_description {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block .ch_description {
   display: none;
 }
 
-body.mt-enabled #nt-character-modal #rm_print_characters_block .character_select.character_selected {
+body.mt-enabled #nt-character-workspace #rm_print_characters_block .character_select.character_selected {
   border-color: color-mix(in srgb,var(--mt-accent) 72%,var(--mt-border));
   background: color-mix(in srgb,var(--mt-accent) 11%,rgba(255,255,255,.022));
   box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--mt-accent) 20%,transparent);
 }
 
-body.mt-enabled #nt-character-modal #rm_print_characters_block .character_select.character_selected .avatar {
+body.mt-enabled #nt-character-workspace #rm_print_characters_block .character_select.character_selected .avatar {
   outline: 1px solid color-mix(in srgb,var(--mt-accent) 78%,transparent);
   outline-offset: 2px;
 }
 
 @container nt-character-library (max-width: 820px) {
-  body.mt-enabled #nt-character-modal .nt-character-quick-grid {
+  body.mt-enabled #nt-character-workspace .nt-character-quick-grid {
     width: 100%;
   }
 
-  body.mt-enabled #nt-character-modal #charListFixedTop {
+  body.mt-enabled #nt-character-workspace #charListFixedTop {
     grid-template-columns: minmax(0,1fr);
     grid-template-areas:
       "actions"
       "filters";
   }
 
-  body.mt-enabled #nt-character-modal #rm_button_bar {
+  body.mt-enabled #nt-character-workspace #rm_button_bar {
     flex-wrap: wrap;
   }
 
-  body.mt-enabled #nt-character-modal #character_sort_order {
+  body.mt-enabled #nt-character-workspace #character_sort_order {
     flex: 0 1 160px;
     width: auto;
   }
 }
 
 @container nt-character-library (max-width: 680px) {
-  body.mt-enabled #nt-character-modal .nt-character-quick-grid {
+  body.mt-enabled #nt-character-workspace .nt-character-quick-grid {
     grid-template-columns: repeat(3,minmax(0,1fr));
   }
 
-  body.mt-enabled #nt-character-modal #rm_print_characters_pagination {
+  body.mt-enabled #nt-character-workspace #rm_print_characters_pagination {
     align-items: center;
     flex-wrap: wrap;
   }
 
-  body.mt-enabled #nt-character-modal #rm_print_characters_pagination .paginationjs {
+  body.mt-enabled #nt-character-workspace #rm_print_characters_pagination .paginationjs {
     flex: 0 0 auto;
     width: auto;
     margin-right: 0;
   }
 
-  body.mt-enabled #nt-character-modal .nt-character-quick-actions #form_character_search_form {
+  body.mt-enabled #nt-character-workspace .nt-character-quick-actions #form_character_search_form {
     width: 100%;
     max-width: 100%;
   }
 }
 
 @container nt-character-library (max-width: 540px) {
-  body.mt-enabled #nt-character-modal .nt-character-quick-grid {
+  body.mt-enabled #nt-character-workspace .nt-character-quick-grid {
     grid-template-columns: repeat(2,minmax(0,1fr));
   }
 
-  body.mt-enabled #nt-character-modal #rm_characters_block.nt-character-library {
+  body.mt-enabled #nt-character-workspace #rm_characters_block.nt-character-library {
     --nt-character-library-pad: 12px;
     padding-block: 12px;
   }
 
-  body.mt-enabled #nt-character-modal .nt-character-modal-footer {
+  body.mt-enabled #nt-character-workspace .nt-character-workspace-footer {
     padding-inline: 12px;
   }
 
-  body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block {
+  body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block {
     grid-template-columns: repeat(2,minmax(0,1fr));
     gap: 8px;
   }
 }
 
 @media (max-width: 900px) {
-body.mt-enabled #nt-character-modal #right-nav-panel[data-mt-module="characters"] {
+body.mt-enabled #nt-character-workspace #right-nav-panel[data-mt-module="characters"] {
     padding: 14px;
   }
 }
@@ -19178,7 +19324,7 @@ body.mt-enabled #nt-character-modal #right-nav-panel[data-mt-module="characters"
 /* Characters follows the same phone modal gutter as Settings. The small
    viewport margin avoids the horizontal overflow caused by raw 100vw shells. */
 @media (max-width: 680px) {
-body.mt-enabled #nt-character-modal #right-nav-panel[data-mt-module="characters"] {
+body.mt-enabled #nt-character-workspace #right-nav-panel[data-mt-module="characters"] {
     padding: 10px;
   }
 }
@@ -19401,28 +19547,28 @@ body.mt-enabled .nt-panel-toggle[aria-expanded="false"] {
 /* SillyTavern renders its own generic empty placeholder (`.empty_block`).
    Characters uses the NastyTavern empty state instead, so suppress only the
    native placeholder inside this modal and leave SillyTavern untouched elsewhere. */
-body.mt-enabled #nt-character-modal #rm_print_characters_block .empty_block {
+body.mt-enabled #nt-character-workspace #rm_print_characters_block .empty_block {
   display: none !important;
 }
 
 /* Characters empty state -------------------------------------------------
    Reuse the shared NastyTavern tool empty-state primitive and only define
    the Characters-specific placement and contextual action. */
-body.mt-enabled #nt-character-modal .nt-character-empty-state {
+body.mt-enabled #nt-character-workspace .nt-character-empty-state {
   flex: 1 0 auto;
   min-height: clamp(220px, 34dvh, 360px);
   padding: 32px 18px 40px;
 }
 
-body.mt-enabled #nt-character-modal .nt-character-empty-state[hidden] {
+body.mt-enabled #nt-character-workspace .nt-character-empty-state[hidden] {
   display: none!important;
 }
 
-body.mt-enabled #nt-character-modal .nt-character-empty-state > span {
+body.mt-enabled #nt-character-workspace .nt-character-empty-state > span {
   color: color-mix(in srgb,var(--mt-accent) 66%,var(--mt-text-3));
 }
 
-body.mt-enabled #nt-character-modal .nt-character-empty-action {
+body.mt-enabled #nt-character-workspace .nt-character-empty-action {
   min-height: 34px;
   margin-top: 6px;
   padding: 0 12px;
@@ -19435,22 +19581,22 @@ body.mt-enabled #nt-character-modal .nt-character-empty-action {
   cursor: pointer;
 }
 
-body.mt-enabled #nt-character-modal .nt-character-empty-action:hover {
+body.mt-enabled #nt-character-workspace .nt-character-empty-action:hover {
   border-color: color-mix(in srgb,var(--mt-accent) 62%,var(--mt-border));
   background: color-mix(in srgb,var(--mt-accent) 13%,rgba(255,255,255,.025));
 }
 
-body.mt-enabled #nt-character-modal .nt-character-empty-action:focus-visible {
+body.mt-enabled #nt-character-workspace .nt-character-empty-action:focus-visible {
   outline: 2px solid color-mix(in srgb,var(--mt-accent) 72%,transparent);
   outline-offset: 2px;
 }
 
-body.mt-enabled #nt-character-modal #rm_characters_block.is-empty #rm_print_characters_block {
+body.mt-enabled #nt-character-workspace #rm_characters_block.is-empty #rm_print_characters_block {
   padding-bottom: 0;
 }
 
 @container nt-character-library (max-width: 540px) {
-  body.mt-enabled #nt-character-modal .nt-character-empty-state {
+  body.mt-enabled #nt-character-workspace .nt-character-empty-state {
     min-height: 200px;
     padding: 24px 12px 30px;
   }
@@ -19458,13 +19604,13 @@ body.mt-enabled #nt-character-modal #rm_characters_block.is-empty #rm_print_char
 
 /* Characters library: keep view and bulk actions as a distinct right-aligned
    action group while page size and sorting stay on the left. */
-body.mt-enabled #nt-character-modal #charListGridToggle {
+body.mt-enabled #nt-character-workspace #charListGridToggle {
   margin-left: auto;
 }
 
-body.mt-enabled #nt-character-modal #bulkEditButton,
-body.mt-enabled #nt-character-modal #bulkSelectAllButton,
-body.mt-enabled #nt-character-modal #bulkDeleteButton {
+body.mt-enabled #nt-character-workspace #bulkEditButton,
+body.mt-enabled #nt-character-workspace #bulkSelectAllButton,
+body.mt-enabled #nt-character-workspace #bulkDeleteButton {
   margin-left: 0;
 }
 
@@ -20765,149 +20911,1218 @@ body.mt-enabled #nt-character-details-modal[data-nt-character-details-context^="
   }
 }
 
-/* Persona Management modal — reuse SillyTavern's native controls and handlers.
-   NastyTavern only supplies the modal shell, spacing, surfaces and responsive host. */
-#nt-persona-modal .nt-persona-modal-body {
-  flex: 1 1 auto;
+/* Persona Studio — library-style management built on SillyTavern's native
+   persona data/actions. Personas is a first-class NastyTavern workspace, not a
+   modal: the persistent app bar/sidebar remain the application chrome and the
+   Studio owns the remaining body area. */
+#nt-persona-workspace[hidden] {
+  display: none;
+}
+
+body.mt-enabled #nt-persona-workspace {
+  position: fixed;
+  top: var(--mt-workspace-top);
+  right: 0;
+  bottom: 0;
+  left: var(--mt-workspace-left);
+  z-index: 2950;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
-  padding: 14px;
+  overflow: hidden;
+  background: var(--mt-bg);
+  color: var(--mt-text);
+  pointer-events: auto;
 }
 
-body.mt-enabled #nt-persona-modal #persona-management-block.nt-persona-native-editor {
-  position: static!important;
-  inset: auto!important;
-  display: grid!important;
-  grid-template-columns: minmax(280px,.92fr) minmax(340px,1.08fr);
-  align-items: start;
-  gap: 14px;
-  width: 100%!important;
-  min-width: 0!important;
-  max-width: none!important;
-  height: auto!important;
-  min-height: 0!important;
-  margin: 0!important;
-  padding: 0!important;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  overflow: visible!important;
-  z-index: auto!important;
+body.mt-enabled #nt-persona-workspace .nt-persona-workspace-host {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--nt-page-gutter);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  container-type: inline-size;
+  container-name: nt-persona-studio;
 }
 
-body.mt-enabled #nt-persona-modal .persona_management_left_column,
-body.mt-enabled #nt-persona-modal .persona_management_right_column {
-  width: 100%!important;
-  min-width: 0!important;
-  max-width: none!important;
-  flex: none;
-}
-
-body.mt-enabled #nt-persona-modal .persona_management_right_column {
-  display: flex!important;
-  flex-direction: column;
-  gap: 12px;
-}
-
-body.mt-enabled #nt-persona-modal .persona_management_left_column,
-body.mt-enabled #nt-persona-modal .persona_management_current_persona,
-body.mt-enabled #nt-persona-modal .persona_management_global_settings {
+body.mt-enabled #nt-persona-workspace .nt-persona-studio,
+body.mt-enabled #nt-persona-workspace .nt-persona-studio-main {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
   box-sizing: border-box;
-  margin: 0;
-  padding: 12px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-studio {
+  display: flex;
+  flex-direction: column;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-studio-main[hidden] {
+  display: none;
+}
+
+body.mt-enabled #nt-persona-workspace :is(.nt-persona-gallery,.nt-persona-detail,.nt-persona-global) {
+  min-width: 0;
+  color: var(--mt-text);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-gallery-toolbar,
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-toolbar {
+  position: sticky;
+  top: -14px;
+  z-index: 4;
+  box-sizing: border-box;
+  margin: -14px -14px 0;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--mt-border);
+  background: color-mix(in srgb,var(--mt-surface) 97%,transparent);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-gallery-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px,1fr) minmax(220px,.7fr) auto;
+  grid-template-areas:
+    "actions search sort"
+    "filters filters filters";
+  align-items: center;
+  gap: 10px 12px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-toolbar-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-control-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 34px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--mt-border);
+  border-radius: 7px;
+  background: rgba(255,255,255,.032);
+  color: var(--mt-text-2);
+  box-shadow: none;
+  font: inherit;
+  font-size: var(--nt-font-button,14px);
+  font-weight: var(--nt-weight-button,500);
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .14s ease,border-color .14s ease,color .14s ease,opacity .14s ease;
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-control-btn:hover:not(:disabled) {
+  border-color: var(--mt-border-strong);
+  background: rgba(255,255,255,.055);
+  color: var(--mt-text);
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-control-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb,var(--mt-accent) 48%,transparent);
+  outline-offset: 2px;
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-control-btn:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-control-btn svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  fill: currentColor;
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-control-btn.is-primary {
+  border-color: color-mix(in srgb,var(--mt-accent) 44%,var(--mt-border));
+  background: color-mix(in srgb,var(--mt-accent) 14%,rgba(255,255,255,.032));
+  color: color-mix(in srgb,var(--mt-accent) 78%,var(--mt-text));
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-toolbar-actions .nt-control-btn {
+  min-height: 34px;
+  padding-inline: 10px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-toolbar-actions .nt-control-btn svg,
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-toolbar .nt-control-btn svg,
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-aside .nt-control-btn svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-search {
+  grid-area: search;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--mt-border);
+  border-radius: 8px;
+  background: rgba(255,255,255,.025);
+  color: var(--mt-text-3);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-search svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  fill: currentColor;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-search input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--mt-text);
+  box-shadow: none;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-gallery-filters {
+  grid-area: filters;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-filter {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--mt-text-2);
+  font: inherit;
+  font-size: var(--nt-font-meta,14px);
+  cursor: pointer;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-filter:hover {
+  background: rgba(255,255,255,.04);
+  color: var(--mt-text);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-filter.is-active {
+  border-color: color-mix(in srgb,var(--mt-accent) 38%,var(--mt-border));
+  background: color-mix(in srgb,var(--mt-accent) 11%,transparent);
+  color: color-mix(in srgb,var(--mt-accent) 78%,var(--mt-text));
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-sort-control {
+  grid-area: sort;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta,14px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-sort-control select {
+  min-width: 88px;
+  height: 36px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-gallery-results {
+  min-width: 0;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(148px,1fr));
+  align-items: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid var(--mt-border);
   border-radius: 9px;
   background: rgba(255,255,255,.018);
+  color: var(--mt-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
   box-shadow: none;
+  transition: border-color .14s ease,background .14s ease,transform .14s ease;
+  content-visibility: auto;
+  contain-intrinsic-size: 220px 320px;
 }
 
-body.mt-enabled #nt-persona-modal .persona_management_current_persona,
-body.mt-enabled #nt-persona-modal .persona_management_global_settings {
+body.mt-enabled #nt-persona-workspace .nt-persona-card:hover {
+  border-color: var(--mt-border-strong);
+  background: rgba(255,255,255,.035);
+  transform: translateY(-1px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-card:is(.is-current,.is-default) {
+  border-color: color-mix(in srgb,var(--mt-accent) 46%,var(--mt-border));
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-card.is-current {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--mt-accent) 24%,transparent);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-card-image {
+  display: block;
   width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: var(--mt-surface-2);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-card-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-card-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 9px 10px 10px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-card-body > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--nt-font-card-title,16px);
+  font-weight: 600;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-card-summary {
+  display: -webkit-box;
+  min-height: 2.8em;
+  overflow: hidden;
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta,14px);
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 3px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 1px 6px;
+  border: 1px solid var(--mt-border);
+  border-radius: 5px;
+  background: rgba(255,255,255,.025);
+  color: var(--mt-text-3);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-badge.is-current {
+  border-color: color-mix(in srgb,var(--mt-accent) 34%,var(--mt-border));
+  color: color-mix(in srgb,var(--mt-accent) 78%,var(--mt-text));
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-gallery-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0 4px;
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta,14px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-gallery-pager > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--mt-border);
+  border-radius: 7px;
+  background: rgba(255,255,255,.025);
+  color: var(--mt-text-2);
+  cursor: pointer;
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-icon-btn:hover:not(:disabled) {
+  border-color: var(--mt-border-strong);
+  background: rgba(255,255,255,.05);
+  color: var(--mt-text);
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-icon-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb,var(--mt-accent) 48%,transparent);
+  outline-offset: 2px;
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-icon-btn:disabled {
+  opacity: .42;
+  cursor: default;
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-icon-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 180px;
+  gap: 5px;
+  padding: 20px;
+  border: 1px dashed var(--mt-border);
+  border-radius: 9px;
+  color: var(--mt-text-3);
+  text-align: center;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-empty strong {
+  color: var(--mt-text);
+  font-size: var(--nt-font-section-title,18px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-empty.is-compact {
+  min-height: 110px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-heading {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-heading strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--nt-font-section-title,18px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-heading span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta,14px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-actions {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-actions .nt-control-btn,
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-control-btn.is-active {
+  border-color: color-mix(in srgb,var(--mt-accent) 36%,var(--mt-border));
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-control-btn.is-active {
+  background: color-mix(in srgb,var(--mt-accent) 10%,rgba(255,255,255,.025));
+  color: color-mix(in srgb,var(--mt-accent) 76%,var(--mt-text));
+}
+
+body.mt-enabled :is(#nt-persona-workspace, #nt-lorebook-workspace) .nt-control-btn.is-danger {
+  border-color: color-mix(in srgb,var(--mt-danger) 34%,var(--mt-border));
+  color: color-mix(in srgb,var(--mt-danger) 80%,var(--mt-text));
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(190px,230px) minmax(0,1fr);
+  gap: 16px;
+  min-width: 0;
+  padding-top: 14px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-aside {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-portrait {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--mt-border);
+  border-radius: 9px;
+  background: var(--mt-surface-2);
+  cursor: zoom-in;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-aside-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 1px 5px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-aside-meta strong,
+body.mt-enabled #nt-persona-workspace .nt-persona-aside-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-aside-meta span,
+body.mt-enabled #nt-persona-workspace .nt-persona-aside-status {
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta,14px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-aside-status {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 5px;
+  border-top: 1px solid var(--mt-border);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-detail-main {
   min-width: 0;
 }
 
-body.mt-enabled #nt-persona-modal #user_avatar_block {
-  width: 100%!important;
-  min-width: 0!important;
-  max-height: calc(100dvh - 270px)!important;
-  overflow: auto!important;
-  scrollbar-gutter: stable;
+body.mt-enabled #nt-persona-workspace .nt-persona-tabs {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--mt-border);
+  scrollbar-width: thin;
 }
 
-body.mt-enabled #nt-persona-modal #persona_description {
-  width: 100%!important;
-  min-width: 0!important;
-  min-height: 140px!important;
+body.mt-enabled #nt-persona-workspace .nt-persona-tabs button {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 39px;
+  padding: 0 11px;
+  border: 0;
+  background: transparent;
+  color: var(--mt-text-3);
+  font: inherit;
+  font-size: var(--nt-font-meta,14px);
+  cursor: pointer;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-tabs button:hover {
+  color: var(--mt-text);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-tabs button.is-active {
+  color: var(--mt-text);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-tabs button.is-active::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--mt-accent);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-tab-content {
+  min-width: 0;
+  padding-top: 14px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 12px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-form-grid .nt-field,
+body.mt-enabled #nt-persona-workspace .nt-persona-regex-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-form-grid .nt-field > span,
+body.mt-enabled #nt-persona-workspace .nt-persona-regex-field > span {
+  color: var(--mt-text-2);
+  font-size: var(--nt-font-meta,14px);
+  font-weight: 600;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-field small {
+  color: var(--mt-text-3);
+  font-weight: 400;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-form-grid input,
+body.mt-enabled #nt-persona-workspace .nt-persona-form-grid textarea,
+body.mt-enabled #nt-persona-workspace .nt-persona-form-grid select,
+body.mt-enabled #nt-persona-workspace .nt-persona-structured-row input[type="text"],
+body.mt-enabled #nt-persona-workspace .nt-persona-structured-row textarea,
+body.mt-enabled #nt-persona-workspace .nt-persona-variant input[type="text"],
+body.mt-enabled #nt-persona-workspace .nt-persona-variant textarea {
+  width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 
-body.mt-enabled #nt-persona-modal input,
-body.mt-enabled #nt-persona-modal textarea,
-body.mt-enabled #nt-persona-modal select {
-  max-width: 100%;
-  box-sizing: border-box;
+body.mt-enabled #nt-persona-workspace .nt-span-2 {
+  grid-column: 1 / -1;
 }
 
-@media (max-width: 920px) {
-  body.mt-enabled #nt-persona-modal #persona-management-block.nt-persona-native-editor {
+body.mt-enabled #nt-persona-workspace .nt-field.is-muted {
+  opacity: .55;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-connections-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--mt-border);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-section-heading > div,
+body.mt-enabled #nt-persona-workspace .nt-persona-tab-intro > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-section-heading span,
+body.mt-enabled #nt-persona-workspace .nt-persona-tab-intro span,
+body.mt-enabled #nt-persona-workspace .nt-muted {
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta,14px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-connection-summary,
+body.mt-enabled #nt-persona-workspace .nt-persona-connection-list,
+body.mt-enabled #nt-persona-workspace .nt-persona-context-line,
+body.mt-enabled #nt-persona-workspace .nt-persona-binding-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 9px;
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta,14px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-connection-list span,
+body.mt-enabled #nt-persona-workspace .nt-persona-binding-summary {
+  padding: 5px 7px;
+  border: 1px solid var(--mt-border);
+  border-radius: 6px;
+  background: rgba(255,255,255,.018);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-tab-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+body.mt-enabled #nt-persona-workspace :is(.nt-persona-section-list,.nt-persona-variant-list) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+body.mt-enabled #nt-persona-workspace :is(.nt-persona-structured-row,.nt-persona-variant) {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--mt-border);
+  border-radius: 8px;
+  background: rgba(255,255,255,.015);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-structured-row.is-dragging {
+  opacity: .56;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-variant.is-active {
+  border-color: color-mix(in srgb,var(--mt-accent) 38%,var(--mt-border));
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 8px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-row-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-drag-handle {
+  flex: 0 0 auto;
+  color: var(--mt-text-3);
+  cursor: grab;
+  user-select: none;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-variant-state {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--mt-text-3);
+  opacity: .5;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-variant.is-active .nt-persona-variant-state {
+  background: var(--mt-accent);
+  opacity: 1;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-binding-grid {
+  display: grid;
+  grid-template-columns: auto auto auto minmax(220px,1fr) auto;
+  align-items: end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  color: var(--mt-text-2);
+  font-size: var(--nt-font-meta,14px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-layout {
+  display: grid;
+  grid-template-columns: minmax(220px,.7fr) minmax(0,1.3fr);
+  gap: 14px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-head span,
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-position {
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta,14px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-block {
+  min-width: 0;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-block + .nt-persona-preview-block {
+  padding-left: 14px;
+  border-left: 1px solid var(--mt-border);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-block h4 {
+  margin: 0 0 8px;
+  font-size: var(--nt-font-card-title,16px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-block pre {
+  width: 100%;
+  min-height: 220px;
+  max-height: 52dvh;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid var(--mt-border);
+  border-radius: 8px;
+  background: rgba(0,0,0,.14);
+  color: var(--mt-text-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-family: var(--monoFontFamily,monospace);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-bindings {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-bindings > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--mt-border);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-bindings span {
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta,14px);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-preview-bindings > div.is-active > strong {
+  color: color-mix(in srgb,var(--mt-accent) 78%,var(--mt-text));
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-global-list {
+  display: flex;
+  flex-direction: column;
+  max-width: 840px;
+  padding-top: 14px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--mt-border);
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-setting-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+body.mt-enabled #nt-persona-workspace .nt-persona-setting-row small {
+  color: var(--mt-text-3);
+}
+
+
+
+body.mt-enabled .nt-persona-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 6200;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: clamp(16px,4vw,48px);
+  background: rgba(0,0,0,.78);
+}
+
+body.mt-enabled .nt-persona-lightbox img {
+  display: block;
+  max-width: min(92vw,900px);
+  max-height: 90dvh;
+  object-fit: contain;
+  border-radius: 9px;
+  box-shadow: 0 18px 48px rgba(0,0,0,.42);
+}
+
+body.mt-enabled .nt-persona-lightbox-close {
+  position: fixed;
+  top: max(14px,env(safe-area-inset-top,0px));
+  right: max(14px,env(safe-area-inset-right,0px));
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 8px;
+  background: rgba(12,14,19,.92);
+  color: #fff;
+  cursor: pointer;
+}
+
+body.mt-enabled .nt-persona-lightbox-close svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+@container nt-persona-studio (max-width: 920px) {
+  body.mt-enabled #nt-persona-workspace .nt-persona-gallery-toolbar {
+    grid-template-columns: minmax(0,1fr) auto;
+    grid-template-areas:
+      "actions actions"
+      "search sort"
+      "filters filters";
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-toolbar {
+    flex-wrap: wrap;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-heading {
+    min-width: 180px;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-actions {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-layout {
+    grid-template-columns: minmax(170px,200px) minmax(0,1fr);
+    gap: 12px;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-binding-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    align-items: stretch;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-regex-field {
+    grid-column: 1 / -1;
+  }
+}
+
+@container nt-persona-studio (max-width: 680px) {
+  body.mt-enabled #nt-persona-workspace .nt-persona-gallery-toolbar,
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-toolbar {
+    top: -10px;
+    margin: -10px -10px 0;
+    padding: 10px;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-gallery-toolbar {
+    grid-template-columns: minmax(0,1fr);
+    grid-template-areas:
+      "actions"
+      "search"
+      "sort"
+      "filters";
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-toolbar-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-toolbar-actions .nt-control-btn,
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-actions .nt-control-btn {
+    flex: 0 0 auto;
+    min-width: max-content;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-sort-control {
+    justify-content: space-between;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-sort-control select {
+    flex: 0 0 120px;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 9px;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-card-body {
+    padding: 8px;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-gallery-pager {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-heading {
+    flex-basis: calc(100% - 110px);
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-layout {
     grid-template-columns: minmax(0,1fr);
   }
 
-  body.mt-enabled #nt-persona-modal #user_avatar_block {
-    max-height: 42dvh!important;
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-aside {
+    display: grid;
+    grid-template-columns: 112px minmax(0,1fr);
+    align-items: start;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-portrait {
+    grid-row: 1 / span 6;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-aside-meta,
+  body.mt-enabled #nt-persona-workspace .nt-persona-aside-status,
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-aside .nt-control-btn {
+    grid-column: 2;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-form-grid,
+  body.mt-enabled #nt-persona-workspace .nt-persona-binding-grid,
+  body.mt-enabled #nt-persona-workspace .nt-persona-preview-layout {
+    grid-template-columns: minmax(0,1fr);
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-span-2,
+  body.mt-enabled #nt-persona-workspace .nt-persona-regex-field {
+    grid-column: auto;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-preview-block + .nt-persona-preview-block {
+    padding-top: 14px;
+    padding-left: 0;
+    border-top: 1px solid var(--mt-border);
+    border-left: 0;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-tab-intro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@container nt-persona-studio (max-width: 520px) {
+  /* Persona Studio becomes a deliberate phone layout instead of compressing
+     desktop toolbars until labels overlap. Primary actions stay readable and
+     secondary rows scroll only where that is the least disruptive option. */
+  body.mt-enabled #nt-persona-workspace .nt-persona-toolbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 7px;
+    overflow: visible;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-toolbar-actions .nt-control-btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    white-space: normal;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-toolbar-actions .nt-control-btn:first-child {
+    grid-column: 1 / -1;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-gallery-filters {
+    padding-bottom: 2px;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-toolbar {
+    align-items: stretch;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-toolbar > .nt-control-btn {
+    flex: 0 0 auto;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-heading {
+    flex: 1 1 calc(100% - 112px);
+    min-width: 0;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-actions {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    width: 100%;
+    overflow: visible;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-actions .nt-control-btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    white-space: normal;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-tabs {
+    overscroll-behavior-inline: contain;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-tabs button {
+    min-height: 42px;
+    padding-inline: 12px;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-setting-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-setting-row > :is(input,select,button,.nt-control-btn) {
+    width: 100%;
+    max-width: none;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-row-head {
+    flex-wrap: wrap;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-row-title {
+    flex: 1 1 160px;
+  }
+}
+
+@container nt-persona-studio (max-width: 420px) {
+  body.mt-enabled #nt-persona-workspace .nt-persona-grid {
+    grid-template-columns: minmax(0,1fr);
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-card {
+    display: grid;
+    grid-template-columns: 92px minmax(0,1fr);
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-card-image {
+    height: 126px;
+    aspect-ratio: auto;
+  }
+
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-aside {
+    grid-template-columns: 92px minmax(0,1fr);
   }
 }
 
 @media (max-width: 680px) {
-#nt-persona-modal .nt-persona-modal-body {
+  /* Persona Studio stays a first-class application workspace on phones.
+     The compact NastyTavern navigation remains visible while the content uses
+     the rest of the viewport with a single scroll owner. */
+  body.mt-enabled #nt-persona-workspace .nt-persona-workspace-host {
     padding: 10px;
   }
 
-  body.mt-enabled #nt-persona-modal .persona_management_left_column,
-  body.mt-enabled #nt-persona-modal .persona_management_current_persona,
-  body.mt-enabled #nt-persona-modal .persona_management_global_settings {
-    padding: 10px;
-    border-radius: 8px;
-  }
-
-  body.mt-enabled #nt-persona-modal #user_avatar_block {
-    max-height: 38dvh!important;
+  body.mt-enabled #nt-persona-workspace .nt-persona-gallery-toolbar,
+  body.mt-enabled #nt-persona-workspace .nt-persona-detail-toolbar {
+    top: -10px;
+    margin-inline: -10px;
+    padding-inline: 10px;
   }
 }
 
-@media (max-height: 520px) and (orientation: landscape) {
-#nt-persona-modal .nt-persona-modal-body {
-    padding-block: 8px;
-  }
-
-  body.mt-enabled #nt-persona-modal #persona-management-block.nt-persona-native-editor {
-    grid-template-columns: minmax(260px,.9fr) minmax(330px,1.1fr);
-  }
-
-  body.mt-enabled #nt-persona-modal #user_avatar_block {
-    max-height: calc(100dvh - 90px)!important;
+@media (prefers-reduced-motion: reduce) {
+  body.mt-enabled #nt-persona-workspace .nt-persona-card {
+    transition: none;
   }
 }
 
-/* Lorebooks / World Info modal — phase 1.
-   Reuse the native SillyTavern editor unchanged inside the shared NastyTavern
-   modal shell. Layout/content refinements are intentionally deferred. */
-#nt-lorebook-modal .nt-lorebook-modal-body {
+/* Lorebooks / World Info workspace. The native SillyTavern editor stays the
+   source of truth while NastyTavern owns the full application workspace. */
+#nt-lorebook-workspace .nt-lorebook-workspace-host {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
   padding: 14px;
 }
 
-/* Neutralize the native drawer shell only while World Info lives in the modal. */
+/* Neutralize the native drawer shell only while World Info lives in the workspace. */
 /* Keep this selector deliberately mode-agnostic. Extra body-state selectors
    (mt-dock-panels / mt-panel-switching / mt-focus-mode) raise specificity and
    would override the later nt-lorebook-split-ready sizing rules, causing
    WorldInfo to expand to its full content height instead of scrolling. */
-body.mt-enabled #nt-lorebook-modal #WorldInfo.nt-lorebook-native-editor {
+body.mt-enabled #nt-lorebook-workspace #WorldInfo.nt-lorebook-native-editor {
   position: static!important;
   inset: auto!important;
   display: block!important;
@@ -20932,54 +22147,52 @@ body.mt-enabled #nt-lorebook-modal #WorldInfo.nt-lorebook-native-editor {
   z-index: auto!important;
 }
 
-/* The modal shell supplies its own title/close controls. Keep the native editor
-   itself intact, but remove drawer-only chrome that has no meaning in a modal. */
-#nt-lorebook-modal #WorldInfoheader,
-#nt-lorebook-modal #WorldInfo > .mt-workspace-chrome {
+/* Keep the native editor intact, but remove drawer-only chrome that has no meaning in the application workspace. */
+#nt-lorebook-workspace #WorldInfoheader,
+#nt-lorebook-workspace #WorldInfo > .mt-workspace-chrome {
   display: none!important;
 }
 
-#nt-lorebook-modal #WorldInfo #wi-holder {
+#nt-lorebook-workspace #WorldInfo #wi-holder {
   width: 100%!important;
   min-width: 0!important;
   max-width: none!important;
   box-sizing: border-box;
 }
 
-#nt-lorebook-modal #WorldInfo input,
-#nt-lorebook-modal #WorldInfo textarea,
-#nt-lorebook-modal #WorldInfo select,
-#nt-lorebook-modal #WorldInfo .select2-container {
+#nt-lorebook-workspace #WorldInfo input,
+#nt-lorebook-workspace #WorldInfo textarea,
+#nt-lorebook-workspace #WorldInfo select,
+#nt-lorebook-workspace #WorldInfo .select2-container {
   max-width: 100%;
   box-sizing: border-box;
 }
 
 @media (max-width: 680px) {
-#nt-lorebook-modal .nt-lorebook-modal-body {
+#nt-lorebook-workspace .nt-lorebook-workspace-host {
     padding: 10px;
   }
 }
 
 @media (max-height: 560px) and (orientation: landscape) {
-#nt-lorebook-modal .nt-lorebook-modal-body {
+#nt-lorebook-workspace .nt-lorebook-workspace-host {
     padding-block: 8px;
   }
 }
 
-/* Lorebook modal — global settings are secondary controls. Keep the native
-   settings themselves intact, but move them behind one compact launcher so the
-   editor body stays focused on the selected Lorebook. */
-/* The Lorebooks modal already owns its header and Settings launcher. The
-   native top title/pin row is therefore empty here; remove the whole row so
-   it cannot leave a stray divider/gap at the top of the modal body. */
-body.mt-enabled #nt-lorebook-modal #WorldInfo > .flex-container.alignitemscenter.gap10px {
+/* Lorebook workspace — global settings remain available from the gallery.
+   Keep their native controls mounted as the source of truth, but not duplicated
+   inside the entry page. */
+/* NastyTavern owns the Lorebook entry header. The native top title/pin row
+   is redundant here, so remove the whole row instead of leaving a stray gap. */
+body.mt-enabled #nt-lorebook-workspace #WorldInfo > .flex-container.alignitemscenter.gap10px {
   display: none!important;
 }
 
 /* The native World Info popup starts with a horizontal rule separating the
    drawer title/settings area from the editor. The modal shell already provides
    that hierarchy, so this divider is redundant at every viewport size. */
-body.mt-enabled #nt-lorebook-modal #WorldInfo #world_popup > hr {
+body.mt-enabled #nt-lorebook-workspace #WorldInfo #world_popup > hr {
   display: none!important;
   margin: 0!important;
   border: 0!important;
@@ -20989,11 +22202,11 @@ body.mt-enabled #nt-lorebook-modal #WorldInfo #world_popup > hr {
    them mounted for SillyTavern, but do not duplicate them in the main modal.
    The selector is scoped to the main modal so Active Worlds becomes visible
    when the real node is moved into the secondary popup. */
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-settings-source-hidden {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-settings-source-hidden {
   display: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal #wiTopBlock.nt-lorebook-top-controls {
+body.mt-enabled #nt-lorebook-workspace #wiTopBlock.nt-lorebook-top-controls {
   display: none;
   width: 100%;
   min-width: 0;
@@ -21001,46 +22214,96 @@ body.mt-enabled #nt-lorebook-modal #wiTopBlock.nt-lorebook-top-controls {
 }
 
 /* The native pin only controls whether SillyTavern's floating World Editor stays
-   open. NastyTavern owns the modal lifecycle, so replace that redundant control
-   with the settings launcher while this modal is mounted. */
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-pin-hidden {
+   open. NastyTavern owns the workspace lifecycle, so it stays hidden here. */
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-pin-hidden {
   display: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-settings-launcher {
-  /* Keep the native menu_button appearance so Settings visually belongs to
-     the same action row as Create instead of looking like a separate CTA. */
-  display: inline-flex!important;
-  min-width: 0!important;
-  margin: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  white-space: nowrap;
-  color: inherit;
+/* Lorebook button system ---------------------------------------------------
+   NastyTavern-owned controls reuse the shared nt-control/nt-icon primitives.
+   SillyTavern World Info controls keep their native handlers/classes, but are
+   visually normalized here so gallery, file actions and entry actions read as
+   one coherent tool instead of mixing browser/native button treatments. */
+body.mt-enabled :is(#nt-lorebook-workspace, .nt-lorebook-settings-popup) .menu_button {
+  appearance: none;
+  border: 1px solid var(--mt-border);
+  border-radius: 7px;
+  background: rgba(255,255,255,.032);
+  color: var(--mt-text-2);
+  box-shadow: none;
+  font: inherit;
+  font-size: var(--nt-font-button);
+  font-weight: var(--nt-weight-button);
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color .14s ease,border-color .14s ease,color .14s ease,opacity .14s ease;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-settings-launcher span {
-  white-space: nowrap;
+body.mt-enabled :is(#nt-lorebook-workspace, .nt-lorebook-settings-popup) .menu_button:hover:not(:disabled) {
+  border-color: var(--mt-border-strong);
+  background: rgba(255,255,255,.055);
+  color: var(--mt-text);
+  transform: none;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-settings-launcher svg {
-  width: 1em;
-  height: 1em;
-  flex: 0 0 auto;
-  fill: currentColor;
-  color: currentColor;
+body.mt-enabled :is(#nt-lorebook-workspace, .nt-lorebook-settings-popup) .menu_button:focus-visible {
+  outline: 2px solid color-mix(in srgb,var(--mt-accent) 48%,transparent);
+  outline-offset: 2px;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-settings-launcher svg path {
-  fill: currentColor;
+body.mt-enabled :is(#nt-lorebook-workspace, .nt-lorebook-settings-popup) .menu_button:disabled {
+  opacity: .45;
+  cursor: default;
 }
+
+body.mt-enabled #nt-lorebook-workspace :is(#world_create_button, #world_popup_new) {
+  border-color: color-mix(in srgb,var(--mt-accent) 44%,var(--mt-border));
+  background: color-mix(in srgb,var(--mt-accent) 14%,rgba(255,255,255,.032));
+  color: color-mix(in srgb,var(--mt-accent) 78%,var(--mt-text));
+}
+
+body.mt-enabled #nt-lorebook-workspace :is(#world_create_button, #world_popup_new):hover:not(:disabled) {
+  border-color: color-mix(in srgb,var(--mt-accent) 60%,var(--mt-border));
+  background: color-mix(in srgb,var(--mt-accent) 19%,rgba(255,255,255,.04));
+  color: var(--mt-text);
+}
+
+body.mt-enabled #nt-lorebook-workspace :is(#world_popup_delete, .nt-lorebook-entry-delete) {
+  border-color: color-mix(in srgb,var(--mt-danger) 34%,var(--mt-border));
+  color: color-mix(in srgb,var(--mt-danger) 80%,var(--mt-text));
+}
+
+body.mt-enabled #nt-lorebook-workspace :is(#world_popup_delete, .nt-lorebook-entry-delete):hover:not(:disabled) {
+  border-color: color-mix(in srgb,var(--mt-danger) 54%,var(--mt-border));
+  background: color-mix(in srgb,var(--mt-danger) 9%,rgba(255,255,255,.032));
+  color: color-mix(in srgb,var(--mt-danger) 92%,var(--mt-text));
+}
+
+
+/* Entry page file controls --------------------------------------------------
+   The Lorebook identity is edited directly in the NastyTavern header. The
+   native file picker, Create action, import action and rename prompt button
+   would duplicate navigation/actions already available in the Lorebooks gallery,
+   so they do not participate in this view. */
+body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo :is(
+  #world_editor_select,
+  #world_create_button,
+  #world_import_button,
+  #world_popup_name_button
+),
+body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo #world_editor_select + .select2-container {
+  display: none!important;
+}
+
+/* The file-action row owns its layout through .nt-lorebook-file-actions-row.
+   Do not re-apply the older generic World Info flex rule here: its extra
+   #world_popup specificity overrides the responsive grid used on phones. */
 
 /* Community resource sharing is a secondary toolbar action. Character Edit
    reuses the same visual primitive as Lorebook instead of maintaining a
    separate button treatment. */
 body.mt-enabled :is(
-  #nt-lorebook-modal .nt-native-community-share-lorebook,
+  #nt-lorebook-workspace .nt-native-community-share-lorebook,
   #nt-character-create-modal[data-nt-character-editor-mode="edit"] .nt-native-community-share-character
 ) {
   display: inline-flex;
@@ -21066,7 +22329,7 @@ body.mt-enabled :is(
 }
 
 body.mt-enabled :is(
-  #nt-lorebook-modal .nt-native-community-share-lorebook,
+  #nt-lorebook-workspace .nt-native-community-share-lorebook,
   #nt-character-create-modal[data-nt-character-editor-mode="edit"] .nt-native-community-share-character
 ):hover:not(:disabled) {
   border-color: color-mix(in srgb,var(--mt-accent) 42%,var(--mt-border));
@@ -21075,7 +22338,7 @@ body.mt-enabled :is(
 }
 
 body.mt-enabled :is(
-  #nt-lorebook-modal .nt-native-community-share-lorebook,
+  #nt-lorebook-workspace .nt-native-community-share-lorebook,
   #nt-character-create-modal[data-nt-character-editor-mode="edit"] .nt-native-community-share-character
 ):focus-visible {
   outline: 2px solid color-mix(in srgb,var(--mt-accent) 70%,transparent);
@@ -21083,7 +22346,7 @@ body.mt-enabled :is(
 }
 
 body.mt-enabled :is(
-  #nt-lorebook-modal .nt-native-community-share-lorebook,
+  #nt-lorebook-workspace .nt-native-community-share-lorebook,
   #nt-character-create-modal[data-nt-character-editor-mode="edit"] .nt-native-community-share-character
 ):disabled {
   opacity: .45;
@@ -21091,7 +22354,7 @@ body.mt-enabled :is(
 }
 
 body.mt-enabled :is(
-  #nt-lorebook-modal .nt-native-community-share-lorebook,
+  #nt-lorebook-workspace .nt-native-community-share-lorebook,
   #nt-character-create-modal[data-nt-character-editor-mode="edit"] .nt-native-community-share-character
 ) svg {
   width: 17px;
@@ -21101,14 +22364,14 @@ body.mt-enabled :is(
 }
 
 body.mt-enabled :is(
-  #nt-lorebook-modal .nt-native-community-share-lorebook,
+  #nt-lorebook-workspace .nt-native-community-share-lorebook,
   #nt-character-create-modal[data-nt-character-editor-mode="edit"] .nt-native-community-share-character
 ) svg path {
   fill: currentColor;
 }
 
 body.mt-enabled :is(
-  #nt-lorebook-modal .nt-native-community-share-lorebook,
+  #nt-lorebook-workspace .nt-native-community-share-lorebook,
   #nt-character-create-modal[data-nt-character-editor-mode="edit"] .nt-native-community-share-character
 ) span {
   white-space: nowrap;
@@ -21176,102 +22439,7 @@ body.mt-enabled .nt-lorebook-settings-popup .select2-container {
   }
 }
 
-/* Lorebooks — Community share adapts to the actual toolbar space on phones.
-   Keep the label readable instead of letting the grid squeeze or wrap it. */
-@media (max-width: 680px) {
-  body.mt-enabled #nt-lorebook-modal #world_popup > .flex-container.alignitemscenter:first-of-type > .nt-native-community-share-lorebook {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    width: 100%;
-    min-width: 0;
-    height: 40px;
-    min-height: 40px;
-    padding-inline: 12px;
-    border-radius: 10px;
-    justify-self: stretch;
-  }
-
-  body.mt-enabled #nt-lorebook-modal #world_popup > .flex-container.alignitemscenter:first-of-type > .nt-native-community-share-lorebook span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  body.mt-enabled #nt-lorebook-modal #world_import_button,
-  body.mt-enabled #nt-lorebook-modal #world_popup_export,
-  body.mt-enabled #nt-lorebook-modal #world_popup_name_button,
-  body.mt-enabled #nt-lorebook-modal #world_duplicate,
-  body.mt-enabled #nt-lorebook-modal #world_popup_delete {
-    grid-row: 4;
-  }
-}
-
-@media (orientation: landscape) and (max-height: 560px) and (max-width: 1100px) {
-  body.mt-enabled #nt-lorebook-modal #world_popup > .flex-container.alignitemscenter:first-of-type > .nt-native-community-share-lorebook {
-    grid-column: span 3;
-    width: 100%;
-    min-width: 0;
-    height: 34px;
-    min-height: 34px;
-    padding-inline: 8px;
-    border-radius: 8px;
-  }
-
-  body.mt-enabled #nt-lorebook-modal #world_popup > .flex-container.alignitemscenter:first-of-type > .nt-native-community-share-lorebook span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-/* Lorebooks — keep Share to Community contained by the real selector/action row.
-   The previous phone rule depended on :first-of-type, which is fragile once
-   native World Info blocks are moved/reordered inside the NastyTavern modal. */
-@media (max-width: 680px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-community-share-row > .nt-native-community-share-lorebook {
-    grid-column: 1 / -1 !important;
-    grid-row: auto !important;
-    justify-self: center;
-    align-self: center;
-    width: max-content !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    min-height: 40px !important;
-    height: 40px !important;
-    margin: 0 !important;
-    padding: 0 14px !important;
-    box-sizing: border-box;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-community-share-row > .nt-native-community-share-lorebook span {
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-@media (orientation: landscape) and (max-height: 560px) and (max-width: 1100px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-community-share-row > .nt-native-community-share-lorebook {
-    grid-column: 1 / -1 !important;
-    grid-row: auto !important;
-    justify-self: center;
-    width: max-content !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    min-height: 34px !important;
-    height: 34px !important;
-    margin: 0 !important;
-    padding: 0 10px !important;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-}
+/* Lorebook file-action responsiveness is consolidated in the r29 row rules below. */
 
 /* ========================================================================== */
 /* NastyTavern shared modal primitive                                         */
@@ -21353,11 +22521,6 @@ body.mt-enabled .nt-modal-root > .nt-modal-shell {
 body.mt-enabled .nt-modal-root.is-open > .nt-modal-shell {
   opacity: 1;
   transform: none;
-}
-
-body.mt-enabled .nt-modal-shell.nt-modal-size-wide {
-  --nt-modal-shell-max-width: 1200px;
-  --nt-modal-shell-height: min(840px, calc(100dvh - 48px));
 }
 
 body.mt-enabled .nt-modal-shell.nt-modal-size-large {
@@ -21503,7 +22666,7 @@ body.mt-enabled.mt-appbar-minimized .nt-modal-root {
   }
 
   body.mt-enabled .nt-modal-root.is-auth-modal > .nt-modal-shell {
-    height: auto;
+    height: calc(100dvh - 16px);
     max-height: calc(100dvh - 16px);
   }
 
@@ -21536,7 +22699,7 @@ body.mt-enabled.mt-appbar-minimized .nt-modal-root {
   }
 
   body.mt-enabled .nt-modal-root.is-auth-modal > .nt-modal-shell {
-    height: auto;
+    height: calc(100dvh - 12px);
     max-height: calc(100dvh - 12px);
   }
 }
@@ -21595,86 +22758,29 @@ body.mt-enabled #nt-timeline-panel .nt-timeline-modal-body {
    readable row instead of wrapping/truncating labels. Accessible names remain
    on the buttons through aria-label/title in runtime.js. */
 @media (max-width: 680px) {
-  body.mt-enabled #nt-character-modal .nt-character-quick-grid {
+  body.mt-enabled #nt-character-workspace .nt-character-quick-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 6px;
   }
 
-  body.mt-enabled #nt-character-modal .nt-character-quick-grid > button {
+  body.mt-enabled #nt-character-workspace .nt-character-quick-grid > button {
     min-height: 44px;
     padding: 0;
     gap: 0;
   }
 
-  body.mt-enabled #nt-character-modal .nt-character-quick-grid > button > span {
+  body.mt-enabled #nt-character-workspace .nt-character-quick-grid > button > span {
     width: 20px;
     height: 20px;
   }
 
-  body.mt-enabled #nt-character-modal .nt-character-quick-grid > button > span svg {
+  body.mt-enabled #nt-character-workspace .nt-character-quick-grid > button > span svg {
     width: 16px;
     height: 16px;
   }
 
-  body.mt-enabled #nt-character-modal .nt-character-quick-grid > button > b {
+  body.mt-enabled #nt-character-workspace .nt-character-quick-grid > button > b {
     display: none;
-  }
-}
-
-/* Persona modal — mobile Current Persona controls.
-   Keep native nodes/handlers intact: persona name and all native actions share
-   the first row; the More selector sits directly below the name. */
-@media (max-width: 680px) {
-  body.mt-enabled #nt-persona-modal #persona_controls {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) max-content;
-    grid-template-areas:
-      "name actions"
-      "more .";
-    align-items: center;
-    column-gap: 8px;
-    row-gap: 5px;
-    width: 100%;
-    min-width: 0;
-  }
-
-  body.mt-enabled #nt-persona-modal #persona_controls > #your_name {
-    grid-area: name;
-    min-width: 0;
-    max-width: 100%;
-    margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  body.mt-enabled #nt-persona-modal #persona_controls > .persona_controls_buttons_block {
-    grid-area: actions;
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    align-items: center;
-    justify-content: flex-end !important;
-    gap: 4px;
-    min-width: max-content;
-  }
-
-  body.mt-enabled #nt-persona-modal #persona_controls > .persona_controls_buttons_block > .menu_button {
-    flex: 0 0 auto;
-    margin: 0;
-  }
-
-  body.mt-enabled #nt-persona-modal #persona_controls > label[for="persona-management-dropdown"] {
-    grid-area: more;
-    width: 100%;
-    min-width: 0;
-    height: auto !important;
-    margin: 0;
-  }
-
-  body.mt-enabled #nt-persona-modal #persona-management-dropdown {
-    width: 100%;
-    min-width: 0;
-    margin: 0;
   }
 }
 
@@ -21685,11 +22791,11 @@ body.mt-enabled #nt-timeline-panel .nt-timeline-modal-body {
    editor on the right. Native SillyTavern controls remain the source of truth.
    ======================================================================== */
 
-#nt-lorebook-modal .nt-lorebook-modal-body {
+#nt-lorebook-workspace .nt-lorebook-workspace-host {
   overflow: hidden;
 }
 
-body.mt-enabled #nt-lorebook-modal #WorldInfo.nt-lorebook-split-ready {
+body.mt-enabled #nt-lorebook-workspace #WorldInfo.nt-lorebook-split-ready {
   display: flex!important;
   flex-direction: column;
   width: 100%!important;
@@ -21698,8 +22804,8 @@ body.mt-enabled #nt-lorebook-modal #WorldInfo.nt-lorebook-split-ready {
   overflow: hidden!important;
 }
 
-body.mt-enabled #nt-lorebook-modal #WorldInfo.nt-lorebook-split-ready #wi-holder,
-body.mt-enabled #nt-lorebook-modal #WorldInfo.nt-lorebook-split-ready #world_popup {
+body.mt-enabled #nt-lorebook-workspace #WorldInfo.nt-lorebook-split-ready #wi-holder,
+body.mt-enabled #nt-lorebook-workspace #WorldInfo.nt-lorebook-split-ready #world_popup {
   display: flex!important;
   flex: 1 1 auto;
   flex-direction: column;
@@ -21709,15 +22815,15 @@ body.mt-enabled #nt-lorebook-modal #WorldInfo.nt-lorebook-split-ready #world_pop
   overflow: hidden!important;
 }
 
-body.mt-enabled #nt-lorebook-modal #WorldInfo.nt-lorebook-split-ready #world_popup {
+body.mt-enabled #nt-lorebook-workspace #WorldInfo.nt-lorebook-split-ready #world_popup {
   gap: 10px;
 }
 
-body.mt-enabled #nt-lorebook-modal #WorldInfo.nt-lorebook-split-ready #world_popup > .flex-container.alignitemscenter:first-of-type {
+body.mt-enabled #nt-lorebook-workspace #WorldInfo.nt-lorebook-split-ready #world_popup > .flex-container.alignitemscenter:first-of-type {
   flex: 0 0 auto;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-workspace {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-workspace {
   flex: 1 1 auto;
   display: grid;
   grid-template-columns: clamp(320px, 32vw, 460px) minmax(0, 1fr);
@@ -21728,8 +22834,8 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-workspace {
   overflow: hidden;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail {
   min-width: 0;
   min-height: 0;
   border: 1px solid var(--mt-border);
@@ -21737,7 +22843,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail {
   background: rgba(255,255,255,.014);
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 8px;
@@ -21745,7 +22851,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar {
   overflow: hidden;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls {
   display: grid!important;
   grid-template-columns: repeat(4, minmax(0, 1fr))!important;
   grid-template-rows: 36px 38px 38px!important;
@@ -21760,10 +22866,10 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls {
   box-shadow: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_popup_new,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_backfill_memos,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_apply_current_sorting,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_refresh {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #world_popup_new,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #world_backfill_memos,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #world_apply_current_sorting,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #world_refresh {
   width: 100%!important;
   min-width: 0!important;
   height: 36px!important;
@@ -21776,32 +22882,32 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_refresh 
   border-radius: 8px;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_popup_new {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #world_popup_new {
   grid-column: 1;
   grid-row: 1;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_backfill_memos {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #world_backfill_memos {
   grid-column: 2;
   grid-row: 1;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_apply_current_sorting {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #world_apply_current_sorting {
   grid-column: 3;
   grid-row: 1;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_refresh {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #world_refresh {
   grid-column: 4;
   grid-row: 1;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #OpenAllWIEntries,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #CloseAllWIEntries {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #OpenAllWIEntries,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #CloseAllWIEntries {
   display: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_info_sort_order {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #world_info_sort_order {
   grid-column: 1 / -1!important;
   grid-row: 2!important;
   width: 100%!important;
@@ -21811,7 +22917,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_info_sor
   margin: 0!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_info_search {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-controls #world_info_search {
   grid-column: 1 / -1!important;
   grid-row: 3!important;
   width: 100%!important;
@@ -21821,7 +22927,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-controls #world_info_sea
   margin: 0!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-list {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-list {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -21834,9 +22940,9 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-list {
   overscroll-behavior: contain;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row {
   display: grid;
-  grid-template-columns: 30px minmax(72px, 1fr) 46px repeat(3, 30px);
+  grid-template-columns: 30px minmax(72px, 1fr) 30px repeat(3, 30px);
   gap: 5px;
   align-items: center;
   width: 100%;
@@ -21850,22 +22956,22 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row {
   transition: background-color .12s ease, border-color .12s ease;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row:hover {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row:hover {
   background: rgba(255,255,255,.035);
   border-color: var(--mt-border);
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row.is-selected {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row.is-selected {
   border-color: color-mix(in srgb, var(--mt-accent) 48%, var(--mt-border));
   background: color-mix(in srgb, var(--mt-accent) 10%, transparent);
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row:focus-visible {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--mt-accent) 70%, transparent);
   outline-offset: 1px;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row > .menu_button {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row > .menu_button {
   width: 30px!important;
   min-width: 30px!important;
   height: 30px!important;
@@ -21879,16 +22985,16 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row > .menu_button {
   font-size: 12px;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row .nt-lorebook-entry-enabled {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row .nt-lorebook-entry-enabled {
   color: var(--mt-text-2);
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row .nt-lorebook-entry-enabled.is-disabled {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row .nt-lorebook-entry-enabled.is-disabled {
   color: var(--mt-text-3);
   opacity: .7;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-name {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -21899,34 +23005,21 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-name {
   line-height: 1.25;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-state {
-  width: 100%!important;
-  min-width: 0!important;
-  height: 30px!important;
-  min-height: 30px!important;
-  margin: 0!important;
-  padding: 0 14px 0 5px!important;
-  text-align: center;
-  text-align-last: center;
-  font-size: 14px;
-  line-height: 1;
-}
-
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-delete {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-delete {
   color: var(--mt-text-2);
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-delete:hover,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-delete:focus-visible {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-delete:hover,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-delete:focus-visible {
   color: var(--nt-danger, #e86b6b);
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-footer {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-footer {
   min-width: 0;
   min-height: 0;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-footer #world_info_pagination {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-footer #world_info_pagination {
   width: 100%!important;
   min-width: 0!important;
   margin: 0!important;
@@ -21939,11 +23032,11 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-footer #world_info_pagin
   scrollbar-width: none;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-footer #world_info_pagination::-webkit-scrollbar {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-footer #world_info_pagination::-webkit-scrollbar {
   display: none;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail {
   position: relative;
   overflow-x: hidden;
   overflow-y: auto;
@@ -21952,7 +23045,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail {
   scrollbar-gutter: stable;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail-empty {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail-empty {
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -21963,11 +23056,11 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail-empty {
   text-align: center;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail-empty[hidden] {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail-empty[hidden] {
   display: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail-entries {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail-entries {
   width: 100%!important;
   min-width: 0!important;
   min-height: 0!important;
@@ -21977,15 +23070,15 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail-entries {
   overflow: visible!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail-entries.is-empty {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail-entries.is-empty {
   display: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail-entries > .world_entry {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail-entries > .world_entry {
   display: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail-entries > .world_entry.nt-lorebook-selected-entry {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail-entries > .world_entry.nt-lorebook-selected-entry {
   display: block!important;
   width: 100%!important;
   min-width: 0!important;
@@ -21998,8 +23091,8 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail-entries > .world_entry.nt
   overflow: visible!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-drawer {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry > form,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry > form > .inline-drawer {
   width: 100%!important;
   min-width: 0!important;
   margin: 0!important;
@@ -22009,7 +23102,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-
   overflow: visible!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header {
   display: block!important;
   width: 100%!important;
   min-width: 0!important;
@@ -22022,42 +23115,40 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-
   background: transparent!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .drag-handle,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .inline-drawer-header > .move_entry_button,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .inline-drawer-header > .duplicate_entry_button,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .inline-drawer-header > .delete_entry_button,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_thin_controls > .inline-drawer-toggle,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_thin_controls > .killSwitch {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .drag-handle,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .inline-drawer-header > .move_entry_button,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .inline-drawer-header > .duplicate_entry_button,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .inline-drawer-header > .delete_entry_button,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_thin_controls > .inline-drawer-toggle,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_thin_controls > .killSwitch {
   display: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_thin_controls {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_thin_controls {
   display: block!important;
   width: 100%!important;
   min-width: 0!important;
   margin: 0!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
   display: grid!important;
   grid-template-columns: minmax(220px, .8fr) minmax(420px, 1.35fr)!important;
   gap: 10px!important;
   width: 100%!important;
   min-width: 0!important;
-  align-items: end!important;
-}
-
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
-  display: grid!important;
-  grid-template-columns: minmax(0, 1fr) minmax(112px, auto)!important;
-  gap: 8px!important;
-  width: 100%!important;
-  min-width: 0!important;
   align-items: stretch!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry textarea[name="comment"],
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry select[name="entryStateSelector"] {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
+  display: grid!important;
+  gap: 8px!important;
+  width: 100%!important;
+  min-width: 0!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry textarea[name="comment"],
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry select[name="entryStateSelector"] {
   width: 100%!important;
   min-width: 0!important;
   max-width: none!important;
@@ -22066,87 +23157,82 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry select[name="entr
   margin: 0!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls {
   display: grid!important;
   grid-template-columns: repeat(4, minmax(0, 1fr))!important;
   gap: 8px!important;
   width: 100%!important;
   min-width: 0!important;
-  align-items: end!important;
+  align-items: stretch!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls > .world_entry_form_control,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls input,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls select {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls > .world_entry_form_control,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls input,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls select {
   width: 100%!important;
   min-width: 0!important;
   max-width: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-content {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-content {
   width: 100%!important;
   min-width: 0!important;
   margin: 0!important;
   padding: 0!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_edit {
   width: 100%!important;
   min-width: 0!important;
 }
 
 @media (max-width: 860px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-workspace {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-workspace {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(240px, 42%) minmax(0, 1fr);
     gap: 8px;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar {
     padding: 8px;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row {
-    grid-template-columns: 30px minmax(60px, 1fr) 46px repeat(3, 30px);
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row {
+    grid-template-columns: 30px minmax(60px, 1fr) 30px repeat(3, 30px);
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail {
     padding: 8px;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
     grid-template-columns: minmax(0, 1fr)!important;
     gap: 8px!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls {
     grid-template-columns: repeat(2, minmax(0, 1fr))!important;
   }
 }
 
 @media (max-width: 430px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row {
-    grid-template-columns: 28px minmax(58px, 1fr) 44px repeat(3, 28px);
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row {
+    grid-template-columns: 28px minmax(58px, 1fr) 28px repeat(3, 28px);
     gap: 4px;
     padding: 3px;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row > .menu_button {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row > .menu_button {
     width: 28px!important;
     min-width: 28px!important;
     height: 30px!important;
     min-height: 30px!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-state {
-    padding-right: 12px!important;
-    padding-left: 4px!important;
-    font-size: 13px;
-  }
 }
 
 @media (orientation: landscape) and (max-height: 520px) and (min-width: 681px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-workspace {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-workspace {
     grid-template-columns: minmax(300px, 40%) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
   }
@@ -22157,21 +23243,21 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
 /* On phones the entry list behaves like a drawer over the editor instead of  */
 /* consuming its own row/column. Desktop keeps the existing split workspace.  */
 /* ========================================================================== */
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-toggle {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-toggle {
   display: none;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-scrim {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-scrim {
   display: none;
 }
 
 @media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 960px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-toggle {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-toggle {
     display: grid;
     place-items: center;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-workspace {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-workspace {
     position: relative;
     display: block;
     width: 100%;
@@ -22180,7 +23266,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-scrim {
     overflow: hidden;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-detail {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail {
     position: absolute;
     inset: 0;
     z-index: 1;
@@ -22190,7 +23276,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-scrim {
     min-height: 0;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-scrim {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar-scrim {
     position: absolute;
     inset: 0;
     z-index: 2;
@@ -22204,7 +23290,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-scrim {
     transition: opacity .16s ease;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sidebar {
     position: absolute;
     inset: 0;
     z-index: 3;
@@ -22220,12 +23306,12 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-scrim {
     transition: transform .18s ease;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-modal.is-sidebar-hidden .nt-lorebook-sidebar {
+  body.mt-enabled #nt-lorebook-workspace.is-sidebar-hidden .nt-lorebook-sidebar {
     transform: translateX(calc(-100% - 14px));
     pointer-events: none;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-modal.is-sidebar-hidden .nt-lorebook-sidebar-scrim {
+  body.mt-enabled #nt-lorebook-workspace.is-sidebar-hidden .nt-lorebook-sidebar-scrim {
     opacity: 0;
     pointer-events: none;
   }
@@ -22236,12 +23322,8 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-sidebar-scrim {
 /* Keep entry type selectors icon-only, square and visually centered in both  */
 /* the sidebar list and the main entry editor.                                */
 /* ========================================================================== */
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row {
-  grid-template-columns: 30px minmax(72px, 1fr) 30px repeat(3, 30px);
-}
-
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-state,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry select[name="entryStateSelector"] {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-state,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry select[name="entryStateSelector"] {
   box-sizing: border-box!important;
   width: 30px!important;
   min-width: 30px!important;
@@ -22264,34 +23346,14 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry select[name="entr
   cursor: pointer;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-state {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-state {
   justify-self: center;
   align-self: center;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
-  grid-template-columns: minmax(0, 1fr) 38px!important;
-  align-items: center!important;
-}
-
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry select[name="entryStateSelector"] {
-  justify-self: center!important;
-  align-self: center!important;
-}
-
-@media (max-width: 860px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row {
-    grid-template-columns: 30px minmax(60px, 1fr) 30px repeat(3, 30px);
-  }
-}
-
 @media (max-width: 430px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-row {
-    grid-template-columns: 28px minmax(58px, 1fr) 28px repeat(3, 28px);
-  }
-
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-entry-state,
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry select[name="entryStateSelector"] {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-state,
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry select[name="entryStateSelector"] {
     width: 28px!important;
     min-width: 28px!important;
     max-width: 28px!important;
@@ -22301,10 +23363,6 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry select[name="entr
     line-height: 28px!important;
     font-size: 12px!important;
   }
-
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
-    grid-template-columns: minmax(0, 1fr) 34px!important;
-  }
 }
 
 
@@ -22312,17 +23370,17 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry select[name="entr
 /* NastyTavern 0.1.3 — Lorebook header field labels                          */
 /* Keep every label centered directly above the control it describes.         */
 /* ========================================================================== */
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
-  grid-template-columns: minmax(0, 1fr) 38px!important;
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
+  grid-template-columns: minmax(0, 1fr) 48px!important;
   grid-template-rows: auto 38px!important;
   column-gap: 8px!important;
   row-gap: 3px!important;
   align-items: stretch!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus::before,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus::after,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls .WIEntryHeaderTitleMobile {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus::before,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus::after,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls .WIEntryHeaderTitleMobile {
   display: block!important;
   box-sizing: border-box!important;
   width: 100%!important;
@@ -22340,19 +23398,23 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderCo
   justify-self: stretch!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus::before {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus::before {
   content: "Title/Memo";
   grid-column: 1;
   grid-row: 1;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus::after {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus::after {
   content: "Strategy";
   grid-column: 2;
   grid-row: 1;
+  width: max-content!important;
+  max-width: none!important;
+  justify-self: center!important;
+  text-align: center!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus > .flex-container {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus > .flex-container {
   grid-column: 1!important;
   grid-row: 2!important;
   min-width: 0!important;
@@ -22360,7 +23422,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
   align-self: stretch!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus textarea[name="comment"] {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus textarea[name="comment"] {
   width: 100%!important;
   height: 38px!important;
   min-height: 38px!important;
@@ -22368,18 +23430,14 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
   margin: 0!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus select[name="entryStateSelector"] {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus select[name="entryStateSelector"] {
   grid-column: 2!important;
   grid-row: 2!important;
   align-self: center!important;
   justify-self: center!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls {
-  align-items: stretch!important;
-}
-
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls > .world_entry_form_control {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls > .world_entry_form_control {
   display: grid!important;
   grid-template-rows: auto 38px!important;
   row-gap: 3px!important;
@@ -22387,28 +23445,10 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderCo
   min-width: 0!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls input,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls select {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls input,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls select {
   align-self: stretch!important;
   margin: 0!important;
-}
-
-@media (max-width: 430px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
-    grid-template-columns: minmax(0, 1fr) 34px!important;
-    grid-template-rows: auto 34px!important;
-    column-gap: 6px!important;
-  }
-
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus textarea[name="comment"] {
-    height: 34px!important;
-    min-height: 34px!important;
-    max-height: 34px!important;
-  }
-
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls > .world_entry_form_control {
-    grid-template-rows: auto 34px!important;
-  }
 }
 
 
@@ -22416,32 +23456,8 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderCo
 /* NastyTavern 0.1.3 — Lorebook header cleanup                               */
 /* Remove SillyTavern's legacy PC header row and align Strategy to its icon.   */
 /* ========================================================================== */
-body.mt-enabled #nt-lorebook-modal #WIEntryHeaderTitlesPC {
+body.mt-enabled #nt-lorebook-workspace #WIEntryHeaderTitlesPC {
   display: none!important;
-}
-
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
-  grid-template-columns: minmax(0, 1fr) 48px!important;
-  column-gap: 8px!important;
-}
-
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus::after {
-  width: max-content!important;
-  max-width: none!important;
-  justify-self: center!important;
-  text-align: center!important;
-}
-
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus select[name="entryStateSelector"] {
-  justify-self: center!important;
-  align-self: center!important;
-}
-
-@media (max-width: 430px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
-    grid-template-columns: minmax(0, 1fr) 44px!important;
-    column-gap: 6px!important;
-  }
 }
 
 /* ========================================================================== */
@@ -22451,7 +23467,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
 /* ========================================================================== */
 @media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 960px) {
   /* Title/Memo becomes the only control on the first line. */
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
     display: grid!important;
     grid-template-columns: minmax(0, 1fr)!important;
     grid-template-rows: auto 34px!important;
@@ -22461,7 +23477,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
     row-gap: 3px!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus::before {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus::before {
     grid-column: 1!important;
     grid-row: 1!important;
     width: 100%!important;
@@ -22470,19 +23486,19 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
   }
 
   /* Strategy is already available from the phone entries drawer. */
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus::after,
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry select[name="entryStateSelector"] {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus::after,
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry select[name="entryStateSelector"] {
     display: none!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus > .flex-container {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus > .flex-container {
     grid-column: 1!important;
     grid-row: 2!important;
     width: 100%!important;
     min-width: 0!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus textarea[name="comment"] {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus textarea[name="comment"] {
     width: 100%!important;
     min-width: 0!important;
     max-width: none!important;
@@ -22492,7 +23508,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
   }
 
   /* Keep Position / Depth / Order / Trigger % on one compact line. */
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls {
     display: grid!important;
     grid-template-columns: minmax(82px, 1.18fr) repeat(3, minmax(56px, .94fr))!important;
     gap: 4px!important;
@@ -22501,7 +23517,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
     align-items: end!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls > .world_entry_form_control {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls > .world_entry_form_control {
     display: grid!important;
     grid-template-rows: auto 30px!important;
     row-gap: 2px!important;
@@ -22509,7 +23525,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
     min-width: 0!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls .WIEntryHeaderTitleMobile {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls .WIEntryHeaderTitleMobile {
     display: block!important;
     width: 100%!important;
     min-width: 0!important;
@@ -22523,8 +23539,8 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
     text-overflow: clip!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls input,
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls select {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls input,
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls select {
     box-sizing: border-box!important;
     width: 100%!important;
     min-width: 0!important;
@@ -22538,19 +23554,12 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
     line-height: 1!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls select[name="position"] {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls select[name="position"] {
     padding-left: 4px!important;
     padding-right: 4px!important;
     font-size: 10px!important;
   }
 
-  /* The native Move / Duplicate / Delete row is redundant in the phone view:
-     those actions are already exposed by the entries drawer. */
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .inline-drawer-header > .move_entry_button,
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .inline-drawer-header > .duplicate_entry_button,
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .inline-drawer-header > .delete_entry_button {
-    display: none!important;
-  }
 }
 
 /* ========================================================================== */
@@ -22563,9 +23572,9 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
   /* These three native buttons are direct children of the entry header in
      SillyTavern 1.19.x. Use a deliberately broad descendant selector here:
      the previous direct-child rule could be defeated if ST inserts a wrapper. */
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .move_entry_button,
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .duplicate_entry_button,
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .delete_entry_button {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .move_entry_button,
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .duplicate_entry_button,
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .delete_entry_button {
     display: none!important;
     visibility: hidden!important;
     position: absolute!important;
@@ -22585,52 +23594,21 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
   /* "Additional Matching Sources" is a nested inline drawer. The generic
      mobile .world_entry .inline-drawer-header grid is meant for the ENTRY
      header and must not squeeze this nested accordion header. */
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header {
     box-sizing: border-box!important;
-    width: 100%!important;
-    min-width: 0!important;
-    max-width: 100%!important;
-  }
-
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header {
-    box-sizing: border-box!important;
-    display: flex!important;
     grid-template-columns: none!important;
     grid-template-rows: none!important;
     flex-direction: row!important;
     flex-wrap: nowrap!important;
-    align-items: center!important;
-    justify-content: space-between!important;
     gap: 8px!important;
-    width: 100%!important;
-    min-width: 0!important;
     max-width: 100%!important;
-    min-height: 38px!important;
     height: auto!important;
-    margin: 0!important;
-    padding: 8px 9px!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header > strong[data-i18n="Additional Matching Sources"] {
-    display: block!important;
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header > strong[data-i18n="Additional Matching Sources"] {
     flex: 1 1 auto!important;
-    width: auto!important;
-    min-width: 0!important;
-    max-width: none!important;
-    margin: 0!important;
     padding: 0!important;
-    white-space: nowrap!important;
-    overflow: hidden!important;
-    text-overflow: ellipsis!important;
     line-height: 1.2!important;
-    text-align: left!important;
-  }
-
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header > .inline-drawer-icon {
-    flex: 0 0 auto!important;
-    width: auto!important;
-    min-width: 0!important;
-    margin: 0 0 0 auto!important;
   }
 }
 
@@ -22642,17 +23620,17 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndS
 /* ========================================================================== */
 
 /* Additional Matching Sources: always-open normal block on desktop + mobile. */
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn {
   width: 100%!important;
   min-width: 0!important;
   max-width: 100%!important;
   border: 1px solid var(--mt-border)!important;
   border-radius: 12px!important;
-  background: var(--mt-surface-2)!important;
+  background: transparent!important;
   overflow: hidden!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header {
   display: flex!important;
   align-items: center!important;
   justify-content: flex-start!important;
@@ -22667,11 +23645,11 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
   pointer-events: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header > .inline-drawer-icon {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header > .inline-drawer-icon {
   display: none!important;
 }
 
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-content {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-content {
   display: block!important;
   max-height: none!important;
   opacity: 1!important;
@@ -22684,7 +23662,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
 @media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 960px) {
   /* The selected-entry phone header should only contain the actual form block,
      with no leftover action-column spacing. */
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header > .world_entry_thin_controls {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header > .world_entry_thin_controls {
     display: block!important;
     width: 100%!important;
     min-width: 0!important;
@@ -22692,11 +23670,11 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
     padding: 0!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header > .world_entry_thin_controls > *:not(.flex-container.alignitemscenter.wide100p) {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header > .world_entry_thin_controls > *:not(.flex-container.alignitemscenter.wide100p) {
     display: none!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header > .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header > .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
     display: grid!important;
     grid-template-columns: minmax(0, 1fr)!important;
     width: 100%!important;
@@ -22707,43 +23685,21 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
     gap: 6px!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus,
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus,
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls {
     width: 100%!important;
     min-width: 0!important;
     max-width: 100%!important;
     justify-self: stretch!important;
-  }
-
-  /* Keep Share to Community as a real full-width row on phones. */
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-community-share-row {
-    width: 100%!important;
-    min-width: 0!important;
-  }
-
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-community-share-row > .nt-native-community-share-lorebook {
-    width: 100%!important;
-    max-width: 100%!important;
-    min-width: 0!important;
-    justify-self: stretch!important;
-    justify-content: center!important;
-    padding: 0 12px!important;
-  }
-
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-community-share-row > .nt-native-community-share-lorebook span {
-    display: block!important;
-    width: auto!important;
-    max-width: 100%!important;
-    text-align: center!important;
   }
 
   /* Additional Matching Sources should read like a normal section and stay on a single line. */
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header {
     min-height: 38px!important;
     padding: 9px 10px!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header > strong[data-i18n="Additional Matching Sources"] {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header > strong[data-i18n="Additional Matching Sources"] {
     display: block!important;
     width: 100%!important;
     min-width: 0!important;
@@ -22764,7 +23720,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
 /* Override that native/global grid at a higher specificity.                    */
 /* ========================================================================== */
 @media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 960px) {
-  body.mt-enabled #nt-lorebook-modal #WorldInfo .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header {
+  body.mt-enabled #nt-lorebook-workspace #WorldInfo .nt-lorebook-selected-entry > form > .inline-drawer > .inline-drawer-header {
     display: block!important;
     grid-template-columns: none!important;
     grid-template-rows: none!important;
@@ -22774,7 +23730,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
     padding: 0 0 10px!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal #WorldInfo .nt-lorebook-selected-entry .inline-drawer-header > .world_entry_thin_controls {
+  body.mt-enabled #nt-lorebook-workspace #WorldInfo .nt-lorebook-selected-entry .inline-drawer-header > .world_entry_thin_controls {
     display: block!important;
     grid-column: 1 / -1!important;
     grid-row: auto!important;
@@ -22786,7 +23742,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
     padding: 0!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal #WorldInfo .nt-lorebook-selected-entry .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
+  body.mt-enabled #nt-lorebook-workspace #WorldInfo .nt-lorebook-selected-entry .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
     display: grid!important;
     grid-column: 1 / -1!important;
     grid-row: auto!important;
@@ -22799,9 +23755,9 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
     justify-self: stretch!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal #WorldInfo .nt-lorebook-selected-entry .WIEntryTitleAndStatus,
-  body.mt-enabled #nt-lorebook-modal #WorldInfo .nt-lorebook-selected-entry .WIEntryTitleAndStatus > .flex-container,
-  body.mt-enabled #nt-lorebook-modal #WorldInfo .nt-lorebook-selected-entry .WIEntryTitleAndStatus textarea[name="comment"] {
+  body.mt-enabled #nt-lorebook-workspace #WorldInfo .nt-lorebook-selected-entry .WIEntryTitleAndStatus,
+  body.mt-enabled #nt-lorebook-workspace #WorldInfo .nt-lorebook-selected-entry .WIEntryTitleAndStatus > .flex-container,
+  body.mt-enabled #nt-lorebook-workspace #WorldInfo .nt-lorebook-selected-entry .WIEntryTitleAndStatus textarea[name="comment"] {
     width: 100%!important;
     min-width: 0!important;
     max-width: 100%!important;
@@ -22810,7 +23766,7 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
     justify-self: stretch!important;
   }
 
-  body.mt-enabled #nt-lorebook-modal #WorldInfo .nt-lorebook-selected-entry .WIEnteryHeaderControls {
+  body.mt-enabled #nt-lorebook-workspace #WorldInfo .nt-lorebook-selected-entry .WIEnteryHeaderControls {
     display: grid!important;
     grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr))!important;
     width: 100%!important;
@@ -22830,13 +23786,13 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
 /* compact so the comment field gets the largest possible width.               */
 /* ========================================================================== */
 @media (min-width: 681px) and (min-height: 521px), (min-width: 961px) {
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_thin_controls > .flex-container.alignitemscenter.wide100p {
     grid-template-columns: minmax(0, 1fr) max-content !important;
     gap: 10px !important;
     align-items: end !important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: auto 38px !important;
     width: 100% !important;
@@ -22844,25 +23800,25 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
     column-gap: 0 !important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus::after,
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry select[name="entryStateSelector"] {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus::after,
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry select[name="entryStateSelector"] {
     display: none !important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus > .flex-container {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus > .flex-container {
     grid-column: 1 !important;
     grid-row: 2 !important;
     width: 100% !important;
     min-width: 0 !important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEntryTitleAndStatus textarea[name="comment"] {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus textarea[name="comment"] {
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls {
     grid-template-columns: minmax(86px, 100px) repeat(3, minmax(54px, 68px)) !important;
     gap: 6px !important;
     width: max-content !important;
@@ -22871,19 +23827,19 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
     align-items: stretch !important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls > .world_entry_form_control {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls > .world_entry_form_control {
     width: 100% !important;
     min-width: 0 !important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls input,
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls select {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls input,
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls select {
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
   }
 
-  body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .WIEnteryHeaderControls select[name="position"] {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls select[name="position"] {
     padding-left: 6px !important;
     padding-right: 6px !important;
   }
@@ -22894,24 +23850,16 @@ body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit
 /* Keep the section as a normal always-open frame, but let it use the same    */
 /* surface as the main Lorebook detail body instead of the brighter surface-2. */
 /* ========================================================================== */
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn {
-  background: transparent!important;
-  border-color: var(--mt-border)!important;
-}
-
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-header,
-body.mt-enabled #nt-lorebook-modal .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-content {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_edit > .inline-drawer.wide100p.flexFlowColumn > .inline-drawer-content {
   background: transparent!important;
 }
 
 /* ========================================================================
-   Backgrounds — native SillyTavern content inside the NastyTavern modal
-   Keep every native control/handler intact; only the shell and visual layout
-   are owned by NastyTavern. Modal-specific selectors intentionally outrank
-   dock/panel-switching rules that otherwise position #Backgrounds as a drawer.
+   Backgrounds — native SillyTavern content inside the NastyTavern workspace.
+   Keep every native control/handler intact while NastyTavern owns layout.
    ======================================================================== */
 
-body.mt-enabled #nt-background-modal .nt-background-modal-body {
+body.mt-enabled #nt-background-workspace .nt-background-workspace-host {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -22921,10 +23869,10 @@ body.mt-enabled #nt-background-modal .nt-background-modal-body {
   background: transparent;
 }
 
-body.mt-enabled.mt-dock-panels #nt-background-modal #Backgrounds.mt-native-panel,
-body.mt-enabled.mt-panel-switching #nt-background-modal #Backgrounds.mt-native-panel,
-body.mt-enabled.mt-focus-mode.mt-dock-panels #nt-background-modal #Backgrounds.mt-native-panel,
-body.mt-enabled #nt-background-modal #Backgrounds.mt-native-panel {
+body.mt-enabled.mt-dock-panels #nt-background-workspace #Backgrounds.mt-native-panel,
+body.mt-enabled.mt-panel-switching #nt-background-workspace #Backgrounds.mt-native-panel,
+body.mt-enabled.mt-focus-mode.mt-dock-panels #nt-background-workspace #Backgrounds.mt-native-panel,
+body.mt-enabled #nt-background-workspace #Backgrounds.mt-native-panel {
   position: relative !important;
   inset: auto !important;
   top: auto !important;
@@ -22959,20 +23907,18 @@ body.mt-enabled #nt-background-modal #Backgrounds.mt-native-panel {
   animation: none !important;
 }
 
-/* The modal header is the single page title/chrome. */
-body.mt-enabled #nt-background-modal #Backgrounds > .mt-workspace-chrome,
-body.mt-enabled #nt-background-modal #Backgrounds #bg-header-fixed .bg-header-row-1 > h3,
-body.mt-enabled #nt-background-modal #Backgrounds #bg-header-fixed .bg-header-row-1 > .expander {
+/* Remove only duplicate workspace chrome; the native Backgrounds toolbar remains. */
+body.mt-enabled #nt-background-workspace #Backgrounds > .mt-workspace-chrome {
   display: none !important;
 }
 
-body.mt-enabled #nt-background-modal #Backgrounds #bg-header-fixed {
+body.mt-enabled #nt-background-workspace #Backgrounds #bg-header-fixed {
   flex: 0 0 auto;
   border-radius: 12px;
   background: rgba(255,255,255,.018);
 }
 
-body.mt-enabled #nt-background-modal #Backgrounds #bg_tabs {
+body.mt-enabled #nt-background-workspace #Backgrounds #bg_tabs {
   display: flex !important;
   flex: 1 1 auto !important;
   flex-direction: column !important;
@@ -22984,7 +23930,7 @@ body.mt-enabled #nt-background-modal #Backgrounds #bg_tabs {
   background: rgba(255,255,255,.012);
 }
 
-body.mt-enabled #nt-background-modal #Backgrounds #bg_tabs .bg_tab_panel {
+body.mt-enabled #nt-background-workspace #Backgrounds #bg_tabs .bg_tab_panel {
   flex: 1 1 auto !important;
   min-width: 0 !important;
   min-height: 0 !important;
@@ -22996,51 +23942,51 @@ body.mt-enabled #nt-background-modal #Backgrounds #bg_tabs .bg_tab_panel {
   -webkit-overflow-scrolling: touch;
 }
 
-body.mt-enabled #nt-background-modal #Backgrounds :is(#bg-filter,#bg-sort,#background_fitting) {
+body.mt-enabled #nt-background-workspace #Backgrounds :is(#bg-filter,#bg-sort,#background_fitting) {
   background: rgba(255,255,255,.03);
   border-color: var(--mt-border);
 }
 
-body.mt-enabled #nt-background-modal #Backgrounds :is(#auto_background,#bg_add_folder_button,#add_background_button_top),
-body.mt-enabled #nt-background-modal #Backgrounds #bg_tabs .heading-controls .menu_button {
+body.mt-enabled #nt-background-workspace #Backgrounds :is(#auto_background,#bg_add_folder_button,#add_background_button_top),
+body.mt-enabled #nt-background-workspace #Backgrounds #bg_tabs .heading-controls .menu_button {
   border: 1px solid var(--mt-border);
   background: rgba(255,255,255,.028);
   color: var(--mt-text);
   box-shadow: none;
 }
 
-body.mt-enabled #nt-background-modal #Backgrounds :is(#auto_background,#bg_add_folder_button,#add_background_button_top):hover,
-body.mt-enabled #nt-background-modal #Backgrounds #bg_tabs .heading-controls .menu_button:hover {
+body.mt-enabled #nt-background-workspace #Backgrounds :is(#auto_background,#bg_add_folder_button,#add_background_button_top):hover,
+body.mt-enabled #nt-background-workspace #Backgrounds #bg_tabs .heading-controls .menu_button:hover {
   border-color: var(--mt-border-strong);
   background: color-mix(in srgb,var(--mt-accent) 8%,rgba(255,255,255,.035));
 }
 
 @media (max-width: 680px) {
-  body.mt-enabled #nt-background-modal #Backgrounds.mt-native-panel {
+  body.mt-enabled #nt-background-workspace #Backgrounds.mt-native-panel {
     padding: 8px !important;
     gap: 8px;
   }
 
-  body.mt-enabled #nt-background-modal #Backgrounds #bg-header-fixed {
+  body.mt-enabled #nt-background-workspace #Backgrounds #bg-header-fixed {
     padding: 8px;
   }
 
-  body.mt-enabled #nt-background-modal #Backgrounds .bg-header-row-1 {
+  body.mt-enabled #nt-background-workspace #Backgrounds .bg-header-row-1 {
     grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important;
   }
 
-  body.mt-enabled #nt-background-modal #Backgrounds .bg-header-row-2 {
+  body.mt-enabled #nt-background-workspace #Backgrounds .bg-header-row-2 {
     grid-template-columns: minmax(0,1fr) 82px !important;
   }
 }
 
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1024px) {
-  body.mt-enabled #nt-background-modal #Backgrounds.mt-native-panel {
+  body.mt-enabled #nt-background-workspace #Backgrounds.mt-native-panel {
     padding: 6px !important;
     gap: 6px;
   }
 
-  body.mt-enabled #nt-background-modal #Backgrounds #bg-header-fixed {
+  body.mt-enabled #nt-background-workspace #Backgrounds #bg-header-fixed {
     padding: 6px 8px;
   }
 }
@@ -25519,103 +26465,22 @@ body.mt-enabled #nt-character-details-modal[data-nt-character-details-context="c
 .nt-catalogue-copy-risk svg { width: 14px; height: 14px; }
 
 .nt-catalogue-home { display: grid; gap: 22px; padding: 2px 2px 24px; }
-.nt-catalogue-home-hero {
-  position: relative;
-  overflow: hidden;
-  min-height: 210px;
-  padding: 30px;
-  border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 72%, #8e65ff 28%);
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(137,89,255,.24), transparent 35%),
-    radial-gradient(circle at 85% 80%, rgba(69,184,255,.12), transparent 34%),
-    linear-gradient(135deg, rgba(15,13,26,.98), rgba(19,17,33,.92));
-}
-.nt-catalogue-home-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,.035) 50%, transparent 78%);
-}
-.nt-catalogue-home-hero > div { position: relative; z-index: 1; display: flex; gap: 20px; max-width: 900px; }
-.nt-catalogue-home-hero > div > span {
-  display: grid; place-items: center; flex: 0 0 62px; width: 62px; height: 62px; border-radius: 18px;
-  background: rgba(129,86,255,.16); border: 1px solid rgba(163,130,255,.28); color: #c8b6ff;
-}
-.nt-catalogue-home-hero > div > span svg { width: 31px; height: 31px; }
-.nt-catalogue-home-hero small { opacity: .68; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
-.nt-catalogue-home-hero h2 { margin: 5px 0 8px; font-size: clamp(25px, 3vw, 38px); line-height: 1.08; }
-.nt-catalogue-home-hero p { margin: 0; max-width: 760px; opacity: .74; font-size: 14px; line-height: 1.55; }
-.nt-catalogue-home-hero div > div > div { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
-.nt-catalogue-home-hero button,
-.nt-catalogue-home-shelf header button,
 .nt-catalogue-back {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
 }
 
-.nt-catalogue-home-shelf { display: grid; gap: 12px; min-width: 0; }
-.nt-catalogue-home-shelf > header,
 .nt-catalogue-collections-page > section > header {
   display: flex; align-items: end; justify-content: space-between; gap: 16px;
 }
-.nt-catalogue-home-shelf > header > div,
 .nt-catalogue-collections-page > section > header > div { display: grid; gap: 2px; }
-.nt-catalogue-home-shelf > header b,
 .nt-catalogue-collections-page > section > header b { font-size: 17px; }
-.nt-catalogue-home-shelf > header small,
 .nt-catalogue-collections-page > section > header small { opacity: .58; }
-.nt-catalogue-home-shelf > header button { background: transparent; border: 0; opacity: .78; }
-.nt-catalogue-home-shelf > header button:hover { opacity: 1; }
-.nt-catalogue-home-track {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(220px, 255px);
-  gap: 13px;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: thin;
-  padding: 2px 2px 8px;
-}
-.nt-catalogue-home-track .nt-catalogue-card { min-width: 0; }
 .nt-catalogue-home-empty {
   min-height: 92px; display: grid; place-items: center; padding: 20px;
   border: 1px dashed color-mix(in srgb, var(--SmartThemeBorderColor) 75%, transparent);
   border-radius: 16px; opacity: .62; text-align: center;
 }
 
-.nt-catalogue-creator-strip,
-.nt-catalogue-collection-strip {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(220px, 1fr);
-  gap: 10px;
-  overflow-x: auto;
-  padding: 1px 1px 6px;
-}
-.nt-catalogue-creator-chip,
-.nt-catalogue-collection-card {
-  display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 82%, transparent);
-  border-radius: 15px; background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 92%, transparent);
-  text-align: left;
-}
-.nt-catalogue-creator-chip:hover,
-.nt-catalogue-collection-card:hover { border-color: rgba(145,101,255,.56); transform: translateY(-1px); }
-.nt-catalogue-creator-chip > img,
-.nt-catalogue-creator-chip > span {
-  width: 46px; height: 46px; flex: 0 0 46px; border-radius: 50%; object-fit: cover;
-  display: grid; place-items: center; background: rgba(128,88,255,.16); font-weight: 800;
-}
-.nt-catalogue-creator-chip > div,
-.nt-catalogue-collection-card > div { display: grid; gap: 2px; min-width: 0; }
-.nt-catalogue-creator-chip b,
-.nt-catalogue-collection-card b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nt-catalogue-creator-chip small,
-.nt-catalogue-collection-card small { opacity: .58; }
-.nt-catalogue-collection-card > span { color: #bda6ff; }
-.nt-catalogue-collection-card > span svg { width: 28px; height: 28px; }
-.nt-catalogue-collection-card p { margin: 4px 0 0; font-size: 12px; opacity: .67; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .nt-catalogue-creator-page { display: grid; gap: 18px; }
 .nt-catalogue-creator-profile {
@@ -25697,10 +26562,6 @@ body.mt-enabled #nt-character-details-modal[data-nt-character-details-context="c
 
 @media (max-width: 760px) {
   .nt-catalogue-home { gap: 17px; }
-  .nt-catalogue-home-hero { min-height: 0; padding: 18px; border-radius: 18px; }
-  .nt-catalogue-home-hero > div { gap: 12px; }
-  .nt-catalogue-home-hero > div > span { width: 48px; height: 48px; flex-basis: 48px; border-radius: 14px; }
-  .nt-catalogue-home-track { grid-auto-columns: minmax(190px, 78vw); }
   .nt-catalogue-creator-profile { grid-template-columns: auto 70px minmax(0,1fr); gap: 11px; padding: 14px; }
   .nt-catalogue-creator-avatar { width: 70px; height: 70px; border-radius: 18px; }
   .nt-catalogue-report-card { grid-template-columns: 64px minmax(0,1fr); }
@@ -25712,8 +26573,6 @@ body.mt-enabled #nt-character-details-modal[data-nt-character-details-context="c
 }
 
 @media (max-width: 520px) {
-  .nt-catalogue-home-hero > div > span { display: none; }
-  .nt-catalogue-home-hero h2 { font-size: 25px; }
   .nt-catalogue-creator-profile { grid-template-columns: 1fr; }
   .nt-catalogue-creator-profile .nt-catalogue-back { justify-self: start; }
   .nt-catalogue-creator-avatar { width: 78px; height: 78px; }
@@ -26494,9 +27353,6 @@ body.mt-enabled.waifuMode #nt-chat-toolbar {
 }
 
 /* v0.1.4 — Community privacy controls */
-.nt-pref-setting-row.is-disabled {
-  opacity: .58;
-}
 
 .nt-pref-setting-row.is-disabled input {
   cursor: not-allowed;
@@ -27248,10 +28104,6 @@ body.mt-enabled.datacat-browser-stable-layer-open #mt-root :is(.mt-sidebar, .mt-
   display: none;
 }
 
-.mt-appbar-third-party .nt-third-party-launcher {
-  flex: 0 0 auto;
-}
-
 /* Character library source flyout -----------------------------------------------
    Character-library integrations share one ordinary navigation button. The
    source chooser opens beside the main navigation instead of expanding inside
@@ -27337,7 +28189,7 @@ body.mt-enabled.nt-mobile-nav-forced .mt-nav-library-group > .mt-nav-group-toggl
    The Character modal owns card geometry. Themes may decorate native character
    cards, but transforms/negative positioning from the drawer layout must not be
    inherited inside NastyTavern's modal grid where they lift and clip cards. */
-body.mt-enabled #nt-character-modal #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) {
+body.mt-enabled #nt-character-workspace #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) {
   position: relative !important;
   inset: auto !important;
   top: auto !important;
@@ -27351,7 +28203,7 @@ body.mt-enabled #nt-character-modal #rm_print_characters_block > :is(.character_
   margin-block-end: 0 !important;
 }
 
-body.mt-enabled #nt-character-modal #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) :is(.avatar, .character_select_container, .group_select_container, .character_name_block) {
+body.mt-enabled #nt-character-workspace #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) :is(.avatar, .character_select_container, .group_select_container, .character_name_block) {
   inset: auto !important;
   top: auto !important;
   translate: none !important;
@@ -27359,12 +28211,12 @@ body.mt-enabled #nt-character-modal #rm_print_characters_block > :is(.character_
   scale: 1 !important;
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) .avatar {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) .avatar {
   position: relative !important;
   margin: 0 auto !important;
 }
 
-body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) .avatar img {
+body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) .avatar img {
   position: static !important;
   inset: auto !important;
   margin: 0 !important;
@@ -27539,3 +28391,666 @@ body.mt-enabled #nt-character-create-modal .nt-character-create-action-slot .nt-
     padding-inline: 10px;
   }
 }
+
+/* Persona Studio owns the built-in Persona surface. SillyTavern's native
+   Persona controls remain mounted only as an inert compatibility backend. */
+body.mt-enabled #nt-persona-native-backend {
+  display: none;
+}
+
+/* Lorebook Library ------------------------------------------------------------
+   Gallery-first NastyTavern World Info browser inspired by World Info Gallery.
+   The native SillyTavern editor remains the editing source of truth and is only
+   shown after a Lorebook is selected. */
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-workspace-host {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Gallery and editor are two states of the same Lorebook body. The native
+   World Info editor is mounted inside the detail state rather than rendered as
+   a sibling below it, so opening a Lorebook replaces the library body exactly
+   like Persona gallery -> detail navigation. */
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-surface {
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-editor-view {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-editor-view[hidden] {
+  display: none;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-native-host {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo.nt-lorebook-split-ready {
+  flex: 1 1 auto!important;
+  height: 100%!important;
+  min-height: 0!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace.is-gallery-view .nt-lorebook-workspace-toggle {
+  display: none!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library[hidden] {
+  display: none;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-header,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-toolbar,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-footer,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-editor-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-header {
+  justify-content: flex-end;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--mt-border);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-actions .nt-control-btn,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-editor-bar .nt-control-btn {
+  min-height: 36px;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-actions .nt-icon-btn {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-toolbar {
+  flex-wrap: wrap;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-search {
+  position: relative;
+  flex: 1 1 260px;
+  min-width: min(220px, 100%);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-search > svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  fill: currentColor;
+  color: var(--mt-text-3);
+  pointer-events: none;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-search input {
+  width: 100%;
+  min-height: 38px;
+  padding-left: 34px;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-filters {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-filters::-webkit-scrollbar {
+  display: none;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-filter {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mt-text-2);
+  font: inherit;
+  font-size: var(--nt-font-secondary);
+  cursor: pointer;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-filter:hover {
+  background: var(--mt-surface-2);
+  color: var(--mt-text);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-filter.is-active {
+  border-color: color-mix(in srgb, var(--mt-accent) 42%, var(--mt-border));
+  background: color-mix(in srgb, var(--mt-accent) 11%, transparent);
+  color: var(--mt-text);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sort {
+  flex: 0 0 auto;
+  width: auto!important;
+  min-width: 108px!important;
+  min-height: 36px!important;
+  margin: 0!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-body {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 2px;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
+  gap: 10px;
+  align-content: start;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--mt-border);
+  border-radius: var(--mt-radius);
+  background: var(--mt-surface);
+  overflow: hidden;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card:hover {
+  border-color: color-mix(in srgb, var(--mt-accent) 34%, var(--mt-border));
+  background: var(--mt-surface-2);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card-open {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  display: block;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card-open:focus-visible,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-toggle:focus-visible,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-filter:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mt-accent) 70%, transparent);
+  outline-offset: -2px;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-bottom: 1px solid var(--mt-border);
+  background: var(--mt-surface-2);
+  color: var(--mt-text-2);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-cover > img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-cover > span {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(28px, 4vw, 46px);
+  font-weight: 750;
+  letter-spacing: .04em;
+  color: color-mix(in srgb, var(--mt-accent) 78%, var(--mt-text));
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-cover:not(.has-image) > svg {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  color: var(--mt-text-3);
+  opacity: .55;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 42px 11px 11px;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card-copy > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mt-text);
+  font-size: var(--nt-font-body);
+  line-height: 1.25;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-bindings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-bindings > span {
+  max-width: 100%;
+  padding: 2px 6px;
+  overflow: hidden;
+  border: 1px solid var(--mt-border);
+  border-radius: 6px;
+  color: var(--mt-text-2);
+  font-size: var(--nt-font-meta);
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-bindings > span.is-muted {
+  color: var(--mt-text-3);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-toggle {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--mt-border);
+  border-radius: 7px;
+  background: var(--mt-surface-2);
+  color: var(--mt-text-3);
+  cursor: pointer;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-toggle:hover:not(:disabled) {
+  border-color: var(--mt-border-strong);
+  background: var(--mt-surface-3);
+  color: var(--mt-text);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-toggle:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-toggle.is-active {
+  border-color: color-mix(in srgb, var(--mt-accent) 45%, var(--mt-border));
+  background: color-mix(in srgb, var(--mt-accent) 12%, var(--mt-surface-2));
+  color: var(--mt-accent);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-footer {
+  justify-content: space-between;
+  min-height: 38px;
+  padding-top: 9px;
+  border-top: 1px solid var(--mt-border);
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-secondary);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-pager {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-pager .nt-icon-btn {
+  width: 32px;
+  height: 32px;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-empty {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  color: var(--mt-text-3);
+  text-align: center;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-empty > svg {
+  width: 32px;
+  height: 32px;
+  fill: currentColor;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-empty > strong {
+  color: var(--mt-text);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-editor-bar {
+  min-height: 48px;
+  padding: 0 0 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--mt-border);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-editor-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-editor-heading:empty {
+  display: none;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-name-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  margin: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--mt-border);
+  border-radius: 7px;
+  background: rgba(255,255,255,.032);
+  color: var(--mt-text);
+  box-shadow: none;
+  font: inherit;
+  font-size: var(--nt-font-subtitle);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-name-input:hover:not(:disabled) {
+  border-color: var(--mt-border-strong);
+  background: rgba(255,255,255,.045);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-name-input:focus-visible {
+  outline: 2px solid color-mix(in srgb,var(--mt-accent) 48%,transparent);
+  outline-offset: 2px;
+  border-color: color-mix(in srgb,var(--mt-accent) 56%,var(--mt-border));
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-name-input:disabled {
+  opacity: .65;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-folder-heading {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 6px 3px;
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta);
+  font-weight: var(--nt-weight-label);
+  text-transform: uppercase;
+  letter-spacing: .035em;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-folder-heading > svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-folder-heading > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-folder-heading > small {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+@media (max-width: 760px) {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library {
+    gap: 10px;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-header {
+    align-items: flex-start;
+  }
+
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-actions .nt-control-btn span {
+    display: none;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-actions .nt-control-btn {
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-search {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-filters {
+    grid-column: 1;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-sort {
+    grid-column: 2;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-editor-bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+}
+
+@media (max-width: 390px) {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-cover {
+    aspect-ratio: 2 / 1;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-header {
+    padding-bottom: 7px;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-footer {
+    padding-top: 6px;
+  }
+}
+
+
+/* NastyTavern 0.1.8 r22 — Lorebook entry header + icon cleanup ------------
+   The entry page owns its Lorebook identity inline. Remove SillyTavern's
+   leftover "or" separator at every viewport size, place the editable Lorebook
+   name in the native file-action row, and use the shared NastyTavern SVG icon
+   language for entry/file actions instead of mixing Font Awesome glyphs. */
+body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo #world_popup
+  > .flex-container.alignitemscenter:first-of-type > small[data-i18n="or"] {
+  display: none!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo .nt-lorebook-file-actions-row {
+  display: flex!important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%!important;
+  min-width: 0!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo .nt-lorebook-file-actions-row > .nt-lorebook-name-input {
+  order: -10;
+  flex: 1 1 min(340px, 100%);
+  width: auto!important;
+  min-width: min(220px, 100%);
+  max-width: none;
+  min-height: 38px;
+  margin: 0!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo .nt-lorebook-file-actions-row > :is(
+  #world_popup_export,
+  #world_duplicate,
+  #world_popup_delete,
+  .nt-native-community-share-lorebook
+) {
+  flex: 0 0 auto;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-native-icon,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-entry-row > .menu_button {
+  line-height: 1;
+}
+
+body.mt-enabled #nt-lorebook-workspace :is(.nt-lorebook-native-icon, .nt-lorebook-entry-row > .menu_button) > svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--mt-text-3);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-detail-empty-icon > svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+/* Entry-type controls keep the accepted semantic emoji glyphs while matching
+   the surrounding secondary-control weight and contrast. */
+body.mt-enabled #nt-lorebook-workspace :is(
+  .nt-lorebook-entry-state,
+  .nt-lorebook-selected-entry select[name="entryStateSelector"]
+) {
+  font-weight: 650!important;
+  color: var(--mt-text-2)!important;
+}
+
+/* Lorebook phone file actions ------------------------------------------------
+   One layout source of truth for the actual file-action row. The previous
+   generic #world_popup flex rule had higher specificity than the phone grid,
+   leaving Share/Export/Duplicate/Delete squeezed onto one line. */
+@media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 960px) {
+  body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo #world_popup > .nt-lorebook-file-actions-row {
+    display: grid!important;
+    grid-template-columns: repeat(3, minmax(0, 1fr))!important;
+    gap: 8px!important;
+    align-items: stretch!important;
+    width: 100%!important;
+    min-width: 0!important;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo #world_popup > .nt-lorebook-file-actions-row > .nt-lorebook-name-input {
+    grid-column: 1 / -1!important;
+    width: 100%!important;
+    min-width: 0!important;
+    max-width: none!important;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo #world_popup > .nt-lorebook-file-actions-row > .nt-native-community-share-lorebook {
+    grid-column: 1 / -1!important;
+    width: 100%!important;
+    min-width: 0!important;
+    max-width: none!important;
+    min-height: 40px!important;
+    height: 40px!important;
+    margin: 0!important;
+    justify-self: stretch!important;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace.is-editor-view #WorldInfo #world_popup > .nt-lorebook-file-actions-row > :is(
+    #world_popup_export,
+    #world_duplicate,
+    #world_popup_delete
+  ) {
+    width: 100%!important;
+    min-width: 0!important;
+    max-width: none!important;
+    min-height: 40px!important;
+    height: 40px!important;
+    margin: 0!important;
+    justify-self: stretch!important;
+  }
+}
+

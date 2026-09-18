@@ -449,7 +449,6 @@ export class CalendarManager {
         try {
             context.setExtensionPrompt(PROMPT_KEY, prompt, Number(settings.position ?? 1), Number(settings.depth ?? 4), false, Number(settings.role ?? 0));
         } catch (error) {
-            console.warn('[NastyTavern] calendar prompt injection failed', error);
         }
         if (this.root && !this.root.hidden && this.tab === 'injection') {
             const preview = this.root.querySelector('[data-nt-calendar-preview]');

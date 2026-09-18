@@ -512,7 +512,6 @@ export class CommunityChat {
             }
             await this.loadWorkspace();
         } catch (error) {
-            console.error('[NastyTavern] Community init failed', error);
             this.loading = false;
             this.renderError(error);
         }
@@ -575,7 +574,6 @@ export class CommunityChat {
                 this.subscribeGlobalPresence();
                 await this.refreshHomeSnapshot();
             } catch (error) {
-                console.warn('[NastyTavern] Community background init failed', error);
             }
         })();
         this.backgroundInitPromise = task;
@@ -692,7 +690,7 @@ export class CommunityChat {
             .select('id,channel_id,read_at')
             .eq('mentioned_user_id', this.user.id)
             .is('read_at', null);
-        if (error) { console.warn('[NastyTavern] Could not load mentions', error); return; }
+        if (error) { return; }
         this.mentionCounts.clear();
         for (const row of data || []) this.mentionCounts.set(row.channel_id, (this.mentionCounts.get(row.channel_id) || 0) + 1);
         this.emitBadgeChanged();
@@ -916,7 +914,7 @@ export class CommunityChat {
                 lorebooks,
             };
             this.emitHomeChanged();
-        } catch (error) { console.warn('[NastyTavern] Home Community snapshot failed', error); }
+        } catch (error) {}
     }
 
     setShellMode(mode = 'workspace') {
@@ -1497,7 +1495,6 @@ export class CommunityChat {
         if (!ids.length) return;
         const { data, error } = await this.client.rpc('nt_resource_stats', { p_messages: ids });
         if (error) {
-            console.warn('[NastyTavern] Could not load Community resource stats', error);
             return;
         }
         for (const row of data || []) {
@@ -1550,7 +1547,6 @@ export class CommunityChat {
         if (!Number.isFinite(id) || !this.client || !this.user) return;
         const { error } = await this.client.rpc('nt_record_resource_acquisition', { p_message: id, p_action: action === 'download' ? 'download' : 'import' });
         if (error) {
-            console.warn('[NastyTavern] Could not record Community resource acquisition', error);
             return;
         }
         await this.loadResourceStats([id]);
@@ -1780,7 +1776,6 @@ export class CommunityChat {
         }
         const { count, error } = await this.client.from('nt_reports').select('id', { count: 'exact', head: true }).eq('status', 'open');
         if (error) {
-            console.warn('[NastyTavern] Could not load open report count', error);
             return this.openReportCount || 0;
         }
         this.openReportCount = Number(count || 0);
@@ -1969,7 +1964,7 @@ export class CommunityChat {
             try {
                 await Promise.all([this.loadMessages(), this.loadChannelMembersIndex()]);
                 this.updateDynamicAreas();
-            } catch (error) { console.warn('[NastyTavern] Community refresh failed', error); }
+            } catch (error) {}
         }, 120);
     }
 
@@ -2054,7 +2049,6 @@ export class CommunityChat {
                 if (error) throw error;
             }
         } catch (error) {
-            console.warn('[NastyTavern] Could not clear Community memberships before sign out', error);
             this.toast?.(t('Could not clear channel memberships before sign out.'));
         }
 
@@ -2232,9 +2226,8 @@ export class CommunityChat {
                 if (isSharedResource && resourcePath && resourceBucket === 'community-files') {
                     try {
                         const { error: storageError } = await this.client.storage.from(resourceBucket).remove([resourcePath]);
-                        if (storageError) console.warn('[NastyTavern] Direct Community resource cleanup failed; queued cleanup will retry.', storageError);
+                        if (storageError) {}
                     } catch (storageError) {
-                        console.warn('[NastyTavern] Direct Community resource cleanup failed; queued cleanup will retry.', storageError);
                     }
                 }
                 const { error } = await this.client.from('nt_messages').delete().eq('id', message.id).eq('user_id', this.user.id);

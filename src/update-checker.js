@@ -6,7 +6,7 @@ const REMOTE_CHANGELOG_URL = 'https://raw.githubusercontent.com/AnNastyLoneGirl/
 const CHANGELOG_URL = `${REPOSITORY_URL}/blob/main/CHANGELOG.md`;
 const LOCAL_MANIFEST_URL = new URL('../manifest.json', import.meta.url).href;
 const LOCAL_CHANGELOG_URL = new URL('../CHANGELOG.md', import.meta.url).href;
-const CACHE_KEY = 'nt:update-check:v4';
+const CACHE_KEY = 'nt:update-check:v5';
 const CACHE_TTL = 15 * 60 * 1000;
 const REQUEST_TIMEOUT = 7000;
 const UPDATE_TIMEOUT = 60 * 1000;
@@ -53,6 +53,36 @@ const stripInlineMarkdown = value => String(value ?? '')
     .replace(/_([^_]+)_/g, '$1')
     .trim();
 
+const normalizeTrackedText = value => String(value ?? '')
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(line => line.replace(/[ \t]+$/g, ''))
+    .join('\n')
+    .trim();
+
+const canonicalizeValue = value => {
+    if (Array.isArray(value)) return value.map(canonicalizeValue);
+    if (!value || typeof value !== 'object') return value;
+    return Object.fromEntries(
+        Object.keys(value)
+            .sort((left, right) => left.localeCompare(right))
+            .map(key => [key, canonicalizeValue(value[key])]),
+    );
+};
+
+const canonicalManifest = manifest => JSON.stringify(canonicalizeValue(manifest || {}));
+
+const fingerprint = value => {
+    const text = String(value ?? '');
+    let hash = 0x811c9dc5;
+    for (let index = 0; index < text.length; index += 1) {
+        hash ^= text.charCodeAt(index);
+        hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+};
+
 const fetchWithTimeout = async (url, options = {}, timeout = REQUEST_TIMEOUT) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
@@ -66,10 +96,17 @@ const fetchWithTimeout = async (url, options = {}, timeout = REQUEST_TIMEOUT) =>
     }
 };
 
-const fetchJson = async url => {
+const fetchManifestSource = async (url, { remote = false } = {}) => {
     const response = await fetchWithTimeout(url, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Update manifest request failed (${response.status})`);
-    return await response.json();
+    if (!response.ok) {
+        const scope = remote ? 'Update' : 'Local';
+        throw new Error(`${scope} manifest request failed (${response.status})`);
+    }
+    const raw = await response.text();
+    return {
+        raw,
+        manifest: JSON.parse(raw),
+    };
 };
 
 const fetchText = async (url, { remote = false } = {}) => {
@@ -110,10 +147,11 @@ const parseChangelog = (markdown, predicate) => {
     return entries;
 };
 
-const readCache = (localVersion, localRevision) => {
+const readCache = (localVersion, localRevision, localSignature) => {
     try {
         const parsed = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
         if (!parsed || parsed.localVersion !== localVersion || cleanRevision(parsed.localRevision) !== cleanRevision(localRevision)) return null;
+        if (parsed.localSignature !== localSignature) return null;
         if (!Number.isFinite(parsed.checkedAt) || Date.now() - parsed.checkedAt > CACHE_TTL) return null;
         return parsed.data || null;
     } catch (_) {
@@ -121,17 +159,19 @@ const readCache = (localVersion, localRevision) => {
     }
 };
 
-const writeCache = (localVersion, localRevision, data) => {
+const writeCache = (localVersion, localRevision, localSignature, data) => {
     try {
-        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ localVersion, localRevision: cleanRevision(localRevision), checkedAt: Date.now(), data }));
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+            localVersion,
+            localRevision: cleanRevision(localRevision),
+            localSignature,
+            checkedAt: Date.now(),
+            data,
+        }));
     } catch (_) {}
 };
 
-const getLocalManifest = async () => {
-    const response = await fetchWithTimeout(LOCAL_MANIFEST_URL, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Local manifest request failed (${response.status})`);
-    return await response.json();
-};
+const getLocalManifestSource = async () => fetchManifestSource(LOCAL_MANIFEST_URL);
 
 const getInstalledExtensionName = () => {
     try {
@@ -182,7 +222,6 @@ const getNativeRepoStatus = async extensionName => {
         const global = await requestExtensionEndpoint('version', extensionName, true);
         if (global.response.ok && global.data) return { ...global.data, extensionGlobal: true };
     } catch (error) {
-        console.warn('[NastyTavern] SillyTavern native extension update check unavailable', error);
     }
     return null;
 };
@@ -212,29 +251,43 @@ const getLocalReleaseNotes = async version => {
 };
 
 export async function getNastyTavernUpdateInfo({ force = false } = {}) {
-    let localManifest;
+    let localManifestSource;
     try {
-        localManifest = await getLocalManifest();
+        localManifestSource = await getLocalManifestSource();
     } catch (error) {
-        console.warn('[NastyTavern] Could not read local manifest for update check', error);
         return null;
     }
 
+    const localManifest = localManifestSource.manifest;
     const base = makeBaseResult(localManifest);
     if (!base.localVersion) return null;
 
+    let localChangelog = '';
+    try {
+        localChangelog = await fetchText(LOCAL_CHANGELOG_URL);
+    } catch (error) {
+    }
+
+    // The updater treats manifest.json and CHANGELOG.md as release identity files.
+    // A content fingerprint keeps same-version hotfixes detectable without being
+    // fooled by JSON formatting, line endings or trailing whitespace.
+    const localManifestCanonical = canonicalManifest(localManifest);
+    const localChangelogNormalized = normalizeTrackedText(localChangelog);
+    const localSignature = fingerprint(`${localManifestCanonical}\n---CHANGELOG---\n${localChangelogNormalized}`);
+
     if (!force) {
-        const cached = readCache(base.localVersion, base.localRevision);
+        const cached = readCache(base.localVersion, base.localRevision, localSignature);
         if (cached) return cached;
     }
 
     const [manifestResult, changelogResult, nativeResult] = await Promise.allSettled([
-        fetchJson(REMOTE_MANIFEST_URL),
+        fetchManifestSource(REMOTE_MANIFEST_URL, { remote: true }),
         fetchText(REMOTE_CHANGELOG_URL, { remote: true }),
         getNativeRepoStatus(base.extensionName),
     ]);
 
-    const remoteManifest = manifestResult.status === 'fulfilled' ? manifestResult.value : null;
+    const remoteManifestSource = manifestResult.status === 'fulfilled' ? manifestResult.value : null;
+    const remoteManifest = remoteManifestSource?.manifest || null;
     const remoteChangelog = changelogResult.status === 'fulfilled' ? changelogResult.value : '';
     const nativeStatus = nativeResult.status === 'fulfilled' ? nativeResult.value : null;
     const remoteVersion = cleanVersion(remoteManifest?.version);
@@ -244,19 +297,35 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
     const releaseComparison = remoteVersion
         ? compareReleaseIdentity(remoteVersion, remoteRevision, base.localVersion, base.localRevision)
         : 0;
+
+    const manifestChanged = Boolean(
+        remoteManifest
+        && canonicalManifest(remoteManifest) !== localManifestCanonical
+    );
+    const changelogChanged = Boolean(
+        changelogResult.status === 'fulfilled'
+        && normalizeTrackedText(remoteChangelog) !== localChangelogNormalized
+    );
+    const contentChanged = manifestChanged || changelogChanged;
+    const sameReleaseIdentity = Boolean(remoteVersion && releaseComparison === 0);
     const maintenanceUpdate = Boolean(
         remoteVersion
         && compareVersions(remoteVersion, base.localVersion) === 0
-        && remoteRevision > base.localRevision
+        && (
+            remoteRevision > base.localRevision
+            || (sameReleaseIdentity && contentChanged)
+        )
     );
 
     let state = 'unavailable';
     if (remoteVersion) {
-        // Version identifies the public release line; revision identifies maintenance
-        // builds published without a semantic version bump. This catches same-version
-        // fixes without falling back to Git's checkout state, which can be misleading
-        // after ZIP installs or local file changes.
-        state = releaseComparison > 0 ? 'available' : 'current';
+        // Newer version/revision is an update. If both sides advertise the same
+        // release identity, any meaningful manifest or changelog content change
+        // is also an update. A locally newer test revision never gets downgraded
+        // merely because its files intentionally differ from the public release.
+        state = releaseComparison > 0 || (sameReleaseIdentity && contentChanged)
+            ? 'available'
+            : 'current';
     } else if (nativeStatus && nativeStatus.isUpToDate === true) {
         state = 'current';
     }
@@ -274,12 +343,15 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
         latestVersion,
         latestRevision,
         maintenanceUpdate,
+        manifestChanged,
+        changelogChanged,
+        contentChanged,
         changes,
         extensionGlobal: nativeStatus?.extensionGlobal ?? null,
         nativeManaged: Boolean(nativeStatus),
     };
 
-    writeCache(base.localVersion, base.localRevision, result);
+    writeCache(base.localVersion, base.localRevision, localSignature, result);
     return result;
 }
 

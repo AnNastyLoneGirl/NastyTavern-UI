@@ -53,8 +53,6 @@
   "Compact": "Compact",
   "Corner radius": "Corner radius",
   "Navigation width": "Navigation width",
-  "Chat max width": "Chat max width",
-  "Message max width": "Message max width",
   "Toggle compact navigation": "Toggle compact navigation",
   "Reset NastyTavern UI": "Reset NastyTavern UI",
   "Chat controls": "Chat controls",
@@ -1128,5 +1126,10 @@
   "Could not update NastyTavern.": "Could not update NastyTavern.",
   "Character Library": "Character Library",
   "Character Library is not available.": "Character Library is not available.",
-  "Maintenance update available · installed v{installed}": "Maintenance update available · installed v{installed}"
+  "Maintenance update available · installed v{installed}": "Maintenance update available · installed v{installed}",
+  "NastyTavern update installed. Reloading to apply it.": "NastyTavern update installed. Reloading to apply it.",
+  "Lorebook name": "Lorebook name",
+  "Lorebook name cannot be empty.": "Lorebook name cannot be empty.",
+  "Could not rename this Lorebook.": "Could not rename this Lorebook.",
+  "Could not link the imported Lorebook to this Character Card.": "Could not link the imported Lorebook to this Character Card."
 }

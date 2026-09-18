@@ -277,7 +277,6 @@ export class TimelineManager {
             this.lastIdentity = this.getIdentity();
             requestAnimationFrame(() => this.focusCurrent());
         } catch (error) {
-            console.error('[NastyTavern] Timeline failed', error);
             this.toast?.('Timeline could not be built for this chat.');
             this.renderEmpty();
         } finally {
@@ -774,7 +773,6 @@ export class TimelineManager {
             this.close();
             await this.jumpToMessage(session.messageIndex);
         } catch (error) {
-            console.error('[NastyTavern] Timeline chat open failed', error);
             this.toast?.('Could not open this timeline chat.');
         }
     }
@@ -824,7 +822,6 @@ export class TimelineManager {
             this.close();
             this.toast?.('Message opened. Use its … menu and choose Branch.');
         } catch (error) {
-            console.error('[NastyTavern] Timeline branch failed', error);
             this.toast?.('Could not start a branch from this message.');
         }
     }

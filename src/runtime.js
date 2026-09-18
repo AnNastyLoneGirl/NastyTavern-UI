@@ -19,6 +19,8 @@ import { CommunityChat } from './community-chat.js';
 import { CharacterDetailsModal } from './character-details.js';
 import { ExtensionsModal } from './extensions-modal.js';
 import { CatalogueModal } from './catalogue-modal.js';
+import { PersonaManager } from './persona-manager.js';
+import { LorebookManager } from './lorebook-manager.js';
 import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
 import { emptyStateHtml } from './ui-templates.js';
 import { initI18n, startI18nObserver, stopI18nObserver, localizeOwnedUI, t, translateText } from './i18n.js';
@@ -119,10 +121,10 @@ export class NastyTavern {
         this.boundDocumentClick = event => this.onDocumentClick(event);
         this.boundDocumentChange = event => this.onDocumentChange(event);
         this.mobileNavMedia = window.matchMedia?.('(max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px)') || null;
-        this.boundResponsiveNavChange = () => this.syncResponsiveNavMode();
+        this.boundResponsiveNavChange = () => { this.syncResponsiveNavMode(); this.syncMobileChatMessageBlocks(); };
         this.chatCharacterContextTranslation = { source: '', expanded: '', translationSource: '', translationKey: '', translated: '', shown: false, translating: false, manualOriginal: false };
-        this.characterModalRoot = null;
-        this.characterModalState = null;
+        this.characterWorkspaceRoot = null;
+        this.characterWorkspaceState = null;
         this.characterCreateModalRoot = null;
         this.characterCreateModalState = null;
         this.characterCreateActionState = null;
@@ -130,6 +132,7 @@ export class NastyTavern {
         this.characterCreateTabState = null;
         this.characterCreateSubmissionState = null;
         this.characterEditLiveSaveState = null;
+        this.characterEmbeddedLoreLinkState = null;
         this.characterDialogueExamplesPopup = null;
         this.characterDialogueExamplesDraft = null;
         this.characterLibraryControlState = null;
@@ -137,23 +140,33 @@ export class NastyTavern {
         this.characterLibraryEditState = null;
         this.groupCreateReturnState = null;
         this.groupDeleteReturnState = null;
-        this.personaModalRoot = null;
-        this.personaModalState = null;
-        this.personaModalOpening = false;
-        this.personaNativeTogglePassThrough = false;
-        this.backgroundModalRoot = null;
-        this.backgroundModalState = null;
-        this.backgroundModalOpening = false;
+        this.personaWorkspaceRoot = null;
+        this.personaWorkspaceState = null;
+        this.personaWorkspaceOpening = false;
+        this.personaManager = new PersonaManager(this.settings, message => this.toast(message), {
+            isExternalProviderActive: () => this.thirdPartyWorkspaceAvailable('personas'),
+        });
+        this.backgroundWorkspaceRoot = null;
+        this.backgroundWorkspaceState = null;
+        this.backgroundWorkspaceOpening = false;
         this.extensionsModal = new ExtensionsModal(message => this.toast(message));
         this.catalogueModal = null;
-        this.lorebookModalRoot = null;
-        this.lorebookModalState = null;
-        this.lorebookModalOpening = false;
+        this.lorebookWorkspaceRoot = null;
+        this.lorebookWorkspaceState = null;
+        this.lorebookWorkspaceOpening = false;
         this.lorebookNativeTogglePassThrough = false;
         this.lorebookSettingsLayoutState = null;
         this.lorebookSettingsPopup = null;
         this.lorebookSettingsPopupState = null;
         this.lorebookSplitState = null;
+        this.lorebookNativeIconState = new Map();
+        this.lorebookManager = new LorebookManager(this.settings, message => this.toast(message), {
+            openBook: name => this.openLorebookGalleryBook(name),
+            renameBook: (oldName, newName) => this.renameLorebookFromField(oldName, newName),
+            openSettings: () => this.openLorebookSettingsPopup(),
+            onShowGallery: () => this.prepareLorebookGalleryView(),
+            syncEntryFolders: () => this.syncLorebookEntryFolders(),
+        });
         this.characterTagSortState = null;
         this.characterTagUsageCache = null;
         this.characterEmptyStateState = null;
@@ -225,6 +238,7 @@ export class NastyTavern {
         document.removeEventListener('keydown', this.boundKeydown, true);
         document.removeEventListener('click', this.boundDocumentClick, true);
         document.removeEventListener('change', this.boundDocumentChange, true);
+        this.restoreCharacterEmbeddedLoreAutoLink();
         this.mobileNavMedia?.removeEventListener?.('change', this.boundResponsiveNavChange);
         clearTimeout(this.viewSyncTimer); this.viewSyncTimer = null;
         clearTimeout(this.retagTimer); this.retagTimer = null;
@@ -264,13 +278,15 @@ export class NastyTavern {
         this.homeDashboard.unmount();
         this.variableManager.unmount();
         this.worldInfoInfo.unmount();
+        this.personaManager.unmount();
         this.shell.unmount();
-        await this.cleanupPersonaModal();
-        await this.cleanupBackgroundModal();
-        await this.cleanupLorebookModal();
-        await this.cleanupCharacterModal();
+        await this.cleanupPersonaWorkspace();
+        await this.cleanupBackgroundWorkspace();
+        await this.cleanupLorebookWorkspace();
+        await this.cleanupCharacterWorkspace();
+        this.restoreAllMobileChatMessageBlocks();
         document.querySelector('[data-nt-chat-character-context]')?.remove();
-        document.body?.classList.remove('mt-enabled','mt-density-compact','mt-density-comfortable','mt-nav-compact','mt-nav-hidden','mt-appbar-minimized','mt-focus-mode','mt-hide-native-topbar','mt-dock-panels','mt-motion','mt-panel-switching','nt-mobile-nav-forced','nt-character-modal-open','nt-character-create-modal-open','nt-group-modal-open','nt-persona-modal-open','nt-background-modal-open','nt-lorebook-modal-open','nt-extensions-modal-open','nt-chat-tools-hub-open','nt-native-side-panel-open','nt-native-side-panel-maximized');
+        document.body?.classList.remove('mt-enabled','mt-density-compact','mt-density-comfortable','mt-nav-compact','mt-nav-hidden','mt-appbar-minimized','mt-focus-mode','mt-hide-native-topbar','mt-dock-panels','mt-motion','mt-panel-switching','nt-mobile-nav-forced','nt-character-workspace-open','nt-character-create-modal-open','nt-group-modal-open','nt-persona-workspace-open','nt-background-workspace-open','nt-lorebook-workspace-open','nt-extensions-modal-open','nt-chat-tools-hub-open','nt-native-side-panel-open','nt-native-side-panel-maximized');
         document.querySelectorAll('.mt-native-panel,.mt-drawer-content,.mt-inline-card,.mt-popup-surface').forEach(el => el.classList.remove('mt-native-panel','mt-drawer-content','mt-inline-card','mt-popup-surface'));
     }
 
@@ -321,21 +337,22 @@ export class NastyTavern {
         this.catalogueModal?.mount();
         this.homeDashboard.mount();
         this.chatToolbar.mount();
+        this.personaManager.mount();
         document.addEventListener('keydown', this.boundKeydown, true);
         document.addEventListener('click', this.boundDocumentClick, true);
         document.addEventListener('change', this.boundDocumentChange, true);
+        this.installCharacterEmbeddedLoreAutoLink();
         this.mobileNavMedia?.addEventListener?.('change', this.boundResponsiveNavChange);
         startI18nObserver();
         localizeOwnedUI();
         this.interval = setInterval(() => this.updateStatus(), 1500);
-        console.info('[NastyTavern] UI overhaul active');
     }
 
     installObserver() {
         const isNastyOwnedNode = node => {
             const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
             if (!element) return false;
-            return !!element.closest?.('#mt-root, #nt-home-dashboard, #nt-community-panel, #nt-character-details-modal, #nt-variable-manager, #nt-world-info-info, #nt-chat-toolbar, #nt-chat-history, #nt-timeline-panel, #nt-context-inspector, #nt-chat-tools, #nt-calendar-manager, #nt-chat-tools-hub, #nt-preferences, #nt-health-panel, #nt-about-panel, #mt-command-palette, #nt-character-modal, #nt-character-create-modal, #nt-character-convert-confirm, #nt-group-modal, #nt-persona-modal, #nt-background-modal, #nt-lorebook-modal, #nt-extensions-modal, #nt-catalogue-modal, #nt-catalogue-upload-modal, [data-nt-chat-character-context]');
+            return !!element.closest?.('#mt-root, #nt-home-dashboard, #nt-community-panel, #nt-character-details-modal, #nt-variable-manager, #nt-world-info-info, #nt-chat-toolbar, #nt-chat-history, #nt-timeline-panel, #nt-context-inspector, #nt-chat-tools, #nt-calendar-manager, #nt-chat-tools-hub, #nt-preferences, #nt-health-panel, #nt-about-panel, #mt-command-palette, #nt-character-workspace, #nt-character-create-modal, #nt-character-convert-confirm, #nt-group-modal, #nt-persona-workspace, #nt-background-workspace, #nt-lorebook-workspace, #nt-extensions-modal, #nt-catalogue-modal, #nt-catalogue-upload-modal, [data-nt-chat-character-context], [data-nt-mobile-message-block]');
         };
 
         this.observer = new MutationObserver(mutations => {
@@ -367,7 +384,7 @@ export class NastyTavern {
                 this.syncThirdPartyLaunchers();
             }
             if (panelStateChanged) {
-                this.syncCharacterModalState();
+                this.syncCharacterWorkspaceState();
                 this.scheduleNativePanelSync(100);
             }
             if (translationAvailabilityChanged) this.syncChatCharacterContext();
@@ -406,7 +423,76 @@ export class NastyTavern {
         const form = this.dom.first('sendForm');
         if (form) form.classList.add('mt-composer');
         document.querySelectorAll('#chat .mes').forEach(mes => mes.classList.add('mt-message'));
+        this.syncMobileChatMessageBlocks();
         this.syncChatCharacterContext();
+    }
+
+    syncMobileChatMessageBlocks() {
+        const useStructuredMobileLayout = Boolean(this.mobileNavMedia?.matches);
+        document.querySelectorAll('#chat .mes:not(.smallSysMes)').forEach(message => {
+            if (useStructuredMobileLayout) this.ensureMobileChatMessageBlocks(message);
+            else this.restoreMobileChatMessageBlocks(message);
+        });
+    }
+
+    ensureMobileChatMessageBlocks(message) {
+        if (!(message instanceof HTMLElement)) return;
+        const block = message.querySelector(':scope > .mes_block');
+        if (!(block instanceof HTMLElement)) return;
+
+        // Unwrap the r34 internal layout first if it is still present after a hot reload.
+        const legacyHeader = block.querySelector(':scope > .nt-mobile-message-header');
+        if (legacyHeader instanceof HTMLElement) {
+            const legacyName = legacyHeader.querySelector(':scope > .ch_name');
+            if (legacyName) block.insertBefore(legacyName, legacyHeader);
+            legacyHeader.remove();
+        }
+        const legacyContent = block.querySelector(':scope > .nt-mobile-message-content');
+        if (legacyContent instanceof HTMLElement) {
+            for (const child of [...legacyContent.children]) block.insertBefore(child, legacyContent);
+            legacyContent.remove();
+        }
+
+        // The mobile header is a sibling of .mes_block, not a child of it. This lets
+        // the native avatar and the metadata share the first grid row so the row's
+        // height is driven by whichever is taller. Message content then starts in a
+        // separate full-width row and physically cannot flow underneath the avatar.
+        let header = message.querySelector(':scope > .nt-mobile-message-header');
+        if (!(header instanceof HTMLElement)) {
+            header = document.createElement('div');
+            header.className = 'nt-mobile-message-header';
+            header.dataset.ntMobileMessageBlock = 'header';
+        }
+        if (header.nextElementSibling !== block) message.insertBefore(header, block);
+
+        const nativeHeader = block.querySelector(':scope > .ch_name') || header.querySelector(':scope > .ch_name');
+        if (nativeHeader instanceof HTMLElement && nativeHeader.parentElement !== header) header.append(nativeHeader);
+
+        message.classList.add('nt-mobile-message-structured');
+    }
+
+    restoreMobileChatMessageBlocks(message) {
+        if (!(message instanceof HTMLElement)) return;
+        const block = message.querySelector(':scope > .mes_block');
+        if (!(block instanceof HTMLElement)) return;
+        const header = message.querySelector(':scope > .nt-mobile-message-header')
+            || block.querySelector(':scope > .nt-mobile-message-header');
+        const content = block.querySelector(':scope > .nt-mobile-message-content');
+
+        if (header instanceof HTMLElement) {
+            const nativeHeader = header.querySelector(':scope > .ch_name');
+            if (nativeHeader) block.prepend(nativeHeader);
+        }
+        if (content instanceof HTMLElement) {
+            for (const child of [...content.children]) block.insertBefore(child, content);
+        }
+        header?.remove();
+        content?.remove();
+        message.classList.remove('nt-mobile-message-structured');
+    }
+
+    restoreAllMobileChatMessageBlocks() {
+        document.querySelectorAll('#chat .mes.nt-mobile-message-structured').forEach(message => this.restoreMobileChatMessageBlocks(message));
     }
 
     getNativeSidePanelCandidates() {
@@ -479,6 +565,20 @@ export class NastyTavern {
         return providers[view] || null;
     }
 
+    isNastyTavernOwnedThirdPartyCandidate(element) {
+        if (!(element instanceof Element)) return false;
+        return Boolean(element.closest(
+            '#mt-root, #nt-home-dashboard, #nt-community-panel, #nt-character-details-modal, '
+            + '#nt-variable-manager, #nt-world-info-info, #nt-chat-toolbar, #nt-chat-history, '
+            + '#nt-timeline-panel, #nt-context-inspector, #nt-chat-tools, #nt-calendar-manager, '
+            + '#nt-chat-tools-hub, #nt-preferences, #nt-health-panel, #nt-about-panel, '
+            + '#mt-command-palette, #nt-character-workspace, #nt-character-create-modal, '
+            + '#nt-character-convert-confirm, #nt-group-modal, #nt-persona-workspace, '
+            + '#nt-background-workspace, #nt-lorebook-workspace, #nt-extensions-modal, '
+            + '#nt-catalogue-modal, #nt-catalogue-upload-modal'
+        ));
+    }
+
     thirdPartyWorkspaceAvailable(view) {
         const provider = this.thirdPartyWorkspaceDefinition(view);
         if (!provider) return false;
@@ -489,8 +589,13 @@ export class NastyTavern {
             if (provider.assetTokens.some(token => url.includes(token))) return true;
         }
         return provider.surfaceSelectors.some(selector => {
-            try { return Boolean(document.querySelector(selector)); }
-            catch (_) { return false; }
+            try {
+                return [...document.querySelectorAll(selector)].some(node =>
+                    node instanceof HTMLElement && !this.isNastyTavernOwnedThirdPartyCandidate(node)
+                );
+            } catch (_) {
+                return false;
+            }
         });
     }
 
@@ -513,6 +618,7 @@ export class NastyTavern {
             for (const node of nodes) {
                 if (!(node instanceof HTMLElement) || !this.elementIsVisible(node)) continue;
                 if (node === panel || node.closest('script,style,template')) continue;
+                if (this.isNastyTavernOwnedThirdPartyCandidate(node)) continue;
                 candidates.push(node);
             }
         }
@@ -565,6 +671,12 @@ export class NastyTavern {
                     || document.querySelector('#WIDrawerIcon')?.closest('.drawer-toggle')
                     || document.querySelector('#WIDrawerIcon');
                 nativeTrigger?.classList.add('nt-third-party-native-trigger');
+
+                // The native World Editor pin/lock only controls whether the
+                // floating SillyTavern editor stays open. World Info Gallery owns
+                // the integrated Lorebooks workspace lifecycle here, so keep the
+                // control as a compatibility hook but remove its redundant chrome.
+                panel.querySelector('#WI_panel_pin_div')?.classList.add('nt-third-party-native-pin');
             }
         }
 
@@ -597,8 +709,14 @@ export class NastyTavern {
 
         // The provider owns the feature. NastyTavern only supplies the workspace
         // boundary and navigation, keeping the extension's real DOM/listeners intact.
-        if (view === 'personas' && this.isPersonaModalOpen()) await this.closePersonaModal({ restoreFocus: false });
-        if (view === 'lorebooks' && this.isLorebookModalOpen()) await this.closeLorebookModal({ restoreFocus: false });
+        // Persona Studio normally keeps SillyTavern's native Persona DOM parked in
+        // its hidden modal between opens to avoid reopening the legacy drawer. A
+        // third-party Persona provider needs that native DOM back in its original
+        // location, so release it explicitly before delegating ownership.
+        if (view === 'personas' && (this.isPersonaWorkspaceOpen() || this.personaWorkspaceState)) {
+            await this.closePersonaWorkspace({ restoreFocus: false, restoreNative: true });
+        }
+        if (view === 'lorebooks' && this.isLorebookWorkspaceOpen()) await this.closeLorebookWorkspace({ restoreFocus: false });
 
         const existing = this.findThirdPartyWorkspaceSurface(view);
         const panel = document.querySelector(provider.panelSelector);
@@ -744,7 +862,6 @@ export class NastyTavern {
         try {
             return typeof context?.substituteParams === 'function' ? String(context.substituteParams(value)) : value;
         } catch (error) {
-            console.warn('[NastyTavern] Character context macro expansion failed.', error);
             return value;
         }
     }
@@ -763,7 +880,6 @@ export class NastyTavern {
                 target.textContent = content;
             }
         } catch (error) {
-            console.warn('[NastyTavern] Character context message formatting failed.', error);
             target.textContent = content;
         }
     }
@@ -925,7 +1041,6 @@ export class NastyTavern {
             this.renderChatCharacterContextContent(block, state.translated);
             return true;
         } catch (error) {
-            console.warn('[NastyTavern] Character context translation failed.', error);
             return false;
         } finally {
             if (this.chatCharacterContextTranslation.source === source) {
@@ -1013,17 +1128,17 @@ export class NastyTavern {
             queueMicrotask(() => void this.toggleChatCharacterContextTranslation({ forceTranslate: true }));
         }
         const nativeCharacterToggle = target?.closest?.('#rightNavHolder > .drawer-toggle, #rightNavDrawerIcon');
-        if (nativeCharacterToggle && !this.isCharacterModalOpen()) {
+        if (nativeCharacterToggle && !this.isCharacterWorkspaceOpen()) {
             event.preventDefault();
             event.stopPropagation();
-            queueMicrotask(() => this.openCharacterModal());
+            queueMicrotask(() => this.openCharacterWorkspace());
             return;
         }
         // Only intercept the native drawer launcher itself. Third-party Persona
         // workspaces live inside the drawer content; matching the whole drawer
         // would swallow their card/detail clicks during capture phase.
         const nativePersonaToggle = target?.closest?.('#persona-management-button > .drawer-toggle');
-        if (nativePersonaToggle && !this.isPersonaModalOpen()) {
+        if (nativePersonaToggle && !this.isPersonaWorkspaceOpen()) {
             if (this.thirdPartyWorkspaceAvailable('personas')) {
                 if (this.thirdPartyWorkspacePassThrough === 'personas') {
                     queueMicrotask(() => this.decorateThirdPartyWorkspace('personas'));
@@ -1034,28 +1149,23 @@ export class NastyTavern {
                 queueMicrotask(() => this.openThirdPartyWorkspace('personas'));
                 return;
             }
-            // openPersonaModal() must briefly click the native Persona toggle so
-            // SillyTavern can initialize its own controls. Let that one internal
-            // click pass through instead of intercepting it and recursively
-            // opening the NastyTavern modal again.
-            if (this.personaNativeTogglePassThrough || this.personaModalOpening) {
-                this.scheduleNativePanelSync();
-                return;
-            }
+            // Persona Studio fully owns the built-in Persona destination while
+            // NastyTavern is active. The legacy SillyTavern drawer is retained
+            // only as a hidden compatibility backend for native actions.
             event.preventDefault();
             event.stopPropagation();
-            queueMicrotask(() => this.openPersonaModal());
+            queueMicrotask(() => this.openPersonaWorkspace());
             return;
         }
         const nativeBackgroundToggle = target?.closest?.('#backgrounds-button > .drawer-toggle, #backgrounds-drawer-toggle, #backgrounds-button .drawer-icon, #logo_block > .drawer-toggle, #logo_block .drawer-icon');
-        if (nativeBackgroundToggle && !this.isBackgroundModalOpen()) {
-            if (this.backgroundModalOpening) {
+        if (nativeBackgroundToggle && !this.isBackgroundWorkspaceOpen()) {
+            if (this.backgroundWorkspaceOpening) {
                 this.scheduleNativePanelSync();
                 return;
             }
             event.preventDefault();
             event.stopPropagation();
-            queueMicrotask(() => this.openBackgroundModal());
+            queueMicrotask(() => this.openBackgroundWorkspace());
             return;
         }
 
@@ -1070,7 +1180,21 @@ export class NastyTavern {
         // Same rule for World Info: the drawer content belongs to the active
         // workspace provider, so only the real launcher may be intercepted.
         const nativeLorebookToggle = target?.closest?.('#WI-SP-button > .drawer-toggle');
-        if (nativeLorebookToggle && !this.isLorebookModalOpen()) {
+        if (nativeLorebookToggle && !this.isLorebookWorkspaceOpen()) {
+            const embeddedLoreState = this.characterEmbeddedLoreLinkState;
+            if (embeddedLoreState?.suppressNextLorebookOpen) {
+                // importEmbeddedWorldInfo() clicks the native World Info launcher
+                // immediately after setting #character_world. Do not convert that
+                // programmatic click into a NastyTavern workspace navigation: it
+                // would close Edit Character before the native character save can
+                // persist the newly linked primary Lorebook.
+                embeddedLoreState.suppressNextLorebookOpen = false;
+                clearTimeout(embeddedLoreState.suppressTimer);
+                embeddedLoreState.suppressTimer = null;
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
             if (this.thirdPartyWorkspaceAvailable('lorebooks')) {
                 if (this.thirdPartyWorkspacePassThrough === 'lorebooks') {
                     queueMicrotask(() => this.decorateThirdPartyWorkspace('lorebooks'));
@@ -1084,13 +1208,13 @@ export class NastyTavern {
             // Like Personas, Lorebooks must let one internal native click through
             // so SillyTavern can initialize the World Info editor before we mount
             // those same controls in the NastyTavern modal.
-            if (this.lorebookNativeTogglePassThrough || this.lorebookModalOpening) {
+            if (this.lorebookNativeTogglePassThrough || this.lorebookWorkspaceOpening) {
                 this.scheduleNativePanelSync();
                 return;
             }
             event.preventDefault();
             event.stopPropagation();
-            queueMicrotask(() => this.openLorebookModal());
+            queueMicrotask(() => this.openLorebookWorkspace());
             return;
         }
         this.scheduleNativePanelSync();
@@ -1372,37 +1496,26 @@ export class NastyTavern {
         button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
     }
 
-    ensureCharacterModalRoot() {
-        let root = this.characterModalRoot;
-        if (!root?.isConnected) root = document.querySelector('#nt-character-modal');
+    ensureCharacterWorkspaceRoot() {
+        let root = this.characterWorkspaceRoot;
+        if (!root?.isConnected) root = document.querySelector('#nt-character-workspace');
         if (!root) {
-            ({ root } = createModalShell({
-                id: 'nt-character-modal',
-                title: t('Characters'),
-                icon: icons.characters,
-                size: 'large',
-                modalClass: 'nt-character-modal',
-                bodyClass: 'nt-character-modal-body',
-                bodyAttrs: { 'data-nt-character-host': '' },
-                footerClass: 'nt-character-modal-footer',
-                footerHtml: '',
-                closeAttrs: { 'data-nt-character-close': '' },
-            }));
-            const footer = root.querySelector('[data-nt-character-footer]') || root.querySelector('.nt-character-modal-footer');
-            if (footer) {
-                footer.setAttribute('data-nt-character-footer', '');
-                footer.hidden = true;
-            }
-            root.addEventListener('click', event => {
-                if (event.target.closest('[data-nt-character-close]')) this.closeCharacterModal();
-            });
+            root = document.createElement('section');
+            root.id = 'nt-character-workspace';
+            root.className = 'nt-native-workspace nt-character-workspace';
+            root.hidden = true;
+            root.setAttribute('role', 'main');
+            root.setAttribute('aria-label', t('Characters'));
+            root.innerHTML = `
+                <div class="nt-native-workspace-host nt-character-workspace-host" data-nt-character-host></div>
+                <footer class="nt-character-workspace-footer" data-nt-character-footer hidden></footer>`;
             document.body.append(root);
         }
-        this.characterModalRoot = root;
+        this.characterWorkspaceRoot = root;
         return root;
     }
 
-    characterModalPanel() {
+    characterPanel() {
         return document.querySelector('#right-nav-panel[data-mt-module="characters"]') || document.querySelector('#right-nav-panel');
     }
 
@@ -1455,6 +1568,199 @@ export class NastyTavern {
         this.decorateCharacterLibraryEditOpen(panel);
     }
 
+    async resolveImportedEmbeddedLoreWorldName(requestedWorldName) {
+        const requested = String(requestedWorldName || '').trim();
+        if (!requested) return requested;
+
+        try {
+            const worldInfoModule = await import('/scripts/world-info.js');
+            if (typeof worldInfoModule.updateWorldInfoList === 'function') {
+                await worldInfoModule.updateWorldInfoList();
+            }
+            const names = Array.isArray(worldInfoModule.world_names) ? worldInfoModule.world_names : [];
+            if (names.includes(requested)) return requested;
+
+            // SillyTavern sanitizes World Info filenames on disk, while its
+            // embedded-lore importer can keep the raw Character Book name in
+            // #character_world. Resolve the actual World Info id before saving
+            // the Character Card so names containing ':' and similar characters
+            // stay linked to the Lorebook SillyTavern really created.
+            const utilsModule = await import('/scripts/utils.js');
+            const sanitized = typeof utilsModule.getSanitizedFilename === 'function'
+                ? String(await utilsModule.getSanitizedFilename(requested) || '').trim()
+                : '';
+
+            if (sanitized && names.includes(sanitized)) return sanitized;
+        } catch (error) {
+        }
+
+        return requested;
+    }
+
+    restoreCharacterEmbeddedLoreAutoLink() {
+        const state = this.characterEmbeddedLoreLinkState;
+        if (!state) return;
+        try {
+            state.jq?.(document)?.off?.('change.ntEmbeddedLoreAutoLink', '#character_world', state.onChange);
+        } catch { /* jQuery may already be unavailable during teardown. */ }
+        clearTimeout(state.suppressTimer);
+        this.characterEmbeddedLoreLinkState = null;
+    }
+
+    installCharacterEmbeddedLoreAutoLink() {
+        const jq = window.jQuery || window.$;
+        if (typeof jq !== 'function') return false;
+        if (this.characterEmbeddedLoreLinkState?.jq === jq) return true;
+
+        this.restoreCharacterEmbeddedLoreAutoLink();
+        const state = {
+            jq,
+            onChange: null,
+            savingKey: '',
+            suppressNextLorebookOpen: false,
+            suppressTimer: null,
+        };
+        state.onChange = event => {
+            const field = event?.currentTarget || event?.target;
+            void this.persistImportedEmbeddedLoreLink(field, state);
+        };
+        jq(document).on('change.ntEmbeddedLoreAutoLink', '#character_world', state.onChange);
+        this.characterEmbeddedLoreLinkState = state;
+        return true;
+    }
+
+    async persistImportedEmbeddedLoreLink(field, state = this.characterEmbeddedLoreLinkState) {
+        if (!state || state !== this.characterEmbeddedLoreLinkState) return false;
+        if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement)) return false;
+
+        let worldName = String(field.value || '').trim();
+        if (!worldName) return false;
+
+        const jq = state.jq;
+        const context = window.SillyTavern?.getContext?.();
+        const characters = Array.isArray(context?.characters) ? context.characters : [];
+
+        // importEmbeddedWorldInfo() stores the exact card being imported on this
+        // native option. Use it instead of the active-chat character because Edit
+        // Character may be opened for any library card.
+        const chid = Number(jq?.('#import_character_info')?.data?.('chid'));
+        if (!Number.isInteger(chid) || chid < 0 || !characters[chid]) return false;
+
+        const character = characters[chid];
+        const embeddedBook = character?.data?.character_book;
+        if (!embeddedBook || typeof embeddedBook !== 'object') return false;
+        const embeddedName = String(embeddedBook.name || `${character?.name || ''}'s Lorebook`).trim();
+        if (!embeddedName || embeddedName !== worldName) return false;
+
+        const resolvedWorldName = await this.resolveImportedEmbeddedLoreWorldName(worldName);
+        if (resolvedWorldName && resolvedWorldName !== worldName) {
+            worldName = resolvedWorldName;
+            // Keep SillyTavern's native hidden field aligned with the actual
+            // sanitized World Info id. Do not trigger another change event: this
+            // handler already owns the import-save sequence.
+            field.value = resolvedWorldName;
+        }
+
+        // SillyTavern's embedded-lore importer always clicks WIDrawerIcon after
+        // setting #character_world. Native SillyTavern can do that without losing
+        // the character editor, but NastyTavern normally converts that launcher
+        // click into a workspace navigation, which closes Edit Character and can
+        // cancel/reorder the pending character save. Consume only that immediate
+        // importer-generated click; a later user Lorebooks click remains normal.
+        state.suppressNextLorebookOpen = true;
+        clearTimeout(state.suppressTimer);
+        state.suppressTimer = setTimeout(() => {
+            if (this.characterEmbeddedLoreLinkState === state) state.suppressNextLorebookOpen = false;
+        }, 2000);
+
+        const avatar = String(character?.avatar || '').trim();
+        if (!avatar) return false;
+        const saveKey = `${avatar}::${worldName}`;
+        if (state.savingKey === saveKey) return false;
+        state.savingKey = saveKey;
+
+        try {
+            const nativeModule = await import('/script.js');
+
+            // Keep json_data aligned before the native save. The server ultimately
+            // uses the form's `world` field as the primary Character Lore source,
+            // but synchronizing json_data prevents any later editor save from
+            // carrying a stale pre-import snapshot.
+            const jsonField = document.querySelector('#character_json_data');
+            if (jsonField instanceof HTMLInputElement || jsonField instanceof HTMLTextAreaElement) {
+                try {
+                    const parsed = JSON.parse(String(jsonField.value || '{}'));
+                    if (parsed && typeof parsed === 'object') {
+                        const data = parsed.data && typeof parsed.data === 'object' ? parsed.data : parsed;
+                        if (!data.extensions || typeof data.extensions !== 'object' || Array.isArray(data.extensions)) data.extensions = {};
+                        data.extensions.world = worldName;
+                        jsonField.value = JSON.stringify(parsed);
+                    }
+                } catch { /* Native json_data can briefly be empty while the editor hydrates. */ }
+            }
+
+            // Match SillyTavern's working "Import Card Lore" path exactly. Its
+            // manual dropdown imports the embedded book and then calls this
+            // debounced native character save. Calling it here also fixes the
+            // automatic Yes/No popup path, which imports but omits that save.
+            if (typeof nativeModule.saveCharacterDebounced !== 'function') {
+                throw new Error('SillyTavern saveCharacterDebounced is unavailable.');
+            }
+            nativeModule.saveCharacterDebounced();
+
+            // Allow the native debounce (currently ~1s) to submit the same form.
+            // The import-generated World Info drawer click is suppressed above so
+            // the Edit Character form remains mounted and its world field intact.
+            const nativeDelay = Number(nativeModule.DEFAULT_SAVE_EDIT_TIMEOUT) || 1000;
+            await wait(nativeDelay + 650);
+
+            if (typeof nativeModule.getOneCharacter === 'function') {
+                await nativeModule.getOneCharacter(avatar);
+            }
+
+            let refreshedContext = window.SillyTavern?.getContext?.();
+            let refreshedCharacters = Array.isArray(refreshedContext?.characters) ? refreshedContext.characters : [];
+            let refreshed = refreshedCharacters.find(item => String(item?.avatar || '') === avatar) || refreshedCharacters[chid];
+
+            // Deterministic fallback through the same native edit form. This is
+            // only used if the debounced native save did not persist the link;
+            // it deliberately avoids a parallel custom Character-Lore backend.
+            if (String(refreshed?.data?.extensions?.world || '').trim() !== worldName
+                && String(field.value || '').trim() === worldName
+                && typeof nativeModule.createOrEditCharacter === 'function') {
+                await nativeModule.createOrEditCharacter();
+                if (typeof nativeModule.getOneCharacter === 'function') await nativeModule.getOneCharacter(avatar);
+                refreshedContext = window.SillyTavern?.getContext?.();
+                refreshedCharacters = Array.isArray(refreshedContext?.characters) ? refreshedContext.characters : [];
+                refreshed = refreshedCharacters.find(item => String(item?.avatar || '') === avatar) || refreshedCharacters[chid];
+            }
+
+            if (String(refreshed?.data?.extensions?.world || '').trim() !== worldName) {
+                throw new Error('Character Lore link was not returned by SillyTavern after native save.');
+            }
+
+            // Refresh the serialized native card snapshot with the server result,
+            // so subsequent NastyTavern live-saves cannot restore stale data.
+            if (jsonField && typeof refreshed?.json_data === 'string' && refreshed.json_data.trim()) {
+                jsonField.value = refreshed.json_data;
+            }
+
+            try {
+                const worldInfoModule = await import('/scripts/world-info.js');
+                worldInfoModule.setWorldInfoButtonClass?.(chid, true);
+            } catch { /* Cosmetic refresh only. */ }
+
+            return true;
+        } catch (error) {
+            this.toast(t('Could not link the imported Lorebook to this Character Card.'));
+            return false;
+        } finally {
+            if (this.characterEmbeddedLoreLinkState === state && state.savingKey === saveKey) {
+                state.savingKey = '';
+            }
+        }
+    }
+
     decorateCharacterLibraryEditOpen(panel) {
         const list = panel?.querySelector('#rm_print_characters_block');
         if (!list) return;
@@ -1491,33 +1797,26 @@ export class NastyTavern {
         this.characterLibraryEditState = { list, onClick };
     }
 
-    ensurePersonaModalRoot() {
-        let root = this.personaModalRoot;
-        if (!root?.isConnected) root = document.querySelector('#nt-persona-modal');
+    ensurePersonaWorkspaceRoot() {
+        let root = this.personaWorkspaceRoot;
+        if (!root?.isConnected) root = document.querySelector('#nt-persona-workspace');
         if (!root) {
-            ({ root } = createModalShell({
-                id: 'nt-persona-modal',
-                title: t('Personas'),
-                icon: icons.persona,
-                size: 'wide',
-                modalClass: 'nt-persona-modal',
-                headerClass: 'nt-persona-modal-header',
-                bodyClass: 'nt-persona-modal-body',
-                bodyAttrs: { 'data-nt-persona-host': '' },
-                closeAttrs: { 'data-nt-persona-close': '' },
-            }));
-            root.addEventListener('click', event => {
-                if (event.target.closest('[data-nt-persona-close]')) void this.closePersonaModal();
-            });
+            root = document.createElement('section');
+            root.id = 'nt-persona-workspace';
+            root.className = 'nt-persona-workspace';
+            root.hidden = true;
+            root.setAttribute('aria-label', t('Personas'));
+            root.setAttribute('role', 'main');
+            root.innerHTML = '<div class="nt-persona-workspace-host" data-nt-persona-host></div>';
             document.body.append(root);
         }
-        this.personaModalRoot = root;
+        this.personaWorkspaceRoot = root;
         return root;
     }
 
-    isPersonaModalOpen() {
-        const root = this.personaModalRoot || document.querySelector('#nt-persona-modal');
-        return Boolean(root && !root.hidden && root.classList.contains('is-open'));
+    isPersonaWorkspaceOpen() {
+        const root = this.personaWorkspaceRoot || document.querySelector('#nt-persona-workspace');
+        return Boolean(root && !root.hidden);
     }
 
     async waitForNativePersonaContent(timeout = 2600) {
@@ -1534,20 +1833,28 @@ export class NastyTavern {
     mountNativePersonaContent(root, { opener = null } = {}) {
         const panel = document.querySelector('#PersonaManagement');
         const block = document.querySelector('#persona-management-block');
-        const host = root?.querySelector('[data-nt-persona-host]');
-        if (!panel || !block || !host || !block.parentNode) return false;
+        if (!panel || !block || !block.parentNode) return false;
 
-        if (this.personaModalState) this.restoreNativePersonaContent({ restoreFocus: false });
-
-        const placeholder = document.createComment('NastyTavern native Persona Management');
+        // Persona Studio is the only built-in Persona UI exposed by NastyTavern.
+        // Keep SillyTavern's native controls alive in a hidden compatibility host
+        // so their data APIs/listeners remain the source of truth without exposing
+        // the legacy drawer as a second interface.
+        const placeholder = document.createComment('NastyTavern native Persona backend');
         block.parentNode.insertBefore(placeholder, block);
+        const backend = document.createElement('div');
+        backend.id = 'nt-persona-native-backend';
+        backend.hidden = true;
+        backend.setAttribute('aria-hidden', 'true');
+        document.body.append(backend);
+
         const resolvedOpener = opener instanceof HTMLElement
             ? opener
             : document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-        this.personaModalState = {
+        this.personaWorkspaceState = {
             panel,
             block,
+            backend,
             placeholder,
             blockClass: block.getAttribute('class'),
             blockStyle: block.getAttribute('style'),
@@ -1556,18 +1863,19 @@ export class NastyTavern {
         };
 
         block.classList.add('nt-persona-native-editor');
-        host.append(block);
+        backend.append(block);
+        this.personaManager.setNativeBlock(block);
 
-        // The useful Persona controls now live in the modal. Hide the emptied
-        // native drawer shell so it cannot remain visible behind the backdrop.
         panel.hidden = true;
+        panel.classList.remove('openDrawer');
+        panel.classList.add('closedDrawer');
         return true;
     }
 
     restoreNativePersonaContent({ restoreFocus = true } = {}) {
-        const state = this.personaModalState;
+        const state = this.personaWorkspaceState;
         if (!state) return;
-        const { panel, block, placeholder } = state;
+        const { panel, block, backend, placeholder } = state;
 
         if (placeholder?.parentNode) {
             placeholder.parentNode.insertBefore(block, placeholder);
@@ -1577,9 +1885,8 @@ export class NastyTavern {
         else block.setAttribute('class', state.blockClass);
         if (state.blockStyle == null) block.removeAttribute('style');
         else block.setAttribute('style', state.blockStyle);
+        backend?.remove();
 
-        // Personas is modal-only in NastyTavern. Never restore the native drawer
-        // as an open background surface after the modal closes.
         panel.hidden = false;
         panel.classList.remove('openDrawer');
         panel.classList.add('closedDrawer');
@@ -1589,96 +1896,116 @@ export class NastyTavern {
         icon?.classList.add('closedIcon');
 
         const opener = state.opener;
-        this.personaModalState = null;
+        this.personaWorkspaceState = null;
         if (restoreFocus && opener?.isConnected) requestAnimationFrame(() => opener.focus?.({ preventScroll: true }));
     }
 
-    async openPersonaModal() {
-        if (this.isPersonaModalOpen()) return true;
-        if (this.personaModalOpening) return false;
+    async openPersonaWorkspace() {
+        if (this.isPersonaWorkspaceOpen()) {
+            this.setView('personas');
+            return true;
+        }
+        if (this.personaWorkspaceOpening) return false;
 
-        this.personaModalOpening = true;
+        this.personaWorkspaceOpening = true;
         try {
             if (this.isGroupModalOpen()) await this.closeGroupModal({ restoreFocus: false, reopenCharacters: false });
             if (this.isCharacterCreateModalOpen()) await this.closeCharacterCreateModal({ restoreFocus: false });
-            if (this.isCharacterModalOpen()) this.closeCharacterModal();
-            if (this.isBackgroundModalOpen()) await this.closeBackgroundModal({ restoreFocus: false });
-            if (this.isLorebookModalOpen()) await this.closeLorebookModal({ restoreFocus: false });
+            if (this.isCharacterWorkspaceOpen()) this.closeCharacterWorkspace();
+            if (this.isBackgroundWorkspaceOpen()) await this.closeBackgroundWorkspace({ restoreFocus: false });
+            if (this.isLorebookWorkspaceOpen()) await this.closeLorebookWorkspace({ restoreFocus: false });
+            if (this.extensionsModal.isOpen()) await this.extensionsModal.close({ restoreFocus: false });
 
+            this.dom.closeNativeDrawers();
             const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            const root = this.ensurePersonaWorkspaceRoot();
 
-            // Persona Management is initialized by SillyTavern during app startup,
-            // unlike surfaces that need their native drawer opened to hydrate.
-            // Mount the existing controls directly so the native Persona drawer
-            // never opens, becomes selected, or changes the background view.
-            const native = await this.waitForNativePersonaContent(800);
-            if (!native) {
-                console.warn('[NastyTavern] Persona modal could not find native Persona Management content.');
-                this.toast(t('Could not open Personas.'));
-                return false;
+            // Keep the native Persona backend parked between workspace visits so
+            // returning to Personas never reopens the legacy SillyTavern drawer.
+            if (this.personaWorkspaceState?.block?.isConnected) {
+                this.personaWorkspaceState.opener = opener;
+                const panel = this.personaWorkspaceState.panel;
+                if (panel) {
+                    panel.hidden = true;
+                    panel.classList.remove('openDrawer');
+                    panel.classList.add('closedDrawer');
+                }
+            } else {
+                const native = await this.waitForNativePersonaContent(800);
+                if (!native) {
+                    this.toast(t('Could not open Personas.'));
+                    return false;
+                }
+                if (!this.mountNativePersonaContent(root, { opener })) {
+                    this.toast(t('Could not open Personas.'));
+                    return false;
+                }
             }
 
-            const root = this.ensurePersonaModalRoot();
-            if (!this.mountNativePersonaContent(root, { opener })) {
-                this.toast(t('Could not open Personas.'));
-                return false;
-            }
-
-            document.body?.classList.add('nt-persona-modal-open');
-            showModalShell(root);
-            requestAnimationFrame(() => {
-                root.querySelector('.nt-modal-close')?.focus?.({ preventScroll: true });
-            });
+            this.personaManager.open(root, this.personaWorkspaceState?.block);
+            root.hidden = false;
+            document.body?.classList.add('nt-persona-workspace-open');
+            this.setView('personas');
             return true;
         } finally {
-            this.personaNativeTogglePassThrough = false;
-            this.personaModalOpening = false;
+            this.personaWorkspaceOpening = false;
         }
     }
 
-    async closePersonaModal({ restoreFocus = true } = {}) {
-        const root = this.personaModalRoot || document.querySelector('#nt-persona-modal');
-        hideModalShell(root);
-        this.restoreNativePersonaContent({ restoreFocus });
-        document.body?.classList.remove('nt-persona-modal-open');
+    async closePersonaWorkspace({ restoreFocus = false, restoreNative = false } = {}) {
+        const root = this.personaWorkspaceRoot || document.querySelector('#nt-persona-workspace');
+        const state = this.personaWorkspaceState;
+        this.personaManager.close();
+        if (root) root.hidden = true;
+        document.body?.classList.remove('nt-persona-workspace-open');
+
+        if (restoreNative) {
+            this.restoreNativePersonaContent({ restoreFocus });
+            return true;
+        }
+
+        if (state?.panel) {
+            state.panel.hidden = true;
+            state.panel.classList.remove('openDrawer');
+            state.panel.classList.add('closedDrawer');
+        }
+        const icon = state?.panel?.closest('#persona-management-button')?.querySelector(':scope > .drawer-toggle .drawer-icon, .drawer-icon');
+        icon?.classList.remove('openIcon');
+        icon?.classList.add('closedIcon');
+        if (restoreFocus && state?.opener?.isConnected) {
+            requestAnimationFrame(() => state.opener.focus?.({ preventScroll: true }));
+        }
         return true;
     }
 
-    async cleanupPersonaModal() {
-        await this.closePersonaModal({ restoreFocus: false });
-        this.personaModalRoot?.remove();
-        this.personaModalRoot = null;
-        document.querySelector('#nt-persona-modal')?.remove();
-        document.body?.classList.remove('nt-persona-modal-open');
+    async cleanupPersonaWorkspace() {
+        await this.closePersonaWorkspace({ restoreFocus: false, restoreNative: true });
+        this.personaWorkspaceRoot?.remove();
+        this.personaWorkspaceRoot = null;
+        document.querySelector('#nt-persona-workspace')?.remove();
+        document.body?.classList.remove('nt-persona-workspace-open');
     }
 
-    ensureBackgroundModalRoot() {
-        let root = this.backgroundModalRoot;
-        if (!root?.isConnected) root = document.querySelector('#nt-background-modal');
+    ensureBackgroundWorkspaceRoot() {
+        let root = this.backgroundWorkspaceRoot;
+        if (!root?.isConnected) root = document.querySelector('#nt-background-workspace');
         if (!root) {
-            ({ root } = createModalShell({
-                id: 'nt-background-modal',
-                title: t('Backgrounds'),
-                icon: icons.image,
-                size: 'large',
-                modalClass: 'nt-background-modal',
-                headerClass: 'nt-background-modal-header',
-                bodyClass: 'nt-background-modal-body',
-                bodyAttrs: { 'data-nt-background-host': '' },
-                closeAttrs: { 'data-nt-background-close': '' },
-            }));
-            root.addEventListener('click', event => {
-                if (event.target.closest('[data-nt-background-close]')) void this.closeBackgroundModal();
-            });
+            root = document.createElement('section');
+            root.id = 'nt-background-workspace';
+            root.className = 'nt-native-workspace nt-background-workspace';
+            root.hidden = true;
+            root.setAttribute('role', 'main');
+            root.setAttribute('aria-label', t('Backgrounds'));
+            root.innerHTML = '<div class="nt-native-workspace-host nt-background-workspace-host" data-nt-background-host></div>';
             document.body.append(root);
         }
-        this.backgroundModalRoot = root;
+        this.backgroundWorkspaceRoot = root;
         return root;
     }
 
-    isBackgroundModalOpen() {
-        const root = this.backgroundModalRoot || document.querySelector('#nt-background-modal');
-        return Boolean(root && !root.hidden && root.classList.contains('is-open'));
+    isBackgroundWorkspaceOpen() {
+        const root = this.backgroundWorkspaceRoot || document.querySelector('#nt-background-workspace');
+        return Boolean(root && !root.hidden);
     }
 
     async waitForNativeBackgroundContent(timeout = 1800) {
@@ -1696,7 +2023,7 @@ export class NastyTavern {
         const host = root?.querySelector('[data-nt-background-host]');
         if (!panel || !host || !panel.parentNode) return false;
 
-        if (this.backgroundModalState) this.restoreNativeBackgroundContent({ restoreFocus: false });
+        if (this.backgroundWorkspaceState) this.restoreNativeBackgroundContent({ restoreFocus: false });
 
         const placeholder = document.createComment('NastyTavern native Backgrounds');
         panel.parentNode.insertBefore(placeholder, panel);
@@ -1704,7 +2031,7 @@ export class NastyTavern {
             ? opener
             : document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-        this.backgroundModalState = {
+        this.backgroundWorkspaceState = {
             panel,
             placeholder,
             panelClass: panel.getAttribute('class'),
@@ -1722,7 +2049,7 @@ export class NastyTavern {
     }
 
     restoreNativeBackgroundContent({ restoreFocus = true } = {}) {
-        const state = this.backgroundModalState;
+        const state = this.backgroundWorkspaceState;
         if (!state) return;
         const { panel, placeholder } = state;
 
@@ -1736,7 +2063,7 @@ export class NastyTavern {
         else panel.setAttribute('style', state.panelStyle);
         panel.hidden = state.panelHidden;
 
-        // Backgrounds is modal-only in NastyTavern. Restore the native drawer
+        // Backgrounds is workspace-owned in NastyTavern. Restore the native drawer
         // closed so it can never remain visible behind the application shell.
         panel.classList.remove('openDrawer');
         panel.classList.add('closedDrawer');
@@ -1746,79 +2073,76 @@ export class NastyTavern {
         icon?.classList.add('closedIcon');
 
         const opener = state.opener;
-        this.backgroundModalState = null;
+        this.backgroundWorkspaceState = null;
         if (restoreFocus && opener?.isConnected) requestAnimationFrame(() => opener.focus?.({ preventScroll: true }));
     }
 
-    async openBackgroundModal() {
-        if (this.isBackgroundModalOpen()) return true;
-        if (this.backgroundModalOpening) return false;
+    async openBackgroundWorkspace() {
+        if (this.isBackgroundWorkspaceOpen()) {
+            this.setView('backgrounds');
+            return true;
+        }
+        if (this.backgroundWorkspaceOpening) return false;
 
-        this.backgroundModalOpening = true;
+        this.backgroundWorkspaceOpening = true;
         try {
             if (this.isGroupModalOpen()) await this.closeGroupModal({ restoreFocus: false, reopenCharacters: false });
             if (this.isCharacterCreateModalOpen()) await this.closeCharacterCreateModal({ restoreFocus: false });
-            if (this.isCharacterModalOpen()) this.closeCharacterModal();
-            if (this.isPersonaModalOpen()) await this.closePersonaModal({ restoreFocus: false });
-            if (this.isLorebookModalOpen()) await this.closeLorebookModal({ restoreFocus: false });
+            if (this.isCharacterWorkspaceOpen()) this.closeCharacterWorkspace({ restoreFocus: false });
+            if (this.isPersonaWorkspaceOpen()) await this.closePersonaWorkspace({ restoreFocus: false });
+            if (this.isLorebookWorkspaceOpen()) await this.closeLorebookWorkspace({ restoreFocus: false });
 
             const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
             const native = await this.waitForNativeBackgroundContent();
             if (!native) {
-                console.warn('[NastyTavern] Background modal could not find native Backgrounds content.');
                 this.toast(t('Could not open Backgrounds.'));
                 return false;
             }
 
-            const root = this.ensureBackgroundModalRoot();
+            const root = this.ensureBackgroundWorkspaceRoot();
             if (!this.mountNativeBackgroundContent(root, { opener })) {
                 this.toast(t('Could not open Backgrounds.'));
                 return false;
             }
 
-            document.body?.classList.add('nt-background-modal-open');
-            showModalShell(root);
-            requestAnimationFrame(() => {
-                root.querySelector('.nt-modal-close')?.focus?.({ preventScroll: true });
-            });
+            root.hidden = false;
+            document.body?.classList.add('nt-background-workspace-open');
+            this.setView('backgrounds');
             return true;
         } finally {
-            this.backgroundModalOpening = false;
+            this.backgroundWorkspaceOpening = false;
         }
     }
 
-    async closeBackgroundModal({ restoreFocus = true } = {}) {
-        const root = this.backgroundModalRoot || document.querySelector('#nt-background-modal');
-        hideModalShell(root);
+    async closeBackgroundWorkspace({ restoreFocus = true } = {}) {
+        const root = this.backgroundWorkspaceRoot || document.querySelector('#nt-background-workspace');
+        if (root) root.hidden = true;
         this.restoreNativeBackgroundContent({ restoreFocus });
-        document.body?.classList.remove('nt-background-modal-open');
+        document.body?.classList.remove('nt-background-workspace-open');
         return true;
     }
 
-    async cleanupBackgroundModal() {
-        await this.closeBackgroundModal({ restoreFocus: false });
-        this.backgroundModalRoot?.remove();
-        this.backgroundModalRoot = null;
-        document.querySelector('#nt-background-modal')?.remove();
-        document.body?.classList.remove('nt-background-modal-open');
+    async cleanupBackgroundWorkspace() {
+        await this.closeBackgroundWorkspace({ restoreFocus: false });
+        this.backgroundWorkspaceRoot?.remove();
+        this.backgroundWorkspaceRoot = null;
+        document.querySelector('#nt-background-workspace')?.remove();
+        document.body?.classList.remove('nt-background-workspace-open');
     }
 
-    ensureLorebookModalRoot() {
-        let root = this.lorebookModalRoot;
-        if (!root?.isConnected) root = document.querySelector('#nt-lorebook-modal');
+    ensureLorebookWorkspaceRoot() {
+        let root = this.lorebookWorkspaceRoot;
+        if (!root?.isConnected) root = document.querySelector('#nt-lorebook-workspace');
         if (!root) {
-            ({ root } = createModalShell({
-                id: 'nt-lorebook-modal',
-                title: t('Lorebooks'),
-                icon: icons.lore,
-                size: 'large',
-                modalClass: 'nt-lorebook-modal',
-                headerClass: 'nt-lorebook-modal-header',
-                bodyClass: 'nt-lorebook-modal-body',
-                bodyAttrs: { 'data-nt-lorebook-host': '' },
-                headerActionsHtml: `<button type="button" class="nt-panel-toggle nt-lorebook-sidebar-toggle" data-nt-lorebook-sidebar-toggle aria-expanded="true" title="${t('Hide Lorebook entries')}" aria-label="${t('Hide Lorebook entries')}">${icons.panel}</button>`,
-                closeAttrs: { 'data-nt-lorebook-close': '' },
-            }));
+            root = document.createElement('section');
+            root.id = 'nt-lorebook-workspace';
+            root.className = 'nt-native-workspace nt-lorebook-workspace-frame';
+            root.hidden = true;
+            root.setAttribute('role', 'main');
+            root.setAttribute('aria-label', t('Lorebooks'));
+            root.innerHTML = `
+                <button type="button" class="nt-panel-toggle nt-lorebook-sidebar-toggle nt-lorebook-workspace-toggle" data-nt-lorebook-sidebar-toggle aria-expanded="true" title="${t('Hide Lorebook entries')}" aria-label="${t('Hide Lorebook entries')}">${icons.panel}</button>
+                <div class="nt-native-workspace-host nt-lorebook-workspace-host" data-nt-lorebook-host></div>`;
             root.addEventListener('click', event => {
                 if (event.target.closest('[data-nt-lorebook-sidebar-toggle]')) {
                     event.preventDefault();
@@ -1828,30 +2152,17 @@ export class NastyTavern {
                 if (event.target.closest('[data-nt-lorebook-sidebar-dismiss]')) {
                     event.preventDefault();
                     this.setLorebookSidebarHidden(true);
-                    return;
-                }
-                if (event.target.closest('[data-nt-lorebook-close]')) void this.closeLorebookModal();
-            });
-            root.addEventListener('nt:modal-escape-request', event => {
-                if (this.lorebookSettingsPopup) {
-                    event.preventDefault();
-                    return;
-                }
-                const modal = root.querySelector('.nt-lorebook-modal');
-                if (this.isLorebookPhoneLayout() && modal && !modal.classList.contains('is-sidebar-hidden')) {
-                    this.setLorebookSidebarHidden(true);
-                    event.preventDefault();
                 }
             });
             document.body.append(root);
         }
-        this.lorebookModalRoot = root;
+        this.lorebookWorkspaceRoot = root;
         return root;
     }
 
-    isLorebookModalOpen() {
-        const root = this.lorebookModalRoot || document.querySelector('#nt-lorebook-modal');
-        return Boolean(root && !root.hidden && root.classList.contains('is-open'));
+    isLorebookWorkspaceOpen() {
+        const root = this.lorebookWorkspaceRoot || document.querySelector('#nt-lorebook-workspace');
+        return Boolean(root && !root.hidden);
     }
 
     isLorebookPhoneLayout() {
@@ -1859,22 +2170,20 @@ export class NastyTavern {
     }
 
     setLorebookSidebarHidden(hidden) {
-        const root = this.lorebookModalRoot || document.querySelector('#nt-lorebook-modal');
-        const modal = root?.querySelector('.nt-lorebook-modal');
+        const root = this.lorebookWorkspaceRoot || document.querySelector('#nt-lorebook-workspace');
         const toggle = root?.querySelector('[data-nt-lorebook-sidebar-toggle]');
-        if (!modal || !toggle) return;
+        if (!root || !toggle) return;
         const isHidden = Boolean(hidden);
-        modal.classList.toggle('is-sidebar-hidden', isHidden);
+        root.classList.toggle('is-sidebar-hidden', isHidden);
         toggle.setAttribute('aria-expanded', String(!isHidden));
         toggle.title = t(isHidden ? 'Show Lorebook entries' : 'Hide Lorebook entries');
         toggle.setAttribute('aria-label', toggle.title);
     }
 
     toggleLorebookSidebar() {
-        const root = this.lorebookModalRoot || document.querySelector('#nt-lorebook-modal');
-        const modal = root?.querySelector('.nt-lorebook-modal');
-        if (!modal) return;
-        this.setLorebookSidebarHidden(!modal.classList.contains('is-sidebar-hidden'));
+        const root = this.lorebookWorkspaceRoot || document.querySelector('#nt-lorebook-workspace');
+        if (!root) return;
+        this.setLorebookSidebarHidden(!root.classList.contains('is-sidebar-hidden'));
     }
 
     async waitForNativeLorebookContent(timeout = 2600) {
@@ -1893,7 +2202,7 @@ export class NastyTavern {
         const host = root?.querySelector('[data-nt-lorebook-host]');
         if (!panel || !host || !panel.parentNode) return false;
 
-        if (this.lorebookModalState) this.restoreNativeLorebookContent({ restoreFocus: false });
+        if (this.lorebookWorkspaceState) this.restoreNativeLorebookContent({ restoreFocus: false });
 
         const placeholder = document.createComment('NastyTavern native World Info');
         panel.parentNode.insertBefore(placeholder, panel);
@@ -1901,7 +2210,7 @@ export class NastyTavern {
             ? opener
             : document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-        this.lorebookModalState = {
+        this.lorebookWorkspaceState = {
             panel,
             placeholder,
             panelClass: panel.getAttribute('class'),
@@ -1915,12 +2224,12 @@ export class NastyTavern {
         panel.classList.add('openDrawer');
         panel.hidden = false;
         host.append(panel);
-        this.prepareLorebookSettingsLauncher(panel);
-        this.prepareLorebookSplitView(panel);
+        this.prepareLorebookSettingsLayout(panel);
+        void this.lorebookManager.mount(root, panel);
         return true;
     }
 
-    prepareLorebookSettingsLauncher(panel) {
+    prepareLorebookSettingsLayout(panel) {
         if (!panel?.isConnected) return false;
         if (this.lorebookSettingsLayoutState?.panel === panel) return true;
         this.restoreLorebookSettingsLayout();
@@ -1943,25 +2252,6 @@ export class NastyTavern {
 
         const settingsContent = activationSettings.closest('.inline-drawer-content') || activationSettings;
         const pinControl = panel.querySelector('#WI_panel_pin_div');
-        const createButton = panel.querySelector('#world_create_button');
-        const lorebookToolbar = createButton?.parentElement || panel.querySelector('#world_popup > .flex-container.alignitemscenter:first-of-type');
-        const launcher = document.createElement('button');
-        launcher.type = 'button';
-        launcher.className = 'menu_button nt-lorebook-settings-launcher';
-        launcher.title = t('Lorebook settings');
-        launcher.setAttribute('aria-label', t('Lorebook settings'));
-        launcher.innerHTML = `${icons.settings}<span>${t('Settings')}</span>`;
-        launcher.addEventListener('click', event => {
-            event.preventDefault();
-            event.stopPropagation();
-            void this.openLorebookSettingsPopup();
-        });
-
-        // Settings belongs to the Lorebook file-action toolbar. Keeping it next
-        // to Create removes the redundant visual section while the native
-        // settings controls themselves remain the source of truth in the popup.
-        if (createButton?.parentNode) createButton.insertAdjacentElement('beforebegin', launcher);
-        else lorebookToolbar?.append(launcher);
 
         this.lorebookSettingsLayoutState = {
             panel,
@@ -1969,15 +2259,14 @@ export class NastyTavern {
             activationRoot,
             settingsContent,
             pinControl,
-            launcher,
             activeWorldsHidden: activeWorlds.hidden,
             activationRootHidden: activationRoot.hidden,
             pinControlHidden: pinControl?.hidden ?? false,
         };
 
         // Keep the native settings controls as the source of truth, but remove
-        // their redundant containers from the main Lorebooks modal. They become
-        // visible again automatically when moved into the secondary settings popup.
+        // their redundant containers from the entry page. The gallery Settings
+        // action can still move these real controls into the secondary popup.
         activeWorlds.classList.add('nt-lorebook-settings-source-hidden');
         activationRoot.classList.add('nt-lorebook-settings-source-hidden');
         pinControl?.classList.add('nt-lorebook-pin-hidden');
@@ -1988,9 +2277,53 @@ export class NastyTavern {
         return true;
     }
 
+    iconizeLorebookControl(element, icon) {
+        if (!(element instanceof HTMLElement) || !icon) return;
+        if (!this.lorebookNativeIconState.has(element)) {
+            this.lorebookNativeIconState.set(element, {
+                className: element.className,
+                innerHTML: element.innerHTML,
+            });
+        }
+
+        for (const className of Array.from(element.classList)) {
+            if (className === 'fa' || className.startsWith('fa-')) element.classList.remove(className);
+        }
+        element.classList.add('nt-lorebook-native-icon');
+        element.innerHTML = icon;
+    }
+
+    normalizeLorebookNativeActionIcons(panel) {
+        if (!panel) return;
+        const controls = [
+            ['#world_popup_new', icons.plus],
+            ['#world_backfill_memos', icons.note],
+            ['#world_apply_current_sorting', icons.arrowDown],
+            ['#world_refresh', icons.refresh],
+            ['#world_import_button', icons.upload],
+            ['#world_popup_export', icons.download],
+            ['#world_duplicate', icons.copy],
+            ['#world_popup_delete', icons.trash],
+        ];
+        for (const [selector, icon] of controls) {
+            const element = panel.querySelector(selector);
+            if (element) this.iconizeLorebookControl(element, icon);
+        }
+    }
+
+    restoreLorebookNativeActionIcons() {
+        for (const [element, original] of this.lorebookNativeIconState.entries()) {
+            if (!(element instanceof HTMLElement)) continue;
+            element.className = original.className;
+            element.innerHTML = original.innerHTML;
+        }
+        this.lorebookNativeIconState.clear();
+    }
+
     prepareLorebookSplitView(panel) {
         if (!panel?.isConnected) return false;
         if (this.lorebookSplitState?.panel === panel) {
+            this.normalizeLorebookNativeActionIcons(panel);
             this.syncLorebookSplitEntries();
             return true;
         }
@@ -2001,6 +2334,7 @@ export class NastyTavern {
         const entriesList = panel.querySelector('#world_popup_entries_list');
         if (!popup || !actionsRow || !entriesList || !actionsRow.parentNode || !entriesList.parentNode) return false;
 
+        this.normalizeLorebookNativeActionIcons(panel);
         actionsRow.classList.add('nt-wi-popup-actions', 'nt-lorebook-sidebar-controls');
 
         const actionsPlaceholder = document.createComment('NastyTavern Lorebook sidebar controls');
@@ -2045,7 +2379,7 @@ export class NastyTavern {
 
         const empty = document.createElement('div');
         empty.className = 'nt-lorebook-detail-empty';
-        empty.innerHTML = `<i class="fa-solid fa-book-open" aria-hidden="true"></i><span>${t('Select an entry to edit it.')}</span>`;
+        empty.innerHTML = `<span class="nt-lorebook-detail-empty-icon">${icons.lore}</span><span>${t('Select an entry to edit it.')}</span>`;
 
         sidebar.append(actionsRow, sidebarList, sidebarFooter);
         if (pagination) sidebarFooter.append(pagination);
@@ -2164,7 +2498,7 @@ export class NastyTavern {
             toggle.classList.toggle('is-disabled', disabled);
             toggle.setAttribute('aria-pressed', disabled ? 'false' : 'true');
             toggle.title = disabled ? t('Enable entry') : t('Disable entry');
-            toggle.innerHTML = `<i class="fa-solid ${disabled ? 'fa-toggle-off' : 'fa-toggle-on'}" aria-hidden="true"></i>`;
+            toggle.innerHTML = disabled ? icons.close : icons.check;
         }
     }
 
@@ -2231,14 +2565,14 @@ export class NastyTavern {
             });
             entryState.addEventListener('change', event => event.stopPropagation());
 
-            const createAction = (className, iconClass, nativeSelector, titleFallback) => {
+            const createAction = (className, icon, nativeSelector, titleFallback) => {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = `menu_button ${className}`;
                 const native = entry.querySelector(nativeSelector);
                 button.title = native?.getAttribute('title') || t(titleFallback);
                 button.setAttribute('aria-label', button.title);
-                button.innerHTML = `<i class="fa-solid ${iconClass}" aria-hidden="true"></i>`;
+                button.innerHTML = icon;
                 button.addEventListener('click', event => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -2247,9 +2581,9 @@ export class NastyTavern {
                 return button;
             };
 
-            const move = createAction('nt-lorebook-entry-move', 'fa-right-left', '.move_entry_button', 'Move/Copy Entry to Another Lorebook');
-            const duplicate = createAction('nt-lorebook-entry-duplicate', 'fa-paste', '.duplicate_entry_button', 'Duplicate world info entry');
-            const remove = createAction('nt-lorebook-entry-delete', 'fa-trash-can', '.delete_entry_button', 'Delete world info entry');
+            const move = createAction('nt-lorebook-entry-move', icons.arrowRight, '.move_entry_button', 'Move/Copy Entry to Another Lorebook');
+            const duplicate = createAction('nt-lorebook-entry-duplicate', icons.copy, '.duplicate_entry_button', 'Duplicate world info entry');
+            const remove = createAction('nt-lorebook-entry-delete', icons.trash, '.delete_entry_button', 'Delete world info entry');
 
             const select = () => this.selectLorebookSplitEntry(uid);
             row.addEventListener('click', select);
@@ -2266,8 +2600,10 @@ export class NastyTavern {
 
         let nextUid = previousUid && entries.some(entry => this.getLorebookEntryUid(entry) === previousUid) ? previousUid : '';
         if (!nextUid) nextUid = entries.length ? this.getLorebookEntryUid(entries[0]) : '';
-        if (nextUid) this.selectLorebookSplitEntry(nextUid, { preserveScroll: true });
-        else {
+        if (nextUid) {
+            this.selectLorebookSplitEntry(nextUid, { preserveScroll: true });
+            this.syncLorebookEntryFolders();
+        } else {
             state.selectedUid = null;
             state.empty.hidden = false;
             state.entriesList.classList.add('is-empty');
@@ -2298,6 +2634,7 @@ export class NastyTavern {
         }
 
         state.selectedUid = String(uid);
+        this.lorebookManager?.syncSelectedEntry?.(state.selectedUid);
         state.empty.hidden = true;
         state.entriesList.classList.remove('is-empty');
 
@@ -2320,9 +2657,119 @@ export class NastyTavern {
         return true;
     }
 
+    async openLorebookGalleryBook(name) {
+        const panel = this.lorebookWorkspaceState?.panel || document.querySelector('#WorldInfo');
+        const select = panel?.querySelector('#world_editor_select');
+        if (!panel || !select) return false;
+
+        this.restoreLorebookSplitView();
+        const target = String(name || '').trim();
+        if (!target) return false;
+
+        const jq = window.jQuery || window.$;
+        try {
+            if (jq?.fn?.select2 && jq(select).data('select2')) jq(select).val(target).trigger('change');
+            else {
+                select.value = target;
+                select.dispatchEvent(new Event('input', { bubbles: true }));
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        } catch (error) {
+            return false;
+        }
+
+        const startedAt = Date.now();
+        while (Date.now() - startedAt < 2600) {
+            const entries = panel.querySelector('#world_popup_entries_list');
+            if (String(select.value || '').trim() === target && entries?.isConnected) {
+                // Give SillyTavern one frame to finish replacing the entry DOM.
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                this.prepareLorebookSplitView(panel);
+                this.syncLorebookEntryFolders();
+                return true;
+            }
+            await wait(50);
+        }
+        return false;
+    }
+
+    async renameLorebookFromField(oldName, newName) {
+        const panel = this.lorebookWorkspaceState?.panel || document.querySelector('#WorldInfo');
+        const select = panel?.querySelector('#world_editor_select');
+        const renameButton = panel?.querySelector('#world_popup_name_button');
+        const previousName = String(oldName || '').trim();
+        const requestedName = String(newName || '').trim();
+        if (!panel || !select || !renameButton || !previousName || !requestedName) return false;
+        if (previousName === requestedName) return previousName;
+
+        let Popup;
+        try {
+            ({ Popup } = await import('/scripts/popup.js'));
+        } catch (error) {
+            return false;
+        }
+        const originalInput = Popup?.show?.input;
+        if (typeof originalInput !== 'function') return false;
+
+        let intercepted = false;
+        Popup.show.input = async (header, text, defaultValue, popupOptions) => {
+            if (!intercepted && String(defaultValue || '').trim() === previousName) {
+                intercepted = true;
+                return requestedName;
+            }
+            return originalInput.call(Popup.show, header, text, defaultValue, popupOptions);
+        };
+
+        try {
+            renameButton.click();
+        } catch (error) {
+            return false;
+        } finally {
+            Popup.show.input = originalInput;
+        }
+        if (!intercepted) return false;
+
+        // SillyTavern owns the rename operation so global/character/persona/chat
+        // links keep following its native compatibility path. Wait until the
+        // renamed file appears in the native selector, then keep the same book
+        // open in NastyTavern's detail body.
+        const startedAt = Date.now();
+        while (Date.now() - startedAt < 5000) {
+            const option = Array.from(select.options || []).find(item => String(item.textContent || '').trim() === requestedName);
+            if (option) {
+                const jq = window.jQuery || window.$;
+                if (String(select.value) !== String(option.value)) {
+                    if (jq?.fn?.select2 && jq(select).data('select2')) jq(select).val(option.value).trigger('change');
+                    else {
+                        select.value = option.value;
+                        select.dispatchEvent(new Event('input', { bubbles: true }));
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+                return requestedName;
+            }
+            await wait(50);
+        }
+        return false;
+    }
+
+    prepareLorebookGalleryView() {
+        this.restoreLorebookSplitView();
+        this.setLorebookSidebarHidden(false);
+    }
+
+    syncLorebookEntryFolders() {
+        const state = this.lorebookSplitState;
+        if (!state?.sidebarList) return;
+        this.lorebookManager?.decorateEntrySidebar?.(state.sidebarList);
+    }
+
     restoreLorebookSplitView() {
         const state = this.lorebookSplitState;
-        if (!state) return;
+        if (!state) {
+            this.restoreLorebookNativeActionIcons();
+            return;
+        }
         state.observer?.disconnect();
         state.entriesList?.removeEventListener('input', state.onNativeInput, true);
         state.entriesList?.removeEventListener('change', state.onNativeInput, true);
@@ -2349,6 +2796,7 @@ export class NastyTavern {
         state.panel?.classList.remove('nt-lorebook-split-ready');
         state.workspace?.remove();
         this.lorebookSplitState = null;
+        this.restoreLorebookNativeActionIcons();
     }
 
     restoreLorebookSettingsPopupNodes() {
@@ -2384,7 +2832,6 @@ export class NastyTavern {
                             closeOnSelect: false,
                         });
                     } catch (error) {
-                        console.warn('[NastyTavern] Failed to restore Active Worlds Select2.', error);
                     }
                 }
             }
@@ -2412,7 +2859,6 @@ export class NastyTavern {
         if (!hadInstance) return;
 
         try { $select.select2('destroy'); } catch (error) {
-            console.warn('[NastyTavern] Failed to detach Active Worlds Select2.', error);
             return;
         }
 
@@ -2427,7 +2873,6 @@ export class NastyTavern {
             state.activeWorldSelect2HadInstance = true;
             state.activeWorldSelect2Rebound = true;
         } catch (error) {
-            console.warn('[NastyTavern] Failed to bind Active Worlds Select2 inside Lorebook settings popup.', error);
         }
     }
 
@@ -2503,7 +2948,6 @@ export class NastyTavern {
         this.closeLorebookSettingsPopup();
         const state = this.lorebookSettingsLayoutState;
         if (!state) return;
-        state.launcher?.remove();
         state.activeWorlds.classList.remove('nt-lorebook-settings-source-hidden');
         state.activationRoot.classList.remove('nt-lorebook-settings-source-hidden');
         state.pinControl?.classList.remove('nt-lorebook-pin-hidden');
@@ -2516,9 +2960,10 @@ export class NastyTavern {
     }
 
     restoreNativeLorebookContent({ restoreFocus = true } = {}) {
+        this.lorebookManager?.unmount?.({ keepNative: true });
         this.restoreLorebookSplitView();
         this.restoreLorebookSettingsLayout();
-        const state = this.lorebookModalState;
+        const state = this.lorebookWorkspaceState;
         if (!state) return;
         const { panel, placeholder } = state;
 
@@ -2533,22 +2978,25 @@ export class NastyTavern {
         panel.hidden = state.panelHidden;
 
         const opener = state.opener;
-        this.lorebookModalState = null;
+        this.lorebookWorkspaceState = null;
         this.dom.closeNativeDrawers();
         if (restoreFocus && opener?.isConnected) requestAnimationFrame(() => opener.focus?.({ preventScroll: true }));
     }
 
-    async openLorebookModal() {
-        if (this.isLorebookModalOpen()) return true;
-        if (this.lorebookModalOpening) return false;
+    async openLorebookWorkspace() {
+        if (this.isLorebookWorkspaceOpen()) {
+            this.setView('lorebooks');
+            return true;
+        }
+        if (this.lorebookWorkspaceOpening) return false;
 
-        this.lorebookModalOpening = true;
+        this.lorebookWorkspaceOpening = true;
         try {
             if (this.isGroupModalOpen()) await this.closeGroupModal({ restoreFocus: false, reopenCharacters: false });
             if (this.isCharacterCreateModalOpen()) await this.closeCharacterCreateModal({ restoreFocus: false });
-            if (this.isCharacterModalOpen()) this.closeCharacterModal();
-            if (this.isPersonaModalOpen()) await this.closePersonaModal({ restoreFocus: false });
-            if (this.isBackgroundModalOpen()) await this.closeBackgroundModal({ restoreFocus: false });
+            if (this.isCharacterWorkspaceOpen()) this.closeCharacterWorkspace({ restoreFocus: false });
+            if (this.isPersonaWorkspaceOpen()) await this.closePersonaWorkspace({ restoreFocus: false });
+            if (this.isBackgroundWorkspaceOpen()) await this.closeBackgroundWorkspace({ restoreFocus: false });
 
             const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
             let result;
@@ -2561,40 +3009,33 @@ export class NastyTavern {
 
             const native = await this.waitForNativeLorebookContent();
             if (!native || (!result.ok && !native.panel)) {
-                console.warn('[NastyTavern] Lorebook modal failed to open native World Info.', result);
                 this.toast(t('Could not open Lorebooks.'));
                 return false;
             }
 
-            const root = this.ensureLorebookModalRoot();
+            const root = this.ensureLorebookWorkspaceRoot();
             if (!this.mountNativeLorebookContent(root, { opener })) {
                 this.toast(t('Could not open Lorebooks.'));
                 return false;
             }
 
-            // Modal-only surface: do not select Lorebooks as the underlying
-            // application view. Keep whatever view was already active.
-            document.body?.classList.add('nt-lorebook-modal-open');
+            root.hidden = false;
+            document.body?.classList.add('nt-lorebook-workspace-open');
             this.setLorebookSidebarHidden(false);
-            showModalShell(root);
-            requestAnimationFrame(() => {
-                root.querySelector('.nt-modal-close')?.focus?.({ preventScroll: true });
-            });
+            this.lorebookManager?.showGallery?.();
+            this.setView('lorebooks');
             return true;
         } finally {
             this.lorebookNativeTogglePassThrough = false;
-            this.lorebookModalOpening = false;
+            this.lorebookWorkspaceOpening = false;
         }
     }
 
-    async closeLorebookModal({ restoreFocus = true } = {}) {
+    async closeLorebookWorkspace({ restoreFocus = true } = {}) {
         this.closeLorebookSettingsPopup();
-        const root = this.lorebookModalRoot || document.querySelector('#nt-lorebook-modal');
-        hideModalShell(root);
+        const root = this.lorebookWorkspaceRoot || document.querySelector('#nt-lorebook-workspace');
+        if (root) root.hidden = true;
 
-        // Restoring the native World Info drawer ends by clicking its native
-        // drawer toggle to close it. That internal click must not be intercepted
-        // as a fresh request to reopen the NastyTavern Lorebook modal.
         this.lorebookNativeTogglePassThrough = true;
         try {
             this.restoreNativeLorebookContent({ restoreFocus });
@@ -2602,16 +3043,16 @@ export class NastyTavern {
             this.lorebookNativeTogglePassThrough = false;
         }
 
-        document.body?.classList.remove('nt-lorebook-modal-open');
+        document.body?.classList.remove('nt-lorebook-workspace-open');
         return true;
     }
 
-    async cleanupLorebookModal() {
-        await this.closeLorebookModal({ restoreFocus: false });
-        this.lorebookModalRoot?.remove();
-        this.lorebookModalRoot = null;
-        document.querySelector('#nt-lorebook-modal')?.remove();
-        document.body?.classList.remove('nt-lorebook-modal-open');
+    async cleanupLorebookWorkspace() {
+        await this.closeLorebookWorkspace({ restoreFocus: false });
+        this.lorebookWorkspaceRoot?.remove();
+        this.lorebookWorkspaceRoot = null;
+        document.querySelector('#nt-lorebook-workspace')?.remove();
+        document.body?.classList.remove('nt-lorebook-workspace-open');
     }
 
     ensureGroupModalRoot() {
@@ -2632,7 +3073,7 @@ export class NastyTavern {
             }));
             root.addEventListener('click', event => {
                 if (event.target.closest('[data-nt-group-back]')) {
-                    void this.returnToCharacterModalFromGroup();
+                    void this.returnToCharacterWorkspaceFromGroup();
                     return;
                 }
                 if (event.target.closest('[data-nt-group-close]')) void this.closeGroupModal();
@@ -2657,7 +3098,7 @@ export class NastyTavern {
         return Boolean(root && !root.hidden && root.classList.contains('is-open'));
     }
 
-    async waitForNativeGroupEditor(panel = this.characterModalPanel(), timeout = 3000) {
+    async waitForNativeGroupEditor(panel = this.characterPanel(), timeout = 3000) {
         const startedAt = Date.now();
         while (Date.now() - startedAt < timeout) {
             const block = panel?.querySelector('#rm_group_chats_block');
@@ -2671,7 +3112,7 @@ export class NastyTavern {
     }
 
     mountNativeGroupEditor(root, { opener = null } = {}) {
-        const panel = this.characterModalPanel();
+        const panel = this.characterPanel();
         const block = panel?.querySelector('#rm_group_chats_block');
         const host = root?.querySelector('[data-nt-group-host]');
         if (!block || !host || !block.parentNode) return false;
@@ -2709,6 +3150,7 @@ export class NastyTavern {
         else block.setAttribute('class', state.blockClass);
         if (state.blockStyle == null) block.removeAttribute('style');
         else block.setAttribute('style', state.blockStyle);
+        backend?.remove();
         block.hidden = state.blockHidden;
 
         const opener = state.opener;
@@ -2734,7 +3176,7 @@ export class NastyTavern {
     prepareGroupCreateReturn(root) {
         this.restoreGroupCreateReturn();
         const submit = root?.querySelector('#rm_group_submit');
-        const charactersBlock = this.characterModalPanel()?.querySelector('#rm_characters_block');
+        const charactersBlock = this.characterPanel()?.querySelector('#rm_characters_block');
         if (!(submit instanceof HTMLElement) || !(charactersBlock instanceof HTMLElement)) return;
 
         const state = { submit, charactersBlock, observer: null, onSubmitClick: null, awaitingCreate: false };
@@ -2780,7 +3222,7 @@ export class NastyTavern {
     prepareGroupDeleteReturn(root) {
         this.restoreGroupDeleteReturn();
         const deleteButton = root?.querySelector('#rm_group_delete');
-        const charactersBlock = this.characterModalPanel()?.querySelector('#rm_characters_block');
+        const charactersBlock = this.characterPanel()?.querySelector('#rm_characters_block');
         const groupId = this.groupModalState?.groupId;
         if (!(deleteButton instanceof HTMLElement) || !(charactersBlock instanceof HTMLElement) || !groupId) return;
 
@@ -2823,14 +3265,14 @@ export class NastyTavern {
 
     async showPreparedGroupModal({ mode = 'edit', opener = null } = {}) {
         if (this.isGroupModalOpen()) return true;
-        if (this.isLorebookModalOpen()) await this.closeLorebookModal({ restoreFocus: false });
-        const panel = this.characterModalPanel();
+        if (this.isLorebookWorkspaceOpen()) await this.closeLorebookWorkspace({ restoreFocus: false });
+        const panel = this.characterPanel();
         if (!panel || !(await this.waitForNativeGroupEditor(panel))) {
             this.toast(t('Could not open group editor.'));
             return false;
         }
 
-        if (this.isCharacterModalOpen()) this.closeCharacterModal();
+        if (this.isCharacterWorkspaceOpen()) this.closeCharacterWorkspace();
         if (this.isCharacterCreateModalOpen()) await this.closeCharacterCreateModal({ restoreFocus: false });
 
         const root = this.ensureGroupModalRoot();
@@ -2858,7 +3300,7 @@ export class NastyTavern {
 
     async openGroupCreateModal() {
         if (this.isGroupModalOpen()) return true;
-        const panel = this.characterModalPanel();
+        const panel = this.characterPanel();
         const source = panel?.querySelector('#rm_button_group_chats');
         if (!panel || !source) {
             this.toast(t('Could not open group editor.'));
@@ -2890,7 +3332,7 @@ export class NastyTavern {
         // SillyTavern's own Back action. A successful group creation already does
         // this natively, so that path explicitly skips this second navigation.
         if (normalizeNative) {
-            const panel = this.characterModalPanel();
+            const panel = this.characterPanel();
             const back = panel?.querySelector('#rm_button_back_from_group');
             if (back instanceof HTMLElement) {
                 back.click();
@@ -2898,12 +3340,12 @@ export class NastyTavern {
             }
         }
 
-        if (reopenCharacters) return this.openCharacterModal();
+        if (reopenCharacters) return this.openCharacterWorkspace();
         if (restoreFocus && opener?.isConnected) requestAnimationFrame(() => opener.focus?.({ preventScroll: true }));
         return true;
     }
 
-    async returnToCharacterModalFromGroup() {
+    async returnToCharacterWorkspaceFromGroup() {
         if (!this.isGroupModalOpen()) return false;
         return this.closeGroupModal({ restoreFocus: false, reopenCharacters: true });
     }
@@ -2926,7 +3368,6 @@ export class NastyTavern {
                     if (text.trim()) return JSON.parse(text);
                 }
             } catch (error) {
-                console.warn('[NastyTavern] Could not export Character Card JSON for read-only details; using loaded character data.', error);
             }
         }
         const data = character.data && typeof character.data === 'object' ? structuredClone(character.data) : {};
@@ -2992,7 +3433,7 @@ export class NastyTavern {
         return false;
     }
 
-    characterEditJsonData(panel = this.characterModalPanel()) {
+    characterEditJsonData(panel = this.characterPanel()) {
         const form = panel?.querySelector('#form_create');
         const raw = form?.querySelector('[name="json_data"]')?.value;
         if (typeof raw === 'string' && raw.trim()) {
@@ -3000,7 +3441,6 @@ export class NastyTavern {
                 const parsed = JSON.parse(raw);
                 if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
             } catch (error) {
-                console.warn('[NastyTavern] Could not parse selected character json_data for Edit Character.', error);
             }
         }
 
@@ -3009,7 +3449,7 @@ export class NastyTavern {
         return character && typeof character === 'object' ? character : {};
     }
 
-    hydrateCharacterEditNastyFields(panel = this.characterModalPanel()) {
+    hydrateCharacterEditNastyFields(panel = this.characterPanel()) {
         const json = this.characterEditJsonData(panel);
         const data = json?.data && typeof json.data === 'object' && !Array.isArray(json.data)
             ? json.data
@@ -3023,7 +3463,7 @@ export class NastyTavern {
         this.syncCharacterConvertButton(panel);
     }
 
-    characterNastyMetadataState(panel = this.characterModalPanel()) {
+    characterNastyMetadataState(panel = this.characterPanel()) {
         const json = this.characterEditJsonData(panel);
         const data = json?.data && typeof json.data === 'object' && !Array.isArray(json.data) ? json.data : {};
         const context = window.SillyTavern?.getContext?.();
@@ -3036,7 +3476,7 @@ export class NastyTavern {
         return { creator, uuid, sha, complete: Boolean(creator && uuid && sha) };
     }
 
-    syncCharacterConvertButton(panel = this.characterModalPanel()) {
+    syncCharacterConvertButton(panel = this.characterPanel()) {
         const root = this.characterCreateModalRoot || document.querySelector('#nt-character-create-modal');
         const button = root?.querySelector('[data-nt-character-convert]');
         if (!(button instanceof HTMLButtonElement)) return;
@@ -3084,7 +3524,7 @@ export class NastyTavern {
         });
     }
 
-    async convertCurrentCharacterForNasty(panel = this.characterModalPanel()) {
+    async convertCurrentCharacterForNasty(panel = this.characterPanel()) {
         const root = this.characterCreateModalRoot || document.querySelector('#nt-character-create-modal');
         const button = root?.querySelector('[data-nt-character-convert]');
         const account = this.communityChat?.getAccountSnapshot?.();
@@ -3123,7 +3563,6 @@ export class NastyTavern {
             this.toast(t('Character Card converted for NastyTavern.'));
             return true;
         } catch (error) {
-            console.error('[NastyTavern] Character conversion failed.', error);
             this.toast(error?.message || t('Could not convert this Character Card.'));
             return false;
         } finally {
@@ -3131,7 +3570,7 @@ export class NastyTavern {
         }
     }
 
-    syncCharacterEditJsonData(panel = this.characterModalPanel(), formData = null) {
+    syncCharacterEditJsonData(panel = this.characterPanel(), formData = null) {
         const form = panel?.querySelector('#form_create');
         if (!(form instanceof HTMLFormElement)) return null;
 
@@ -3144,7 +3583,6 @@ export class NastyTavern {
                 const parsed = JSON.parse(raw);
                 if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) json = parsed;
             } catch (error) {
-                console.warn('[NastyTavern] Could not parse character json_data during live edit.', error);
             }
         }
         if (!json.data || typeof json.data !== 'object' || Array.isArray(json.data)) json.data = {};
@@ -3210,7 +3648,7 @@ export class NastyTavern {
         return json;
     }
 
-    prepareCharacterEditLiveSave(panel = this.characterModalPanel()) {
+    prepareCharacterEditLiveSave(panel = this.characterPanel()) {
         this.restoreCharacterEditLiveSave();
         const form = panel?.querySelector('#form_create');
         if (!(form instanceof HTMLFormElement)) return false;
@@ -3273,7 +3711,6 @@ export class NastyTavern {
                     this.hydrateCharacterEditNastyFields(panel);
                 }
             } catch (error) {
-                console.error('[NastyTavern] Character rename failed during live edit.', error);
                 this.toast(t('Could not rename character.'));
             } finally {
                 renaming = false;
@@ -3331,16 +3768,16 @@ export class NastyTavern {
     }
 
     async openCharacterEditModalFromNativeSelection({ opener = null } = {}) {
-        if (!this.isCharacterModalOpen()) return false;
-        const panel = this.characterModalPanel();
+        if (!this.isCharacterWorkspaceOpen()) return false;
+        const panel = this.characterPanel();
         if (!panel) return false;
         if (!await this.waitForNativeCharacterEditor(panel)) return false;
-        if (!this.isCharacterModalOpen()) return false;
+        if (!this.isCharacterWorkspaceOpen()) return false;
 
         // The native editor is now fully hydrated by SillyTavern. Restore the
         // drawer to its normal DOM location, then mount that same hydrated
-        // editor into the shared Create/Edit modal shell.
-        this.closeCharacterModal();
+        // editor into the shared Create/Edit modal shell while the library workspace is hidden.
+        this.closeCharacterWorkspace();
         this.characterDialogueExamplesDraft = null;
 
         const root = this.ensureCharacterCreateModalRoot();
@@ -3372,7 +3809,7 @@ export class NastyTavern {
     }
 
     async openCharacterCatalogue() {
-        this.closeCharacterModal();
+        this.closeCharacterWorkspace();
         await this.catalogueModal?.open?.();
     }
 
@@ -3476,8 +3913,8 @@ export class NastyTavern {
             stateNode.hidden = !empty;
             library.classList.toggle('is-empty', empty);
 
-            const pagination = this.characterModalRoot?.querySelector('.nt-character-pagination');
-            const footer = this.characterModalRoot?.querySelector('[data-nt-character-footer]');
+            const pagination = this.characterWorkspaceRoot?.querySelector('.nt-character-pagination');
+            const footer = this.characterWorkspaceRoot?.querySelector('[data-nt-character-footer]');
             if (pagination) pagination.hidden = empty;
             if (footer) footer.hidden = empty;
             if (!empty) return;
@@ -3573,8 +4010,8 @@ export class NastyTavern {
             state.stateNode?.removeEventListener('click', state.onAction);
             this.characterEmptyStateState = null;
         }
-        document.querySelector('#nt-character-modal .nt-character-empty-state')?.remove();
-        document.querySelector('#nt-character-modal #rm_characters_block')?.classList.remove('is-empty');
+        document.querySelector('#nt-character-workspace .nt-character-empty-state')?.remove();
+        document.querySelector('#nt-character-workspace #rm_characters_block')?.classList.remove('is-empty');
     }
 
     decorateCharacterLibraryControls(panel) {
@@ -3772,9 +4209,9 @@ export class NastyTavern {
         return { current, total };
     }
 
-    syncCharacterPagination(panel = this.characterModalPanel()) {
+    syncCharacterPagination(panel = this.characterPanel()) {
         const nativePagination = panel?.querySelector('#rm_print_characters_pagination');
-        const controls = this.characterModalRoot?.querySelector('.nt-character-pagination') || document.querySelector('#nt-character-modal .nt-character-pagination');
+        const controls = this.characterWorkspaceRoot?.querySelector('.nt-character-pagination') || document.querySelector('#nt-character-workspace .nt-character-pagination');
         if (!nativePagination || !controls) return;
 
         this.syncCharacterLibraryControls(panel);
@@ -3790,7 +4227,7 @@ export class NastyTavern {
 
     decorateCharacterPagination(panel) {
         const nativePagination = panel?.querySelector('#rm_print_characters_pagination');
-        const footer = this.characterModalRoot?.querySelector('[data-nt-character-footer]');
+        const footer = this.characterWorkspaceRoot?.querySelector('[data-nt-character-footer]');
         if (!nativePagination || !footer) return;
 
         let controls = footer.querySelector('.nt-character-pagination');
@@ -3855,35 +4292,35 @@ export class NastyTavern {
         this.cleanCharacterTagSorting();
         this.cleanCharacterLibraryEditOpen();
         this.restoreCharacterLibraryControls();
-        this.characterModalRoot?.querySelector('.nt-character-pagination')?.remove();
-        const footer = this.characterModalRoot?.querySelector('[data-nt-character-footer]');
+        this.characterWorkspaceRoot?.querySelector('.nt-character-pagination')?.remove();
+        const footer = this.characterWorkspaceRoot?.querySelector('[data-nt-character-footer]');
         if (footer) footer.hidden = true;
         panel.querySelector('.nt-character-quick-actions')?.remove();
         panel.querySelectorAll('.nt-character-native-quick-source').forEach(action => action.classList.remove('nt-character-native-quick-source'));
         panel.querySelector('#rm_characters_block')?.classList.remove('nt-character-library');
     }
 
-    characterModalDrawer() {
-        return document.querySelector('#rightNavHolder') || this.characterModalPanel()?.closest('.drawer') || null;
+    characterDrawer() {
+        return document.querySelector('#rightNavHolder') || this.characterPanel()?.closest('.drawer') || null;
     }
 
-    isCharacterModalOpen() {
-        const root = this.characterModalRoot || document.querySelector('#nt-character-modal');
-        return Boolean(root && !root.hidden && root.classList.contains('is-open'));
+    isCharacterWorkspaceOpen() {
+        const root = this.characterWorkspaceRoot || document.querySelector('#nt-character-workspace');
+        return Boolean(root && !root.hidden);
     }
 
-    mountCharacterDrawer(root) {
-        const drawer = this.characterModalDrawer();
-        const panel = this.characterModalPanel();
+    mountCharacterWorkspace(root) {
+        const drawer = this.characterDrawer();
+        const panel = this.characterPanel();
         const host = root?.querySelector('[data-nt-character-host]');
         if (!drawer || !panel || !host) return false;
 
-        if (!this.characterModalState) {
+        if (!this.characterWorkspaceState) {
             const placeholder = document.createComment('NastyTavern Characters drawer');
             const parent = drawer.parentNode;
             if (!parent) return false;
             parent.insertBefore(placeholder, drawer);
-            this.characterModalState = {
+            this.characterWorkspaceState = {
                 drawer, panel, placeholder,
                 drawerClass: drawer.getAttribute('class'),
                 drawerStyle: drawer.getAttribute('style'),
@@ -3894,8 +4331,8 @@ export class NastyTavern {
             };
         }
 
-        drawer.classList.add('nt-character-modal-drawer');
-        panel.classList.add('nt-character-modal-native');
+        drawer.classList.add('nt-character-workspace-drawer');
+        panel.classList.add('nt-character-workspace-native');
         panel.classList.remove('closedDrawer');
         panel.classList.add('openDrawer');
         panel.hidden = false;
@@ -3911,8 +4348,8 @@ export class NastyTavern {
         return true;
     }
 
-    restoreCharacterDrawer() {
-        const state = this.characterModalState;
+    restoreCharacterWorkspace({ restoreFocus = true } = {}) {
+        const state = this.characterWorkspaceState;
         if (!state) return;
         const { drawer, panel, placeholder } = state;
         this.cleanCharacterLibrary(panel);
@@ -3932,7 +4369,7 @@ export class NastyTavern {
         else panel.setAttribute('style', state.panelStyle);
         panel.hidden = state.panelHidden;
 
-        // Characters is modal-only in NastyTavern: never leave the native drawer visibly open.
+        // Characters is workspace-owned in NastyTavern: never leave the native drawer visibly open.
         panel.classList.remove('openDrawer');
         panel.classList.add('closedDrawer');
         const icon = drawer.querySelector(':scope > .drawer-toggle .drawer-icon, #rightNavDrawerIcon');
@@ -3940,58 +4377,55 @@ export class NastyTavern {
         icon?.classList.add('closedIcon');
 
         const opener = state.opener;
-        this.characterModalState = null;
-        if (opener?.isConnected) requestAnimationFrame(() => opener.focus?.({ preventScroll: true }));
+        this.characterWorkspaceState = null;
+        if (restoreFocus && opener?.isConnected) requestAnimationFrame(() => opener.focus?.({ preventScroll: true }));
     }
 
-    async openCharacterModal() {
-        if (this.isCharacterModalOpen()) return true;
-        if (this.isBackgroundModalOpen()) await this.closeBackgroundModal({ restoreFocus: false });
-        if (this.isLorebookModalOpen()) await this.closeLorebookModal({ restoreFocus: false });
+    async openCharacterWorkspace() {
+        if (this.isCharacterWorkspaceOpen()) {
+            this.setView('characters');
+            return true;
+        }
+        if (this.isBackgroundWorkspaceOpen()) await this.closeBackgroundWorkspace({ restoreFocus: false });
+        if (this.isLorebookWorkspaceOpen()) await this.closeLorebookWorkspace({ restoreFocus: false });
+        if (this.isPersonaWorkspaceOpen()) await this.closePersonaWorkspace({ restoreFocus: false });
 
-        // Characters owns the baseline state for Character Management. Any child
-        // workflow (Create, Edit, or future native subviews) may leave the native
-        // panel in a detail state when it closes; normalize only when Characters
-        // is opened instead of duplicating the same reset in every child modal.
         if (this.isCharacterCreateModalOpen()) {
             await this.closeCharacterCreateModal({ restoreFocus: false });
         }
         await this.ensureNativeCharacterLibraryView();
         this.invalidateCharacterTagUsageCache();
 
-        const root = this.ensureCharacterModalRoot();
-        if (!this.mountCharacterDrawer(root)) {
-            console.warn('[NastyTavern] Character modal failed to mount native Character Management.');
+        const root = this.ensureCharacterWorkspaceRoot();
+        if (!this.mountCharacterWorkspace(root)) {
             this.toast(t('Could not open Characters.'));
             return false;
         }
 
         this.chatToolbar?.toggleHistory?.(false);
-        document.body?.classList.add('nt-character-modal-open');
-        showModalShell(root);
-        requestAnimationFrame(() => {
-            root.querySelector('.nt-modal-close')?.focus?.({ preventScroll: true });
-        });
+        root.hidden = false;
+        document.body?.classList.add('nt-character-workspace-open');
+        this.setView('characters');
         this.syncCharacterFavoriteState();
         this.homeDashboard?.sync({ view: this.currentView });
         return true;
     }
 
-    closeCharacterModal() {
-        const root = this.characterModalRoot || document.querySelector('#nt-character-modal');
-        hideModalShell(root);
-        this.restoreCharacterDrawer();
-        document.body?.classList.remove('nt-character-modal-open');
+    closeCharacterWorkspace({ restoreFocus = true } = {}) {
+        const root = this.characterWorkspaceRoot || document.querySelector('#nt-character-workspace');
+        if (root) root.hidden = true;
+        this.restoreCharacterWorkspace({ restoreFocus });
+        document.body?.classList.remove('nt-character-workspace-open');
         this.homeDashboard?.sync({ view: this.currentView });
     }
 
-    syncCharacterModalState() {
-        if (!this.isCharacterModalOpen()) return;
-        const state = this.characterModalState;
-        if (!state?.drawer?.isConnected || !state?.panel?.isConnected) this.closeCharacterModal();
+    syncCharacterWorkspaceState() {
+        if (!this.isCharacterWorkspaceOpen()) return;
+        const state = this.characterWorkspaceState;
+        if (!state?.drawer?.isConnected || !state?.panel?.isConnected) this.closeCharacterWorkspace();
     }
 
-    async cleanupCharacterModal() {
+    async cleanupCharacterWorkspace() {
         await this.closeGroupModal({ restoreFocus: false, reopenCharacters: false });
         this.groupModalRoot?.remove();
         this.groupModalRoot = null;
@@ -4002,11 +4436,11 @@ export class NastyTavern {
         this.characterCreateModalRoot?.remove();
         this.characterCreateModalRoot = null;
         document.querySelector('#nt-character-create-modal')?.remove();
-        this.restoreCharacterDrawer();
-        this.characterModalRoot?.remove();
-        this.characterModalRoot = null;
-        document.querySelector('#nt-character-modal')?.remove();
-        document.body?.classList.remove('nt-character-modal-open', 'nt-character-create-modal-open');
+        this.restoreCharacterWorkspace({ restoreFocus: false });
+        this.characterWorkspaceRoot?.remove();
+        this.characterWorkspaceRoot = null;
+        document.querySelector('#nt-character-workspace')?.remove();
+        document.body?.classList.remove('nt-character-workspace-open', 'nt-character-create-modal-open');
     }
 
     ensureCharacterCreateModalRoot() {
@@ -4030,7 +4464,7 @@ export class NastyTavern {
 
             root.addEventListener('click', event => {
                 if (event.target.closest('[data-nt-character-create-back]')) {
-                    void this.returnToCharacterModal();
+                    void this.returnToCharacterWorkspace();
                     return;
                 }
                 if (event.target.closest('[data-nt-character-create-identity-toggle]')) {
@@ -4052,8 +4486,8 @@ export class NastyTavern {
     }
 
     mountCharacterCreateDrawer(root) {
-        const drawer = this.characterModalDrawer();
-        const panel = this.characterModalPanel();
+        const drawer = this.characterDrawer();
+        const panel = this.characterPanel();
         const host = root?.querySelector('[data-nt-character-create-host]');
         if (!drawer || !panel || !host) return false;
 
@@ -4281,7 +4715,7 @@ export class NastyTavern {
                     // Defer navigation so SillyTavern can finish its own UI cleanup first.
                     setTimeout(() => {
                         if (this.characterCreateModalRoot?.dataset.ntCharacterEditorMode !== 'edit') return;
-                        void this.returnToCharacterModal();
+                        void this.returnToCharacterWorkspace();
                     }, 0);
                 };
                 deleteEventSource.on(deleteEventType, onCharacterDeleted);
@@ -4371,7 +4805,7 @@ export class NastyTavern {
     }
 
     characterDialogueExamplesField() {
-        return this.characterModalPanel()?.querySelector('#mes_example_textarea') || document.querySelector('#mes_example_textarea');
+        return this.characterPanel()?.querySelector('#mes_example_textarea') || document.querySelector('#mes_example_textarea');
     }
 
     parseCharacterDialogueExamples(value) {
@@ -4466,7 +4900,6 @@ export class NastyTavern {
                     const parsed = JSON.parse(rawJsonData);
                     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) jsonData = parsed;
                 } catch (error) {
-                    console.warn('[NastyTavern] Could not parse native character JSON data before creation; preserving NastyTavern metadata in a fresh payload.', error);
                 }
             }
             if (!jsonData.data || typeof jsonData.data !== 'object' || Array.isArray(jsonData.data)) jsonData.data = {};
@@ -4523,7 +4956,7 @@ export class NastyTavern {
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                 if (!this.isCharacterCreateModalOpen()) return;
                 await this.closeCharacterCreateModal({ restoreFocus: false });
-                await this.openCharacterModal();
+                await this.openCharacterWorkspace();
             } finally {
                 transitionPending = false;
             }
@@ -4720,7 +5153,6 @@ export class NastyTavern {
         const talkativeness = document.querySelector('#talkativeness_div');
 
         if (!description || !firstMessage || !personality || !scenario || !examples || !promptContent || !characterNote || !talkativeness) {
-            console.warn('[NastyTavern] Create Character tabs could not find every native field; keeping the native main layout.');
             return false;
         }
 
@@ -5128,22 +5560,21 @@ export class NastyTavern {
 
     async openCharacterCreateModal() {
         if (this.isCharacterCreateModalOpen()) return true;
-        if (this.isLorebookModalOpen()) await this.closeLorebookModal({ restoreFocus: false });
+        if (this.isLorebookWorkspaceOpen()) await this.closeLorebookWorkspace({ restoreFocus: false });
 
         this.characterDialogueExamplesDraft = null;
 
-        // Characters and Create Character are sibling modals: never stack them.
-        if (this.isCharacterModalOpen()) this.closeCharacterModal();
+        // The Characters workspace and Create Character modal are sibling flows: never stack them.
+        if (this.isCharacterWorkspaceOpen()) this.closeCharacterWorkspace();
 
         const root = this.ensureCharacterCreateModalRoot();
         this.setCharacterEditorMode('create');
         if (!this.mountCharacterCreateDrawer(root)) {
-            console.warn('[NastyTavern] Create Character modal failed to mount native Character Management.');
             this.toast(t('Could not open Characters.'));
             return false;
         }
 
-        const panel = this.characterModalPanel();
+        const panel = this.characterPanel();
         const createButton = panel?.querySelector('#rm_button_create');
         if (!createButton) {
             this.restoreCharacterCreateDrawer({ restoreFocus: false });
@@ -5176,7 +5607,7 @@ export class NastyTavern {
     }
 
     async ensureNativeCharacterLibraryView() {
-        const panel = this.characterModalPanel();
+        const panel = this.characterPanel();
         if (!panel) return;
 
         const groupBlock = panel.querySelector('#rm_group_chats_block');
@@ -5238,10 +5669,10 @@ export class NastyTavern {
         }
     }
 
-    async returnToCharacterModal() {
+    async returnToCharacterWorkspace() {
         if (!this.isCharacterCreateModalOpen()) return false;
         await this.closeCharacterCreateModal({ restoreFocus: false });
-        return this.openCharacterModal();
+        return this.openCharacterWorkspace();
     }
 
     scheduleNativePanelSync(delay = 140) {
@@ -5274,9 +5705,10 @@ export class NastyTavern {
             const surface = this.findThirdPartyWorkspaceSurface(view);
             if (surface && this.elementIsVisible(surface)) return true;
         }
-        if (view === 'personas' && this.isPersonaModalOpen()) return true;
-        if (view === 'backgrounds' && this.isBackgroundModalOpen()) return true;
-        if (view === 'lorebooks' && this.isLorebookModalOpen()) return true;
+        if (view === 'personas' && this.isPersonaWorkspaceOpen()) return true;
+        if (view === 'characters' && this.isCharacterWorkspaceOpen()) return true;
+        if (view === 'backgrounds' && this.isBackgroundWorkspaceOpen()) return true;
+        if (view === 'lorebooks' && this.isLorebookWorkspaceOpen()) return true;
         const selector = this.nativePanelForView(view);
         if (!selector) return view === 'chat';
         const panel = document.querySelector(selector);
@@ -5300,7 +5732,6 @@ export class NastyTavern {
             return true;
         }
         const detail = result.reason === 'not-found' ? 'control not found' : 'native control did not open';
-        console.warn('[NastyTavern] navigation failed', { key, fallbacks, result });
         this.toast(`Could not open ${activeId}: ${detail}. The native SillyTavern toolbar is still available.`);
         return false;
     }
@@ -5320,11 +5751,11 @@ export class NastyTavern {
 
     async navigate(id) {
         if (this.isGroupModalOpen()) await this.closeGroupModal({ restoreFocus: false, reopenCharacters: false });
-        if (id !== 'personas' && this.isPersonaModalOpen()) await this.closePersonaModal({ restoreFocus: false });
-        if (id !== 'backgrounds' && this.isBackgroundModalOpen()) await this.closeBackgroundModal({ restoreFocus: false });
-        if (id !== 'lorebooks' && this.isLorebookModalOpen()) await this.closeLorebookModal({ restoreFocus: false });
+        if (id !== 'personas' && this.isPersonaWorkspaceOpen()) await this.closePersonaWorkspace({ restoreFocus: false });
+        if (id !== 'backgrounds' && this.isBackgroundWorkspaceOpen()) await this.closeBackgroundWorkspace({ restoreFocus: false });
+        if (id !== 'lorebooks' && this.isLorebookWorkspaceOpen()) await this.closeLorebookWorkspace({ restoreFocus: false });
         if (id !== 'extensions' && this.extensionsModal.isOpen()) await this.extensionsModal.close({ restoreFocus: false });
-        if (id !== 'characters' && this.isCharacterModalOpen()) this.closeCharacterModal();
+        if (id !== 'characters' && this.isCharacterWorkspaceOpen()) this.closeCharacterWorkspace();
         if (id !== 'chat') {
             this.chatToolsHub.close();
         }
@@ -5335,17 +5766,17 @@ export class NastyTavern {
                 this.setView('chat');
                 break;
             case 'characters':
-                return this.openCharacterModal();
+                return this.openCharacterWorkspace();
             case 'character-library':
                 return this.openCharacterLibrary();
             case 'datacat':
                 return this.openDataCat();
             case 'personas':
                 if (this.thirdPartyWorkspaceAvailable('personas')) return this.openThirdPartyWorkspace('personas');
-                return this.openPersonaModal();
+                return this.openPersonaWorkspace();
             case 'lorebooks':
                 if (this.thirdPartyWorkspaceAvailable('lorebooks')) return this.openThirdPartyWorkspace('lorebooks');
-                return this.openLorebookModal();
+                return this.openLorebookWorkspace();
             case 'formatting':
                 await this.clickAndTag('formatting', ['Advanced Formatting','AI Response Formatting','Context Template','Instruct Template'], 'formatting');
                 break;
@@ -5361,7 +5792,7 @@ export class NastyTavern {
                 await this.clickAndTag('userSettings', ['User Settings'], 'settings');
                 break;
             case 'backgrounds':
-                return this.openBackgroundModal();
+                return this.openBackgroundWorkspace();
             case 'databank': {
                 this.dom.closeNativeDrawers();
                 this.setView('chat');
@@ -5375,7 +5806,7 @@ export class NastyTavern {
     toast(message) {
         const localized = translateText(message);
         if (window.toastr?.info) window.toastr.info(localized, 'NastyTavern');
-        else console.info('[NastyTavern]', localized);
+        else {}
     }
 
     getActions() {

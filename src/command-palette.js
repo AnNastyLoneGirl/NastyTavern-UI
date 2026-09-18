@@ -72,6 +72,6 @@ export class CommandPalette {
         const action = this.results[index];
         if (!action) return;
         this.close();
-        try { Promise.resolve(action.run()).catch(error => console.error('[NastyTavern] command failed', error)); } catch (error) { console.error('[NastyTavern] command failed', error); }
+        try { Promise.resolve(action.run()).catch(() => {}); } catch (error) {}
     }
 }

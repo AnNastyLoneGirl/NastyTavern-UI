@@ -6,7 +6,6 @@ export const defaults = Object.freeze({
     accent: '#7c6cff',
     density: 'comfortable',
     radius: 10,
-    blur: 8,
     navWidth: 222,
     compactNav: false,
     navHidden: false,
@@ -14,9 +13,10 @@ export const defaults = Object.freeze({
     hideNativeTopbar: true,
     dockNativePanels: true,
     motion: true,
-    chatWidth: 940,
-    messageWidth: 860,
     historyLimit: 50,
+    lorebookStudio: {
+        sort: 'az',
+    },
     // Privacy-first: Community performs no external network activity until explicitly enabled.
     communityNetworkEnabled: false,
     // Presence is independent from Community access and remains opt-in.
@@ -70,12 +70,19 @@ export function getSettings() {
         }
         delete settings.chatBarMinimized;
         delete settings.extensionsBarMinimized;
+        delete settings.blur;
+        delete settings.chatWidth;
+        delete settings.messageWidth;
         return settings;
     }
     if (!context.extensionSettings[MODULE]) context.extensionSettings[MODULE] = structuredClone(defaults);
     const settings = context.extensionSettings[MODULE];
     for (const [key, value] of Object.entries(defaults)) {
         if (!Object.hasOwn(settings, key)) settings[key] = structuredClone(value);
+    }
+    if (!settings.lorebookStudio || typeof settings.lorebookStudio !== 'object') settings.lorebookStudio = structuredClone(defaults.lorebookStudio);
+    for (const [key, value] of Object.entries(defaults.lorebookStudio)) {
+        if (!Object.hasOwn(settings.lorebookStudio, key)) settings.lorebookStudio[key] = structuredClone(value);
     }
     if (!settings.modules || typeof settings.modules !== 'object') settings.modules = structuredClone(defaults.modules);
     for (const [key, value] of Object.entries(defaults.modules)) {
@@ -101,6 +108,11 @@ export function getSettings() {
     if (Object.hasOwn(settings, 'chatBarMinimized') || Object.hasOwn(settings, 'extensionsBarMinimized')) {
         delete settings.chatBarMinimized;
         delete settings.extensionsBarMinimized;
+        context.saveSettingsDebounced?.();
+    }
+    const obsoleteLayoutSettings = ['blur', 'chatWidth', 'messageWidth'];
+    if (obsoleteLayoutSettings.some(key => Object.hasOwn(settings, key))) {
+        obsoleteLayoutSettings.forEach(key => delete settings[key]);
         context.saveSettingsDebounced?.();
     }
     delete settings.workspacePresets;
@@ -140,13 +152,10 @@ export function applySettings(settings) {
     root.style.setProperty('--mt-accent', settings.accent);
     root.style.setProperty('--mt-accent-contrast', getAccentContrast(settings.accent));
     root.style.setProperty('--mt-radius', `${settings.radius}px`);
-    root.style.setProperty('--mt-blur', `${settings.blur}px`);
     // Keep the user preference separate from the effective responsive width.
     // An inline --mt-nav-width would override CSS media queries after a viewport/orientation change.
     root.style.removeProperty('--mt-nav-width');
     root.style.setProperty('--mt-nav-width-user', `${settings.navWidth}px`);
-    root.style.setProperty('--mt-chat-width', `${settings.chatWidth}px`);
-    root.style.setProperty('--mt-message-width', `${settings.messageWidth}px`);
     document.body?.classList.toggle('mt-enabled', !!settings.enabled);
     document.body?.classList.toggle('mt-density-compact', settings.density === 'compact');
     document.body?.classList.toggle('mt-density-comfortable', settings.density !== 'compact');

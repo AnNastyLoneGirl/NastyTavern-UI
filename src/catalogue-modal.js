@@ -434,76 +434,6 @@ export class CatalogueModal {
         }, Math.max(0, Number(delay || 0)));
     }
 
-    realtimeChangedKeys(payload) {
-        const before = payload?.old || {};
-        const after = payload?.new || {};
-        const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
-        return [...keys].filter(key => {
-            try { return JSON.stringify(before?.[key]) !== JSON.stringify(after?.[key]); }
-            catch (_) { return before?.[key] !== after?.[key]; }
-        });
-    }
-
-    patchRealtimeStats(row = {}) {
-        const id = String(row.id || '');
-        if (!id) return;
-        const patch = {
-            downloads: Number(row.downloads || 0),
-            rating_average: Number(row.rating_average || 0),
-            rating_count: Number(row.rating_count || 0),
-            last_download_at: row.last_download_at || null,
-            updated_at: row.updated_at || null,
-        };
-        const visible = this.items.find(item => String(item.id) === id);
-        if (visible) {
-            const myRating = visible.my_rating;
-            Object.assign(visible, patch);
-            if (myRating !== undefined) visible.my_rating = myRating;
-        }
-        const articles = this.root?.querySelectorAll(`[data-nt-catalogue-item="${id}"]`) || [];
-        articles.forEach(article => {
-            const downloads = article.querySelector('[data-nt-catalogue-card-downloads]');
-            const rating = article.querySelector('[data-nt-catalogue-card-top-rating]');
-            if (downloads) downloads.textContent = patch.downloads.toLocaleString();
-            if (rating) {
-                const holder = document.createElement('div');
-                holder.innerHTML = this.cardRatingMarkup({ ...(visible || {}), ...patch });
-                rating.replaceWith(holder.firstElementChild);
-            }
-        });
-        const detailVersion = this.activeDetail?.family?.find(version => String(version.id) === id);
-        if (detailVersion) {
-            const myRating = detailVersion.my_rating;
-            Object.assign(detailVersion, patch);
-            if (myRating !== undefined) detailVersion.my_rating = myRating;
-            if (String(this.activeDetail?.item?.id) === id) {
-                this.syncDetailDownloads(detailVersion);
-                this.syncDetailRating(detailVersion);
-            }
-        }
-    }
-
-    removeRealtimeItem(id) {
-        const key = String(id || '');
-        if (!key) return;
-        const index = this.items.findIndex(item => String(item.id) === key);
-        if (index >= 0) {
-            this.items.splice(index, 1);
-            this.total = Math.max(0, this.total - 1);
-            const article = this.root?.querySelector(`[data-nt-catalogue-item="${key}"]`);
-            article?.remove();
-            if (!this.items.length) this.renderItems();
-            else this.syncFooter();
-        }
-        if (String(this.activeDetail?.item?.id || '') === key) {
-            this.characterDetails?.close?.({ restoreFocus: false });
-            this.activeDetail = null;
-            this.toast?.(t('This catalogue resource was deleted.'));
-        } else if (this.activeDetail?.family?.some(version => String(version.id) === key)) {
-            this.scheduleActiveDetailRefresh(80);
-        }
-    }
-
     scheduleActiveDetailRefresh(delay = 140) {
         if (!this.activeDetail?.item || !this.characterDetails?.root || this.characterDetails.root.hidden) return;
         const currentId = this.activeDetail.item.id;
@@ -518,51 +448,6 @@ export class CatalogueModal {
                 else this.characterDetails?.close?.({ restoreFocus: false });
             } catch (_) {}
         }, Math.max(0, Number(delay || 0)));
-    }
-
-    handleRealtimeItemChange(payload) {
-        const eventType = String(payload?.eventType || '').toUpperCase();
-        const next = payload?.new || {};
-        const previous = payload?.old || {};
-        const id = next.id || previous.id;
-        if (!id) return;
-
-        if (eventType === 'DELETE') {
-            this.removeRealtimeItem(id);
-            this.scheduleRealtimeRefresh(120);
-            return;
-        }
-
-        if (eventType === 'INSERT') {
-            this.scheduleRealtimeRefresh(90);
-            return;
-        }
-
-        if (eventType !== 'UPDATE') return;
-        const changed = this.realtimeChangedKeys(payload);
-        const statKeys = new Set(['downloads', 'last_download_at', 'rating_average', 'rating_count', 'updated_at']);
-        const statsOnly = changed.length > 0 && changed.every(key => statKeys.has(key));
-
-        if (statsOnly) {
-            this.patchRealtimeStats(next);
-            if (['popular', 'downloads', 'rating'].includes(this.state.sort)) this.scheduleRealtimeRefresh(260);
-            return;
-        }
-
-        const visible = this.items.find(item => String(item.id) === String(id));
-        if (visible) {
-            const myRating = visible.my_rating;
-            Object.assign(visible, next);
-            if (myRating !== undefined) visible.my_rating = myRating;
-        }
-        const detailVersion = this.activeDetail?.family?.find(version => String(version.id) === String(id));
-        if (detailVersion) {
-            const myRating = detailVersion.my_rating;
-            Object.assign(detailVersion, next);
-            if (myRating !== undefined) detailVersion.my_rating = myRating;
-            this.scheduleActiveDetailRefresh(90);
-        }
-        this.scheduleRealtimeRefresh(120);
     }
 
     async handleRealtimeRejectionChange(payload) {
@@ -732,12 +617,6 @@ export class CatalogueModal {
         const badge = this.root?.querySelector('[data-nt-catalogue-report-count]');
         if (badge) badge.textContent = String(this.pendingReportCount);
         return this.pendingReportCount;
-    }
-
-    handleRealtimeReportChange() {
-        if (!this.isModerator) return;
-        void this.loadReportCount();
-        if (this.state.section === 'reports') void this.loadReports({ silent: true });
     }
 
     handleRealtimeCollectionChange() {
@@ -1391,7 +1270,6 @@ export class CatalogueModal {
                 return { kind: 'lorebook', id: `lorebook:${fileId}`, fileId, name, search: `${name} ${fileId}`.toLocaleLowerCase() };
             }).filter(item => item.fileId);
         } catch (error) {
-            console.warn('[NastyTavern] Could not list Lorebooks for catalogue upload.', error);
             const select = document.querySelector('#world_editor_select');
             return [...(select?.options || [])].map(option => {
                 const fileId = String(option.value || '').trim();
@@ -1473,7 +1351,6 @@ export class CatalogueModal {
         try {
             this.libraryState.items = this.libraryState.kind === 'lorebook' ? await this.lorebookLibraryItems() : this.characterLibraryItems();
         } catch (error) {
-            console.warn('[NastyTavern] Could not load local catalogue resources.', error);
             this.libraryState.items = [];
         } finally {
             this.libraryState.loading = false;
@@ -1560,7 +1437,6 @@ export class CatalogueModal {
             const kind = this.uploadRoot?.querySelector('[data-nt-catalogue-upload-kind]');
             if (kind) kind.value = item.kind;
         } catch (error) {
-            console.error('[NastyTavern] Could not prepare library resource for catalogue upload.', error);
             this.toast?.(error?.message || t('Could not load this resource.'));
         } finally {
             button?.removeAttribute('disabled');
@@ -1677,7 +1553,6 @@ export class CatalogueModal {
                 if (error?.code === 'DUPLICATE_SHA') throw error;
                 // If the preflight check itself is unavailable, continue. The
                 // server-side duplicate constraint remains authoritative.
-                console.warn('[NastyTavern] Catalogue duplicate preflight unavailable:', error);
             }
 
             // Canonical duplicate preflight ignores tracking metadata. This catches
@@ -1707,7 +1582,6 @@ export class CatalogueModal {
                 }
             } catch (error) {
                 if (error?.code === 'CANONICAL_DUPLICATE') throw error;
-                console.warn('[NastyTavern] Catalogue canonical duplicate preflight unavailable:', error);
             }
 
             try {

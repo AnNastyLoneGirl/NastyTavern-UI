@@ -215,7 +215,6 @@ export class DomAdapter {
                     if (typeof target.click === 'function') target.click();
                     else target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
                 } catch (error) {
-                    console.warn('[NastyTavern] native drawer toggle failed', key, target, error);
                 }
 
                 await new Promise(resolve => setTimeout(resolve, 90));
@@ -329,7 +328,6 @@ export class DomAdapter {
             if (typeof trigger.click === 'function') trigger.click();
             else trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
         } catch (error) {
-            console.warn('[NastyTavern] Data Bank trigger failed', error);
             return { ok: false, reason: 'click-failed', error };
         }
 

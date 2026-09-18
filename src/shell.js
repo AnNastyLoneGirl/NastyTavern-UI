@@ -54,7 +54,7 @@ export class AppShell {
             <div class="mt-brand">
               <span class="mt-brandmark">${icons.logo}</span>
               <span class="mt-brandtext"><b>NastyTavern</b><small>SillyTavern UI</small></span>
-              <span class="mt-brand-version">0.1.7</span>
+              <span class="mt-brand-version">0.1.8</span>
             </div>
             <nav class="mt-nav">
               ${NAV.map(([id,label,icon]) => `<button data-mt-nav="${id}" title="${t(label)}"><span class="mt-nav-icon">${icon}</span><span class="mt-nav-label">${t(label)}</span></button>`).join('')}

@@ -4,6 +4,35 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
+## Unreleased
+
+No user-facing changes pending.
+
+---
+
+## v0.1.8
+
+Update focused on integrated library workspaces, Persona Studio, Lorebook management, mobile chat layout, and updater reliability.
+
+### Added
+
+- Added **Lorebook Library**, an integrated World Info workspace with gallery browsing, search, filters, sorting, pagination, bindings, global activation controls, native entry editing, and optional folders while keeping SillyTavern as the source of truth.
+- Added **Persona Studio**, a responsive persona workspace with library browsing, search, filters, sorting, pagination, detail/edit workflows, persona selection, locks/connections, image actions, and backup/restore access.
+- Added structured persona sections and contextual **Variants**, including drag-to-reorder prompt order, character/chat/text/RegExp activation, and a preview of the resolved persona content.
+
+### Changed
+
+- `Characters`, `Backgrounds`, `Personas`, and `Lorebooks` now integrate into NastyTavern's main workspace/navigation model while preserving SillyTavern's native data and handlers; third-party Persona Library keeps priority when installed.
+- The updater now detects maintenance changes from the published manifest/changelog and reloads the page automatically after a successful update.
+
+### Fixed
+
+- Fixed the mobile chat message structure so avatar/name metadata and message content use separate layout regions, preventing text, reasoning, or media from flowing underneath taller avatars while preserving native swipe behavior.
+- Fixed embedded Character Lore import/linking when SillyTavern sanitizes filesystem-invalid characters in Lorebook names, so imported Lorebooks remain correctly attached to their Character Card.
+- Fixed the Community Privacy Notice on phones and low-height screens so its content scrolls correctly and **Save & return** remains reachable.
+
+---
+
 ## v0.1.7
 
 Release focused on large-library performance, responsive navigation, and compatibility with SillyTavern and third-party extensions.
@@ -36,7 +65,7 @@ Release focused on large-library performance, responsive navigation, and compati
 
 ### Compatibility
 
-- Persona Library and World Info Gallery keep ownership of their own DOM, click handlers, detail/editor windows.
+- Persona Library and World Info Gallery keep ownership of their own DOM, click handlers, detail/editor windows, and overlays inside the NastyTavern workspace; redundant native World Info heading, drawer toggle, and editor pin/lock chrome is hidden while World Info Gallery is active.
 - Audited NastyTavern overlay, pointer-event, z-index, and movable-panel behavior to reduce interference with third-party extension interfaces and preserve native extension click handlers where possible.
 
 ---

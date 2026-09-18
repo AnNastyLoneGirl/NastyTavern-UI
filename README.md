@@ -9,6 +9,7 @@ The underlying SillyTavern features remain intact: chats, Character Cards, Perso
 On top of that, NastyTavern adds integrated tools, improved mobile support, Community features, and the Nasty Catalogue for discovering and sharing Character Cards and Lorebooks.
 
 > **Current release version:** `0.1.7`
+> **Current test version:** `0.1.8`
 > **Minimum SillyTavern version:** `1.18.0`
 
 ## 📸 Screenshots

@@ -175,7 +175,7 @@ export class ChatToolsHub {
             if (active) button?.setAttribute('aria-current', 'page');
             else button?.removeAttribute('aria-current');
             if (active) {
-                Promise.resolve(module?.open?.()).catch(error => console.error('[NastyTavern] Chat tool failed to open', error));
+                Promise.resolve(module?.open?.()).catch(() => {});
             } else {
                 module?.close?.();
             }
