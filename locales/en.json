@@ -1138,5 +1138,7 @@
   "Show token value (t/$)": "Show token value (t/$)",
   "Add the OpenRouter prompt-token value per dollar to model choices on mobile.": "Add the OpenRouter prompt-token value per dollar to model choices on mobile.",
   "Show max prompt cost ($)": "Show max prompt cost ($)",
-  "Add the estimated maximum prompt cost for the current token limits to model choices on mobile.": "Add the estimated maximum prompt cost for the current token limits to model choices on mobile."
+  "Add the estimated maximum prompt cost for the current token limits to model choices on mobile.": "Add the estimated maximum prompt cost for the current token limits to model choices on mobile.",
+  "Show Nano subscription status": "Show Nano subscription status",
+  "Add NanoGPT subscription status to model choices on mobile, including sub, sub(2x), or not sub when available.": "Add NanoGPT subscription status to model choices on mobile, including sub, sub(2x), or not sub when available."
 }

@@ -17,6 +17,8 @@ export const defaults = Object.freeze({
     mobileModelContextInfo: false,
     mobileModelTokenValueInfo: false,
     mobileModelCostInfo: false,
+    // Optional NanoGPT subscription metadata restored in the native mobile model picker.
+    mobileNanoSubscriptionInfo: false,
     historyLimit: 50,
     lorebookStudio: {
         sort: 'az',

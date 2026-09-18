@@ -212,6 +212,7 @@ export class NastyTavern {
             shortcutsChanged: () => { saveSettings(); this.shell.updateCommandShortcut(this.settings.shortcuts?.commandPalette); },
             communityPrivacyChanged: () => { void this.handleCommunityPrivacyChanged(); },
             openCommunityPrivacy: () => this.communityChat?.openPrivacyNotice?.(),
+            interfaceSettingsChanged: () => { void this.syncMobileModelLabels(); },
         });
         this.healthPanel = new HealthPanel(message => this.toast(message), () => this.getHealthSnapshot());
         this.aboutPanel = new AboutPanel(() => this.healthPanel.open());
@@ -241,6 +242,7 @@ export class NastyTavern {
         document.removeEventListener('change', this.boundDocumentChange, true);
         this.restoreCharacterEmbeddedLoreAutoLink();
         this.restoreMobileOpenRouterModelLabels();
+        this.restoreMobileNanoGptModelLabels();
         this.mobileNavMedia?.removeEventListener?.('change', this.boundResponsiveNavChange);
         clearTimeout(this.viewSyncTimer); this.viewSyncTimer = null;
         clearTimeout(this.retagTimer); this.retagTimer = null;
@@ -1102,8 +1104,8 @@ export class NastyTavern {
 
     onDocumentChange(event) {
         const target = event.target instanceof Element ? event.target : null;
-        if (target?.matches?.('#model_openrouter_select, #openai_max_context, #openai_max_tokens, #chat_completion_source')) {
-            queueMicrotask(() => void this.syncMobileOpenRouterModelLabels());
+        if (target?.matches?.('#model_openrouter_select, #model_nanogpt_select, #openai_max_context, #openai_max_tokens, #chat_completion_source')) {
+            queueMicrotask(() => void this.syncMobileModelLabels());
         }
         if (!target?.matches?.('#translation_auto_mode, #translation_target_language, #translation_provider')) return;
 
@@ -1396,8 +1398,8 @@ export class NastyTavern {
         this.shell?.updateCommunityAccount?.(this.communityChat?.getAccountSnapshot?.());
     }
 
-    restoreMobileOpenRouterModelLabels() {
-        const select = document.querySelector('#model_openrouter_select');
+    restoreMobileModelLabels(selector) {
+        const select = document.querySelector(selector);
         if (!(select instanceof HTMLSelectElement)) return;
         for (const option of select.options) {
             const original = option.dataset.ntMobileModelBaseLabel;
@@ -1405,6 +1407,14 @@ export class NastyTavern {
             if (option.textContent !== original) option.textContent = original;
             delete option.dataset.ntMobileModelBaseLabel;
         }
+    }
+
+    restoreMobileOpenRouterModelLabels() {
+        this.restoreMobileModelLabels('#model_openrouter_select');
+    }
+
+    restoreMobileNanoGptModelLabels() {
+        this.restoreMobileModelLabels('#model_nanogpt_select');
     }
 
     formatMobileModelMetricNumber(value) {
@@ -1458,9 +1468,6 @@ export class NastyTavern {
             this.openAiModulePromise = import('/scripts/openai.js').catch(() => null);
         }
         const openAiModule = await this.openAiModulePromise;
-        const modelList = Array.isArray(openAiModule?.model_list) ? openAiModule.model_list : [];
-        if (!modelList.length) return;
-
         const context = window.SillyTavern?.getContext?.();
         const chatSettings = context?.chatCompletionSettings || {};
         if (String(chatSettings.chat_completion_source || '') !== 'openrouter') {
@@ -1468,6 +1475,8 @@ export class NastyTavern {
             return;
         }
 
+        const modelList = Array.isArray(openAiModule?.model_list) ? openAiModule.model_list : [];
+        if (!modelList.length) return;
         const models = new Map(modelList.map(model => [String(model?.id || ''), model]));
         for (const option of select.options) {
             const model = models.get(String(option.value || ''));
@@ -1501,6 +1510,68 @@ export class NastyTavern {
         }
     }
 
+    getMobileNanoSubscriptionLabel(model) {
+        const subscription = model?.subscription;
+        if (!subscription || typeof subscription !== 'object') return '';
+        if (subscription.included) {
+            const multiplier = Number(subscription.inputTokenMultiplier);
+            if (Number.isFinite(multiplier) && multiplier > 0 && multiplier !== 1) {
+                const value = Number.isInteger(multiplier) ? String(multiplier) : String(Number(multiplier.toFixed(2)));
+                return `sub(${value}x)`;
+            }
+            return 'sub';
+        }
+        return subscription.note ? 'not sub' : '';
+    }
+
+    async syncMobileNanoGptModelLabels() {
+        const select = document.querySelector('#model_nanogpt_select');
+        if (!(select instanceof HTMLSelectElement)) return;
+
+        const enabled = this.settings.mobileNanoSubscriptionInfo === true;
+        const mobile = Boolean(this.mobileNavMedia?.matches);
+        if (!mobile || !enabled) {
+            this.restoreMobileNanoGptModelLabels();
+            return;
+        }
+
+        if (!this.openAiModulePromise) {
+            this.openAiModulePromise = import('/scripts/openai.js').catch(() => null);
+        }
+        const openAiModule = await this.openAiModulePromise;
+        const context = window.SillyTavern?.getContext?.();
+        const chatSettings = context?.chatCompletionSettings || {};
+        if (String(chatSettings.chat_completion_source || '') !== 'nanogpt') {
+            this.restoreMobileNanoGptModelLabels();
+            return;
+        }
+
+        const modelList = Array.isArray(openAiModule?.model_list) ? openAiModule.model_list : [];
+        if (!modelList.length) return;
+        const models = new Map(modelList.map(model => [String(model?.id || ''), model]));
+        for (const option of select.options) {
+            const model = models.get(String(option.value || ''));
+            if (!model) continue;
+            if (option.dataset.ntMobileModelBaseLabel === undefined) {
+                option.dataset.ntMobileModelBaseLabel = String(model.name || option.textContent || option.value);
+            }
+
+            const parts = [option.dataset.ntMobileModelBaseLabel];
+            const subscription = this.getMobileNanoSubscriptionLabel(model);
+            if (subscription) parts.push(subscription);
+
+            const label = parts.join(' · ');
+            if (option.textContent !== label) option.textContent = label;
+        }
+    }
+
+    async syncMobileModelLabels() {
+        await Promise.all([
+            this.syncMobileOpenRouterModelLabels(),
+            this.syncMobileNanoGptModelLabels(),
+        ]);
+    }
+
     updateStatus() {
         const connectionState = this.dom.getConnectionState();
         const character = this.dom.getCharacterName();
@@ -1524,7 +1595,7 @@ export class NastyTavern {
         this.syncCharacterLibraryIntegration();
         this.ensureCommunityShareButtons();
         this.syncChatCharacterContext();
-        void this.syncMobileOpenRouterModelLabels();
+        void this.syncMobileModelLabels();
         localizeOwnedUI();
     }
 
