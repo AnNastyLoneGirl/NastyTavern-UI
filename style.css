@@ -12082,7 +12082,7 @@ body.nt-hide-module-community [data-mt-community] {
   font-size: var(--nt-font-body);
 }
 
-body.mt-enabled #nt-community-panel .nt-community-shell-body {
+#nt-community-panel .nt-community-shell-body {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;

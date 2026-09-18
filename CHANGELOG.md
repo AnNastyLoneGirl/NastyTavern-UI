@@ -29,7 +29,7 @@ Update focused on integrated library workspaces, Persona Studio, Lorebook manage
 
 - Fixed the mobile chat message structure so avatar/name metadata and message content use separate layout regions, preventing text, reasoning, or media from flowing underneath taller avatars while preserving native swipe behavior.
 - Fixed embedded Character Lore import/linking when SillyTavern sanitizes filesystem-invalid characters in Lorebook names, so imported Lorebooks remain correctly attached to their Character Card.
-- Fixed the Community Privacy Notice on phones and low-height screens so its content scrolls correctly and **Save & return** remains reachable.
+- Fixed the Community Privacy Notice on phones and low-height screens so its content scrolls correctly.
 
 ---
 
