@@ -6,7 +6,13 @@ All notable changes to NastyTavern UI are documented here.
 
 ## Unreleased
 
-No user-facing changes pending.
+### Added
+
+- Added three opt-in mobile OpenRouter model indicators in NastyTavern Settings: model context (`ctx`), token value (`t/$`), and estimated max prompt cost (`$`), shown directly in the mobile model choices. All are disabled by default.
+
+### Fixed
+
+- Improved the mobile **Settings → Models** Connection Profile layout: the profile selector now uses its own row, with the six profile actions grouped on the row below.
 
 ---
 
@@ -29,7 +35,7 @@ Update focused on integrated library workspaces, Persona Studio, Lorebook manage
 
 - Fixed the mobile chat message structure so avatar/name metadata and message content use separate layout regions, preventing text, reasoning, or media from flowing underneath taller avatars while preserving native swipe behavior.
 - Fixed embedded Character Lore import/linking when SillyTavern sanitizes filesystem-invalid characters in Lorebook names, so imported Lorebooks remain correctly attached to their Character Card.
-- Fixed the Community Privacy Notice on phones and low-height screens so its content scrolls correctly.
+- Fixed the Community Privacy Notice on phones and low-height screens so its content scrolls correctly and **Save & return** remains reachable.
 
 ---
 

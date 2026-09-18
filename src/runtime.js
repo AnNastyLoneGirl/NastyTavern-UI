@@ -121,6 +121,7 @@ export class NastyTavern {
         this.boundDocumentClick = event => this.onDocumentClick(event);
         this.boundDocumentChange = event => this.onDocumentChange(event);
         this.mobileNavMedia = window.matchMedia?.('(max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px)') || null;
+        this.openAiModulePromise = null;
         this.boundResponsiveNavChange = () => { this.syncResponsiveNavMode(); this.syncMobileChatMessageBlocks(); };
         this.chatCharacterContextTranslation = { source: '', expanded: '', translationSource: '', translationKey: '', translated: '', shown: false, translating: false, manualOriginal: false };
         this.characterWorkspaceRoot = null;
@@ -239,6 +240,7 @@ export class NastyTavern {
         document.removeEventListener('click', this.boundDocumentClick, true);
         document.removeEventListener('change', this.boundDocumentChange, true);
         this.restoreCharacterEmbeddedLoreAutoLink();
+        this.restoreMobileOpenRouterModelLabels();
         this.mobileNavMedia?.removeEventListener?.('change', this.boundResponsiveNavChange);
         clearTimeout(this.viewSyncTimer); this.viewSyncTimer = null;
         clearTimeout(this.retagTimer); this.retagTimer = null;
@@ -1100,6 +1102,9 @@ export class NastyTavern {
 
     onDocumentChange(event) {
         const target = event.target instanceof Element ? event.target : null;
+        if (target?.matches?.('#model_openrouter_select, #openai_max_context, #openai_max_tokens, #chat_completion_source')) {
+            queueMicrotask(() => void this.syncMobileOpenRouterModelLabels());
+        }
         if (!target?.matches?.('#translation_auto_mode, #translation_target_language, #translation_provider')) return;
 
         const state = this.chatCharacterContextTranslation;
@@ -1391,6 +1396,111 @@ export class NastyTavern {
         this.shell?.updateCommunityAccount?.(this.communityChat?.getAccountSnapshot?.());
     }
 
+    restoreMobileOpenRouterModelLabels() {
+        const select = document.querySelector('#model_openrouter_select');
+        if (!(select instanceof HTMLSelectElement)) return;
+        for (const option of select.options) {
+            const original = option.dataset.ntMobileModelBaseLabel;
+            if (original === undefined) continue;
+            if (option.textContent !== original) option.textContent = original;
+            delete option.dataset.ntMobileModelBaseLabel;
+        }
+    }
+
+    formatMobileModelMetricNumber(value) {
+        const number = Number(value);
+        if (!Number.isFinite(number) || number <= 0) return '';
+        const format = (scaled, suffix) => {
+            const digits = scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
+            return `${Number(scaled.toFixed(digits))}${suffix}`;
+        };
+        if (number >= 1_000_000) return format(number / 1_000_000, 'm');
+        if (number >= 1_000) return format(number / 1_000, 'k');
+        return String(Math.round(number));
+    }
+
+    getMobileOpenRouterPromptCost(model, chatSettings) {
+        const promptPrice = Number(model?.pricing?.prompt);
+        const completionPrice = Number(model?.pricing?.completion);
+        if (!Number.isFinite(promptPrice) || !Number.isFinite(completionPrice)) return '';
+
+        const configuredContext = Number(chatSettings?.openai_max_context ?? document.querySelector('#openai_max_context')?.value);
+        const configuredCompletion = Number(chatSettings?.openai_max_tokens ?? document.querySelector('#openai_max_tokens')?.value);
+        if (!Number.isFinite(configuredContext) || !Number.isFinite(configuredCompletion)) return '';
+
+        const modelContext = Number(model?.context_length);
+        const maxContext = Number.isFinite(modelContext) && modelContext > 0
+            ? Math.min(configuredContext, modelContext)
+            : configuredContext;
+        const completionTokens = Math.max(0, Math.min(configuredCompletion, maxContext));
+        const promptTokens = Math.max(0, maxContext - completionTokens);
+        let total = (promptPrice * promptTokens) + (completionPrice * completionTokens);
+        if (chatSettings?.enable_web_search) total += 0.02;
+        return Number.isFinite(total) ? `$${total.toFixed(3)}` : '';
+    }
+
+    async syncMobileOpenRouterModelLabels() {
+        const select = document.querySelector('#model_openrouter_select');
+        if (!(select instanceof HTMLSelectElement)) return;
+
+        const showContext = this.settings.mobileModelContextInfo === true;
+        const showTokenValue = this.settings.mobileModelTokenValueInfo === true;
+        const showCost = this.settings.mobileModelCostInfo === true;
+        const enabled = showContext || showTokenValue || showCost;
+        const mobile = Boolean(this.mobileNavMedia?.matches);
+
+        if (!mobile || !enabled) {
+            this.restoreMobileOpenRouterModelLabels();
+            return;
+        }
+
+        if (!this.openAiModulePromise) {
+            this.openAiModulePromise = import('/scripts/openai.js').catch(() => null);
+        }
+        const openAiModule = await this.openAiModulePromise;
+        const modelList = Array.isArray(openAiModule?.model_list) ? openAiModule.model_list : [];
+        if (!modelList.length) return;
+
+        const context = window.SillyTavern?.getContext?.();
+        const chatSettings = context?.chatCompletionSettings || {};
+        if (String(chatSettings.chat_completion_source || '') !== 'openrouter') {
+            this.restoreMobileOpenRouterModelLabels();
+            return;
+        }
+
+        const models = new Map(modelList.map(model => [String(model?.id || ''), model]));
+        for (const option of select.options) {
+            const model = models.get(String(option.value || ''));
+            if (!model) continue;
+            if (option.dataset.ntMobileModelBaseLabel === undefined) {
+                option.dataset.ntMobileModelBaseLabel = String(model.name || option.textContent || option.value);
+            }
+
+            const parts = [option.dataset.ntMobileModelBaseLabel];
+            if (showContext) {
+                const contextValue = this.formatMobileModelMetricNumber(model.context_length);
+                if (contextValue) parts.push(`${contextValue} ctx`);
+            }
+            if (showTokenValue) {
+                const promptPrice = Number(model?.pricing?.prompt);
+                if (Number.isFinite(promptPrice)) {
+                    if (promptPrice === 0) parts.push('Free');
+                    else if (promptPrice > 0) {
+                        const thousandsPerDollar = 1 / (1000 * promptPrice);
+                        if (Number.isFinite(thousandsPerDollar)) parts.push(`${Math.round(thousandsPerDollar)}k t/$`);
+                    }
+                }
+            }
+            if (showCost) {
+                const cost = this.getMobileOpenRouterPromptCost(model, chatSettings);
+                if (cost) parts.push(cost);
+            }
+
+            const label = parts.join(' · ');
+            if (option.textContent !== label) option.textContent = label;
+        }
+    }
+
     updateStatus() {
         const connectionState = this.dom.getConnectionState();
         const character = this.dom.getCharacterName();
@@ -1414,6 +1524,7 @@ export class NastyTavern {
         this.syncCharacterLibraryIntegration();
         this.ensureCommunityShareButtons();
         this.syncChatCharacterContext();
+        void this.syncMobileOpenRouterModelLabels();
         localizeOwnedUI();
     }
 

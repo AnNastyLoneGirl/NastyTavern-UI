@@ -13,6 +13,10 @@ export const defaults = Object.freeze({
     hideNativeTopbar: true,
     dockNativePanels: true,
     motion: true,
+    // Optional OpenRouter metadata restored in the native mobile model picker.
+    mobileModelContextInfo: false,
+    mobileModelTokenValueInfo: false,
+    mobileModelCostInfo: false,
     historyLimit: 50,
     lorebookStudio: {
         sort: 'az',

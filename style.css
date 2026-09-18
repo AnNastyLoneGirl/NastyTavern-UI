@@ -656,7 +656,7 @@ html body.mt-enabled .nt-third-party-workspace-surface.nt-third-party-fixed-work
   height: auto !important;
   max-width: none !important;
   max-height: none !important;
-  margin: 0 !important;
+  margin: 0;
 }
 
 body.mt-enabled.mt-dock-panels .mt-native-panel h2, body.mt-enabled.mt-dock-panels .mt-native-panel h3 {
@@ -16968,13 +16968,13 @@ body.mt-enabled .mt-settings-native-host > .nt-settings-native-mounted {
   right: auto !important;
   bottom: auto !important;
   left: auto !important;
-  width: 100% !important;
-  min-width: 0 !important;
+  width: 100%;
+  min-width: 0;
   max-width: none !important;
   height: auto !important;
   min-height: 0 !important;
   max-height: none !important;
-  margin: 0 !important;
+  margin: 0;
   padding: 0 !important;
   display: flex !important;
   flex-direction: column;
@@ -17492,9 +17492,9 @@ body.mt-enabled .mt-settings-native-host .nt-theme-compact-label {
 
 body.mt-enabled .mt-settings-native-host .nt-theme-compact-select {
   width: var(--nt-theme-select-width, auto) !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  margin: 0 !important;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
   justify-self: end;
   flex: none !important;
 }
@@ -17556,6 +17556,37 @@ body.mt-enabled .mt-settings-native-host[data-mt-settings-section="prompts"] #le
     --nt-settings-control-height: 36px;
     --nt-settings-content-gap: 8px;
     --nt-settings-section-gap: 16px;
+  }
+
+  /* Models / Connection Profile: keep the selector readable on phones and
+     move its compact native actions to a dedicated row below. */
+  body.mt-enabled .mt-settings-native-host[data-mt-settings-section="models"]
+    #rm_api_block .flex-container:has(> #connection_profiles) {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  body.mt-enabled .mt-settings-native-host[data-mt-settings-section="models"]
+    #rm_api_block #connection_profiles {
+    flex: 1 0 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  body.mt-enabled .mt-settings-native-host[data-mt-settings-section="models"]
+    #rm_api_block .flex-container:has(> #connection_profiles)
+    > :is(#view_connection_profile, #create_connection_profile, #update_connection_profile, #edit_connection_profile, #reload_connection_profile, #delete_connection_profile) {
+    flex: 0 0 var(--nt-settings-control-height);
+    width: var(--nt-settings-control-height);
+    min-width: var(--nt-settings-control-height);
+    margin: 0;
   }
 }
 
@@ -23795,8 +23826,8 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_
   body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: auto 38px !important;
-    width: 100% !important;
-    min-width: 0 !important;
+    width: 100%;
+    min-width: 0;
     column-gap: 0 !important;
   }
 
@@ -23808,13 +23839,13 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_
   body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus > .flex-container {
     grid-column: 1 !important;
     grid-row: 2 !important;
-    width: 100% !important;
-    min-width: 0 !important;
+    width: 100%;
+    min-width: 0;
   }
 
   body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus textarea[name="comment"] {
-    width: 100% !important;
-    min-width: 0 !important;
+    width: 100%;
+    min-width: 0;
     max-width: none !important;
   }
 
@@ -23822,20 +23853,20 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .world_entry_
     grid-template-columns: minmax(86px, 100px) repeat(3, minmax(54px, 68px)) !important;
     gap: 6px !important;
     width: max-content !important;
-    min-width: 0 !important;
+    min-width: 0;
     justify-self: end !important;
     align-items: stretch !important;
   }
 
   body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls > .world_entry_form_control {
-    width: 100% !important;
-    min-width: 0 !important;
+    width: 100%;
+    min-width: 0;
   }
 
   body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls input,
   body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEnteryHeaderControls select {
-    width: 100% !important;
-    min-width: 0 !important;
+    width: 100%;
+    min-width: 0;
     max-width: none !important;
   }
 
@@ -23887,13 +23918,13 @@ body.mt-enabled #nt-background-workspace #Backgrounds.mt-native-panel {
   opacity: 1 !important;
   pointer-events: auto !important;
   box-sizing: border-box;
-  width: 100% !important;
-  min-width: 0 !important;
+  width: 100%;
+  min-width: 0;
   max-width: none !important;
   height: 100% !important;
   min-height: 0 !important;
   max-height: none !important;
-  margin: 0 !important;
+  margin: 0;
   padding: 12px !important;
   gap: 10px;
   overflow: hidden !important;
@@ -23922,7 +23953,7 @@ body.mt-enabled #nt-background-workspace #Backgrounds #bg_tabs {
   display: flex !important;
   flex: 1 1 auto !important;
   flex-direction: column !important;
-  min-width: 0 !important;
+  min-width: 0;
   min-height: 0 !important;
   height: auto !important;
   overflow: hidden !important;
@@ -23932,7 +23963,7 @@ body.mt-enabled #nt-background-workspace #Backgrounds #bg_tabs {
 
 body.mt-enabled #nt-background-workspace #Backgrounds #bg_tabs .bg_tab_panel {
   flex: 1 1 auto !important;
-  min-width: 0 !important;
+  min-width: 0;
   min-height: 0 !important;
   height: 100% !important;
   overflow-y: auto !important;
@@ -24731,11 +24762,11 @@ body.mt-enabled #nt-extensions-modal #extensions_settings2.nt-extension-settings
   box-sizing: border-box;
   display: block !important;
   flex: 0 0 auto !important;
-  min-width: 0 !important;
-  width: 100% !important;
+  min-width: 0;
+  width: 100%;
   max-width: none !important;
   height: auto !important;
-  margin: 0 !important;
+  margin: 0;
   padding: 0 !important;
   overflow: visible !important;
 }
@@ -24749,10 +24780,10 @@ body.mt-enabled #nt-extensions-modal #extensions_settings2 > * {
 body.mt-enabled #nt-extensions-modal #extensions_settings .extension_container,
 body.mt-enabled #nt-extensions-modal #extensions_settings2 .extension_container {
   box-sizing: border-box;
-  min-width: 0 !important;
-  width: 100% !important;
+  min-width: 0;
+  width: 100%;
   max-width: none !important;
-  margin: 0 !important;
+  margin: 0;
   padding: 0 !important;
 }
 
@@ -24786,7 +24817,7 @@ body.mt-enabled #nt-extensions-modal #extensions_settings2 .inline-drawer > .inl
   width: 100%;
   min-height: 42px !important;
   height: auto !important;
-  margin: 0 !important;
+  margin: 0;
   padding: 9px 12px !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -24856,7 +24887,7 @@ body.mt-enabled #nt-extensions-modal #extensions_settings2 .inline-drawer > .inl
   min-width: 0;
   width: 100%;
   max-width: none;
-  margin: 0 !important;
+  margin: 0;
   padding: 11px 12px 12px !important;
   border: 0 !important;
   border-top: 1px solid color-mix(in srgb,var(--mt-border) 78%,transparent) !important;
@@ -25025,7 +25056,7 @@ body.mt-enabled #nt-extensions-modal .nt-extensions-sort-host .nt-manager-sort-b
   min-width: 0;
   height: 30px;
   min-height: 30px;
-  margin: 0 !important;
+  margin: 0;
   padding: 0 9px !important;
   border: 1px solid var(--mt-border) !important;
   border-radius: 7px !important;
@@ -25271,9 +25302,9 @@ body.mt-enabled #nt-extension-settings-popup .nt-extension-settings-popup-body {
    popup. Hide only its old launcher header and expose the native content. */
 body.mt-enabled #nt-extension-settings-popup .inline-drawer.nt-extension-settings-popup-active {
   box-sizing: border-box;
-  width: 100% !important;
+  width: 100%;
   max-width: none !important;
-  margin: 0 !important;
+  margin: 0;
   padding: 0 !important;
   overflow: visible !important;
   border: 0 !important;
@@ -25289,10 +25320,10 @@ body.mt-enabled #nt-extension-settings-popup .inline-drawer.nt-extension-setting
 body.mt-enabled #nt-extension-settings-popup .inline-drawer.nt-extension-settings-popup-active > .inline-drawer-content {
   box-sizing: border-box;
   display: block !important;
-  width: 100% !important;
+  width: 100%;
   max-width: none !important;
-  min-width: 0 !important;
-  margin: 0 !important;
+  min-width: 0;
+  margin: 0;
   padding: 0 !important;
   overflow: visible !important;
   border: 0 !important;
@@ -25336,10 +25367,10 @@ body.mt-enabled #nt-extension-settings-popup .inline-drawer-content .menu_button
 /* ========================================================================== */
 body.mt-enabled #nt-extension-settings-popup .nt-extension-settings-popup-scope-root {
   box-sizing: border-box;
-  width: 100% !important;
+  width: 100%;
   max-width: none !important;
-  min-width: 0 !important;
-  margin: 0 !important;
+  min-width: 0;
+  margin: 0;
   padding: 0 !important;
 }
 
@@ -25417,7 +25448,7 @@ body.mt-enabled dialog#nt-extension-settings-popup.nt-extension-settings-popup-d
 .nt-catalogue-search > span { width: 18px; height: 18px; color: var(--mt-text-muted); flex: 0 0 auto; }
 .nt-catalogue-search svg { width: 100%; height: 100%; fill: currentColor; }
 .nt-catalogue-search input {
-  width: 100%; min-width: 0; height: 100%; padding: 0 !important; margin: 0 !important;
+  width: 100%; min-width: 0; height: 100%; padding: 0 !important; margin: 0;
   border: 0 !important; background: transparent !important; box-shadow: none !important;
 }
 
@@ -27697,7 +27728,7 @@ html body.mt-enabled:not(.movingUI) :is(
   left: auto !important;
   width: var(--nt-authors-note-width) !important;
   height: auto !important;
-  min-width: 0 !important;
+  min-width: 0;
   min-height: 0 !important;
   max-width: calc(100vw - var(--mt-workspace-left) - (var(--nt-page-gutter) * 2)) !important;
   max-height: none !important;
@@ -28219,7 +28250,7 @@ body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block 
 body.mt-enabled.charListGrid #nt-character-workspace #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) .avatar img {
   position: static !important;
   inset: auto !important;
-  margin: 0 !important;
+  margin: 0;
   translate: none !important;
   transform: none !important;
   scale: 1 !important;

@@ -1131,5 +1131,12 @@
   "Lorebook name": "Lorebook name",
   "Lorebook name cannot be empty.": "Lorebook name cannot be empty.",
   "Could not rename this Lorebook.": "Could not rename this Lorebook.",
-  "Could not link the imported Lorebook to this Character Card.": "Could not link the imported Lorebook to this Character Card."
+  "Could not link the imported Lorebook to this Character Card.": "Could not link the imported Lorebook to this Character Card.",
+  "Mobile model information": "Mobile model information",
+  "Show model context (ctx)": "Show model context (ctx)",
+  "Add the OpenRouter model context size to model choices on mobile.": "Add the OpenRouter model context size to model choices on mobile.",
+  "Show token value (t/$)": "Show token value (t/$)",
+  "Add the OpenRouter prompt-token value per dollar to model choices on mobile.": "Add the OpenRouter prompt-token value per dollar to model choices on mobile.",
+  "Show max prompt cost ($)": "Show max prompt cost ($)",
+  "Add the estimated maximum prompt cost for the current token limits to model choices on mobile.": "Add the estimated maximum prompt cost for the current token limits to model choices on mobile."
 }
