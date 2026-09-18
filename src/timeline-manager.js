@@ -770,7 +770,6 @@ export class TimelineManager {
         try {
             if (context?.groupId && typeof context.openGroupChat === 'function') await context.openGroupChat(context.groupId, session.chatId);
             else if (typeof context?.openCharacterChat === 'function') await context.openCharacterChat(session.chatId);
-            this.close();
             await this.jumpToMessage(session.messageIndex);
         } catch (error) {
             this.toast?.('Could not open this timeline chat.');
@@ -802,7 +801,6 @@ export class TimelineManager {
             const message = await this.jumpToMessage(session.messageIndex);
             if (!message) {
                 this.toast?.('Open this message and use Message actions → Branch.');
-                this.close();
                 return;
             }
             let branchButton = this.findBranchControl(message);
@@ -815,11 +813,9 @@ export class TimelineManager {
                 }
             }
             if (branchButton) {
-                this.close();
                 branchButton.click();
                 return;
             }
-            this.close();
             this.toast?.('Message opened. Use its … menu and choose Branch.');
         } catch (error) {
             this.toast?.('Could not start a branch from this message.');

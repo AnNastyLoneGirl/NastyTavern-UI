@@ -4,18 +4,6 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
-## Unreleased
-
-### Added
-
-- Added three opt-in mobile OpenRouter model indicators in NastyTavern Settings: model context (`ctx`), token value (`t/$`), and estimated max prompt cost (`$`), shown directly in the mobile model choices. All are disabled by default.
-
-### Fixed
-
-- Improved the mobile **Settings → Models** Connection Profile layout: the profile selector now uses its own row, with the six profile actions grouped on the row below.
-
----
-
 ## v0.1.8
 
 Update focused on integrated library workspaces, Persona Studio, Lorebook management, mobile chat layout, and updater reliability.
@@ -25,6 +13,7 @@ Update focused on integrated library workspaces, Persona Studio, Lorebook manage
 - Added **Lorebook Library**, an integrated World Info workspace with gallery browsing, search, filters, sorting, pagination, bindings, global activation controls, native entry editing, and optional folders while keeping SillyTavern as the source of truth.
 - Added **Persona Studio**, a responsive persona workspace with library browsing, search, filters, sorting, pagination, detail/edit workflows, persona selection, locks/connections, image actions, and backup/restore access.
 - Added structured persona sections and contextual **Variants**, including drag-to-reorder prompt order, character/chat/text/RegExp activation, and a preview of the resolved persona content.
+- Added three opt-in mobile OpenRouter model indicators in NastyTavern Settings: model context (`ctx`), token value (`t/$`), and estimated max prompt cost (`$`), shown directly in the mobile model choices. All are disabled by default.
 
 ### Changed
 
@@ -36,6 +25,8 @@ Update focused on integrated library workspaces, Persona Studio, Lorebook manage
 - Fixed the mobile chat message structure so avatar/name metadata and message content use separate layout regions, preventing text, reasoning, or media from flowing underneath taller avatars while preserving native swipe behavior.
 - Fixed embedded Character Lore import/linking when SillyTavern sanitizes filesystem-invalid characters in Lorebook names, so imported Lorebooks remain correctly attached to their Character Card.
 - Fixed the Community Privacy Notice on phones and low-height screens so its content scrolls correctly and **Save & return** remains reachable.
+- Fixed Story Timeline navigation so **Go to** and **New Branch** keep the timeline canvas open while SillyTavern changes or branches the active chat.
+- Improved the mobile **Settings → Models** Connection Profile layout: the profile selector now uses its own row, with the six profile actions grouped on the row below.
 
 ---
 
