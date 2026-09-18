@@ -13,7 +13,7 @@ Update focused on integrated library workspaces, Persona Studio, Lorebook manage
 - Added **Lorebook Library**, an integrated World Info workspace with gallery browsing, search, filters, sorting, pagination, bindings, global activation controls, native entry editing, and optional folders while keeping SillyTavern as the source of truth.
 - Added **Persona Studio**, a responsive persona workspace with library browsing, search, filters, sorting, pagination, detail/edit workflows, persona selection, locks/connections, image actions, and backup/restore access.
 - Added structured persona sections and contextual **Variants**, including drag-to-reorder prompt order, character/chat/text/RegExp activation, and a preview of the resolved persona content.
-- Added opt-in mobile model metadata in NastyTavern Settings: OpenRouter context (`ctx`), token value (`t/$`) and estimated max prompt cost (`$`), plus NanoGPT subscription status (`sub`, `sub(2x)`, `not sub`) directly in model choices. All indicators are disabled by default.
+- Added opt-in mobile model metadata in NastyTavern Settings: OpenRouter context (`ctx`), token value (`t/$`) and estimated max prompt cost (`$`), plus NanoGPT subscription status (`sub`, `sub(2x)`, `not sub`) and price directly in model choices. All indicators are disabled by default.
 
 ### Changed
 

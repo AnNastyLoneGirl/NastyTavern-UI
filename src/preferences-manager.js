@@ -16,7 +16,7 @@ const browserReserved = new Set([
 
 const interfaceSettingKeys = [
     'accent', 'density', 'radius', 'motion',
-    'mobileModelContextInfo', 'mobileModelTokenValueInfo', 'mobileModelCostInfo', 'mobileNanoSubscriptionInfo',
+    'mobileModelContextInfo', 'mobileModelTokenValueInfo', 'mobileModelCostInfo', 'mobileNanoPriceInfo', 'mobileNanoSubscriptionInfo',
 ];
 
 export class PreferencesManager {
@@ -126,9 +126,10 @@ export class PreferencesManager {
           </section>
           <section class="nt-pref-setting-group">
             <h3>${t('Mobile model information')}</h3>
-            ${toggle('mobileModelContextInfo', 'Show model context (ctx)', 'Add the OpenRouter model context size to model choices on mobile.')}
+            ${toggle('mobileModelContextInfo', 'Show model context (ctx)', 'Add the model context size to OpenRouter and NanoGPT choices on mobile.')}
             ${toggle('mobileModelTokenValueInfo', 'Show token value (t/$)', 'Add the OpenRouter prompt-token value per dollar to model choices on mobile.')}
             ${toggle('mobileModelCostInfo', 'Show max prompt cost ($)', 'Add the estimated maximum prompt cost for the current token limits to model choices on mobile.')}
+            ${toggle('mobileNanoPriceInfo', 'Show Nano price (in/out)', 'Add NanoGPT input/output price per million tokens to model choices on mobile.')}
             ${toggle('mobileNanoSubscriptionInfo', 'Show Nano subscription status', 'Add NanoGPT subscription status to model choices on mobile, including sub, sub(2x), or not sub when available.')}
           </section>
         </div>`;

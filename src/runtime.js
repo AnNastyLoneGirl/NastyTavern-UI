@@ -1510,6 +1510,15 @@ export class NastyTavern {
         }
     }
 
+    getMobileNanoPriceLabel(model) {
+        const inputPrice = Number(model?.pricing?.prompt);
+        const outputPrice = Number(model?.pricing?.completion);
+        if (!Number.isFinite(inputPrice) || !Number.isFinite(outputPrice)) return '';
+        if (inputPrice === 0 && outputPrice === 0) return 'Free';
+        const compact = value => String(Math.round(value * 100) / 100);
+        return `$${compact(inputPrice)}/$${compact(outputPrice)} in/out M`;
+    }
+
     getMobileNanoSubscriptionLabel(model) {
         const subscription = model?.subscription;
         if (!subscription || typeof subscription !== 'object') return '';
@@ -1528,7 +1537,10 @@ export class NastyTavern {
         const select = document.querySelector('#model_nanogpt_select');
         if (!(select instanceof HTMLSelectElement)) return;
 
-        const enabled = this.settings.mobileNanoSubscriptionInfo === true;
+        const showContext = this.settings.mobileModelContextInfo === true;
+        const showPrice = this.settings.mobileNanoPriceInfo === true;
+        const showSubscription = this.settings.mobileNanoSubscriptionInfo === true;
+        const enabled = showContext || showPrice || showSubscription;
         const mobile = Boolean(this.mobileNavMedia?.matches);
         if (!mobile || !enabled) {
             this.restoreMobileNanoGptModelLabels();
@@ -1557,8 +1569,18 @@ export class NastyTavern {
             }
 
             const parts = [option.dataset.ntMobileModelBaseLabel];
-            const subscription = this.getMobileNanoSubscriptionLabel(model);
-            if (subscription) parts.push(subscription);
+            if (showContext) {
+                const contextValue = this.formatMobileModelMetricNumber(model.context_length);
+                if (contextValue) parts.push(`${contextValue} ctx`);
+            }
+            if (showPrice) {
+                const price = this.getMobileNanoPriceLabel(model);
+                if (price) parts.push(price);
+            }
+            if (showSubscription) {
+                const subscription = this.getMobileNanoSubscriptionLabel(model);
+                if (subscription) parts.push(subscription);
+            }
 
             const label = parts.join(' · ');
             if (option.textContent !== label) option.textContent = label;
