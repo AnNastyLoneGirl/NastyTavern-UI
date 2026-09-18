@@ -8,7 +8,7 @@ The underlying SillyTavern features remain intact: chats, Character Cards, Perso
 
 On top of that, NastyTavern adds integrated tools, improved mobile support, Community features, and the Nasty Catalogue for discovering and sharing Character Cards and Lorebooks.
 
-> **Current release version:** `0.1.6`
+> **Current release version:** `0.1.7`
 > **Minimum SillyTavern version:** `1.18.0`
 
 ## 📸 Screenshots
@@ -210,7 +210,7 @@ NastyTavern is designed around a few simple ideas:
 
 # 🛠 Current status
 
-**NastyTavern UI v0.1.6 is the current public release.**
+**NastyTavern UI v0.1.7 is the current public release.**
 
 Most major features are already usable, but some compatibility or responsive issues may still appear depending on:
 

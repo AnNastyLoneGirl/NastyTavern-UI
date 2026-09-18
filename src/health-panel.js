@@ -74,7 +74,7 @@ export class HealthPanel {
 
         return {
             stVersion: document.querySelector('#version_display')?.textContent?.trim() || 'Unknown',
-            nastyVersion: '0.1.6',
+            nastyVersion: '0.1.7',
             view: document.body?.dataset?.mtView || 'chat',
             chatId: c?.getCurrentChatId?.() || c?.chatId || '',
             messages: Array.isArray(c?.chat) ? c.chat.length : 0,

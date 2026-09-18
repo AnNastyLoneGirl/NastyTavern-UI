@@ -41,7 +41,7 @@
   /* Effective chat geometry follows SillyTavern's native Chat Width setting.
      Separate variables keep legacy NastyTavern preferences from overriding ST. */
   --nt-chat-inline-size: var(--sheldWidth, 50vw);
-  --nt-message-inline-size: 92%;
+  --nt-message-inline-size: 100%;
   --mt-appbar-height: 58px;
   --nt-page-gutter: clamp(12px, 1.2vw, 18px);
   --nt-authors-note-width: clamp(340px, 28vw, 460px);
@@ -268,6 +268,10 @@ body.mt-enabled::after {
   gap: 18px;
   padding: 0 var(--nt-page-gutter);
   transition: left .22s var(--mt-ease),right .22s var(--mt-ease);
+  /* The visual header must not become an invisible click shield over extension
+     controls rendered in SillyTavern's native top-bar layer. NastyTavern only
+     re-enables input on the actual controls it owns. */
+  pointer-events: none;
 }
 
 .mt-appbar-title {
@@ -364,7 +368,7 @@ body.mt-enabled.mt-focus-mode {
   --mt-workspace-top: 0px;
 }
 
-body.mt-enabled #sheld {
+body.mt-enabled:not(.movingUI) #sheld {
   margin-left: var(--mt-nav-width);
   padding-top: var(--mt-appbar-height);
   width: auto!important;
@@ -376,11 +380,11 @@ body.mt-enabled #chat {
   max-width: var(--nt-chat-inline-size)!important;
   margin-left: auto;
   margin-right: auto;
-  padding: 22px 22px 145px 18px;
+  padding: 22px 0 145px;
   background: transparent;
   border: 0;
   box-shadow: none;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
   scroll-padding-bottom: 132px;
   overscroll-behavior: contain;
 }
@@ -538,7 +542,10 @@ body.mt-hide-native-topbar #top-settings-holder {
   height: 0!important;
   min-height: 0!important;
   overflow: visible!important;
-  pointer-events: none!important;
+  /* Keep the zero-height native header non-blocking by geometry rather than by
+     disabling input for its whole subtree. Third-party extensions often mount
+     launch controls here and those controls must keep their own click handlers. */
+  pointer-events: auto!important;
   background: transparent;
   box-shadow: none;
 }
@@ -923,7 +930,7 @@ body.mt-enabled:not(.mt-motion) * {
 
 @media (max-width: 1100px) {
 
-  body.mt-enabled #sheld {
+  body.mt-enabled:not(.movingUI) #sheld {
     margin-right: 0;
   }
 
@@ -988,7 +995,7 @@ body.mt-enabled:not(.mt-motion) * {
     padding-right: 8px;
   }
 
-  body.mt-enabled #sheld {
+  body.mt-enabled:not(.movingUI) #sheld {
     margin-left: 64px;
   }
 
@@ -1222,7 +1229,7 @@ body.mt-enabled.waifuMode .mt-sidebar-bottom button {
   padding: 0;
 }
 
-body.mt-enabled.waifuMode #sheld {
+body.mt-enabled.waifuMode:not(.movingUI) #sheld {
   margin: 0 auto;
   padding-top: 0;
   width: var(--sheldWidth)!important;
@@ -1235,9 +1242,9 @@ body.mt-enabled.waifuMode #chat {
   width: 100%!important;
   max-width: none!important;
   margin: 0;
-  padding: 16px 18px;
+  padding: 16px 0;
   scroll-padding-bottom: 24px;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
   background: rgba(10,12,17,.58);
   backdrop-filter: none;
   border: 1px solid var(--mt-border);
@@ -1271,7 +1278,7 @@ body.mt-enabled.waifuMode.mt-dock-panels .mt-native-panel {
 }
 
 @media (max-width:1000px) {
-  body.mt-enabled.waifuMode #sheld {
+  body.mt-enabled.waifuMode:not(.movingUI) #sheld {
     width: 100dvw!important;
     max-width: 100dvw!important;
     margin: 0;
@@ -1512,7 +1519,7 @@ body.mt-enabled .mt-appbar {
   right: 0;
 }
 
-body.mt-enabled #sheld {
+body.mt-enabled:not(.movingUI) #sheld {
   margin-right: 0;
 }
 
@@ -6418,8 +6425,8 @@ body.mt-enabled .nt-calendar-primary:focus-visible {
     flex: 0 0 7px;
   }
 
-  body.mt-enabled #sheld,
-  body.mt-enabled:not(.waifuMode) #sheld {
+  body.mt-enabled:not(.movingUI) #sheld,
+  body.mt-enabled:not(.waifuMode):not(.movingUI) #sheld {
     width: 100vw!important;
     max-width: 100vw!important;
     margin: 0;
@@ -6851,7 +6858,7 @@ body.mt-enabled .nt-calendar-primary:focus-visible {
     width: 100vw;
   }
 
-  body.mt-enabled.waifuMode #sheld {
+  body.mt-enabled.waifuMode:not(.movingUI) #sheld {
     width: 100vw!important;
     max-width: 100vw!important;
     padding-bottom: calc(58px + env(safe-area-inset-bottom,0px));
@@ -7194,9 +7201,9 @@ body.mt-enabled .nt-calendar-primary:focus-visible {
     font-size: var(--nt-font-meta);
   }
 
-  body.mt-enabled #sheld,
-  body.mt-enabled:not(.waifuMode) #sheld,
-  body.mt-enabled.waifuMode #sheld {
+  body.mt-enabled:not(.movingUI) #sheld,
+  body.mt-enabled:not(.waifuMode):not(.movingUI) #sheld,
+  body.mt-enabled.waifuMode:not(.movingUI) #sheld {
     width: calc(100vw - 52px)!important;
     max-width: calc(100vw - 52px)!important;
     margin-left: 52px;
@@ -7333,9 +7340,9 @@ body.mt-enabled .nt-calendar-primary:focus-visible {
     max-width: 118px;
   }
 
-  body.mt-enabled #sheld,
-  body.mt-enabled:not(.waifuMode) #sheld,
-  body.mt-enabled.waifuMode #sheld {
+  body.mt-enabled:not(.movingUI) #sheld,
+  body.mt-enabled:not(.waifuMode):not(.movingUI) #sheld,
+  body.mt-enabled.waifuMode:not(.movingUI) #sheld {
     width: calc(100vw - 48px)!important;
     max-width: calc(100vw - 48px)!important;
     margin-left: 48px;
@@ -7364,6 +7371,7 @@ body.mt-enabled .nt-calendar-primary:focus-visible {
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
+  pointer-events: auto;
 }
 
 .mt-appbar-icon,
@@ -7431,7 +7439,7 @@ body.mt-nav-hidden .mt-appbar {
   left: 0;
 }
 
-body.mt-nav-hidden #sheld,body.mt-nav-hidden:not(.waifuMode) #sheld,body.mt-nav-hidden.waifuMode #sheld {
+body.mt-nav-hidden:not(.movingUI) #sheld,body.mt-nav-hidden:not(.waifuMode):not(.movingUI) #sheld,body.mt-nav-hidden.waifuMode:not(.movingUI) #sheld {
   margin-left: 0;
   width: 100vw!important;
   max-width: 100vw!important;
@@ -7480,7 +7488,7 @@ body.mt-appbar-minimized [data-mt-ui="toggle-appbar"] svg {
   transform: rotate(180deg);
 }
 
-body.mt-appbar-minimized #sheld {
+body.mt-appbar-minimized:not(.movingUI) #sheld {
   padding-top: 36px;
 }
 
@@ -7501,7 +7509,7 @@ body.mt-focus-mode .mt-focus-restore {
 }
 
 
-body.mt-focus-mode #sheld,body.mt-focus-mode:not(.waifuMode) #sheld,body.mt-focus-mode.waifuMode #sheld {
+body.mt-focus-mode:not(.movingUI) #sheld,body.mt-focus-mode:not(.waifuMode):not(.movingUI) #sheld,body.mt-focus-mode.waifuMode:not(.movingUI) #sheld {
   width: 100vw!important;
   max-width: 100vw!important;
   margin: 0;
@@ -7560,7 +7568,7 @@ body.mt-focus-mode.mt-dock-panels .mt-native-panel {
     height: 36px;
   }
 
-  body.mt-appbar-minimized #sheld {
+  body.mt-appbar-minimized:not(.movingUI) #sheld {
     padding-top: 36px;
   }
 
@@ -7878,9 +7886,9 @@ body.mt-focus-mode.mt-dock-panels .mt-native-panel {
     font-size: var(--nt-font-meta);
   }
 
-  body.mt-enabled #sheld,
-  body.mt-enabled:not(.waifuMode) #sheld,
-  body.mt-enabled.waifuMode #sheld {
+  body.mt-enabled:not(.movingUI) #sheld,
+  body.mt-enabled:not(.waifuMode):not(.movingUI) #sheld,
+  body.mt-enabled.waifuMode:not(.movingUI) #sheld {
     width: calc(100vw - 48px)!important;
     max-width: calc(100vw - 48px)!important;
     margin-left: 48px;
@@ -8089,7 +8097,7 @@ body.mt-focus-mode.mt-dock-panels .mt-native-panel {
     overflow-x: auto;
   }
 
-  body.mt-enabled.waifuMode #sheld {
+  body.mt-enabled.waifuMode:not(.movingUI) #sheld {
     width: calc(100vw - 48px)!important;
     max-width: calc(100vw - 48px)!important;
     margin-left: 48px;
@@ -8115,9 +8123,9 @@ body.mt-focus-mode.mt-dock-panels .mt-native-panel {
     left: 0;
   }
 
-  body.mt-nav-hidden #sheld,
-  body.mt-nav-hidden:not(.waifuMode) #sheld,
-  body.mt-nav-hidden.waifuMode #sheld {
+  body.mt-nav-hidden:not(.movingUI) #sheld,
+  body.mt-nav-hidden:not(.waifuMode):not(.movingUI) #sheld,
+  body.mt-nav-hidden.waifuMode:not(.movingUI) #sheld {
     width: 100vw!important;
     max-width: 100vw!important;
     margin-left: 0;
@@ -8138,7 +8146,7 @@ body.mt-focus-mode.mt-dock-panels .mt-native-panel {
     left: 0;
   }
 
-  body.mt-appbar-minimized #sheld {
+  body.mt-appbar-minimized:not(.movingUI) #sheld {
     padding-top: 36px;
   }
 
@@ -8231,7 +8239,7 @@ body.mt-enabled.mt-focus-mode .mt-focus-restore {
   z-index: 4999;
 }
 
-body.mt-enabled.mt-focus-mode #sheld,body.mt-enabled.mt-focus-mode:not(.waifuMode) #sheld,body.mt-enabled.mt-focus-mode.waifuMode #sheld {
+body.mt-enabled.mt-focus-mode:not(.movingUI) #sheld,body.mt-enabled.mt-focus-mode:not(.waifuMode):not(.movingUI) #sheld,body.mt-enabled.mt-focus-mode.waifuMode:not(.movingUI) #sheld {
   width: 100vw!important;
   max-width: 100vw!important;
   margin-left: 0;
@@ -8268,7 +8276,7 @@ body.mt-enabled.mt-focus-mode.mt-dock-panels .mt-native-panel {
     pointer-events: none;
   }
 
-  body.mt-enabled.mt-focus-mode #sheld,body.mt-enabled.mt-focus-mode:not(.waifuMode) #sheld,body.mt-enabled.mt-focus-mode.waifuMode #sheld {
+  body.mt-enabled.mt-focus-mode:not(.movingUI) #sheld,body.mt-enabled.mt-focus-mode:not(.waifuMode):not(.movingUI) #sheld,body.mt-enabled.mt-focus-mode.waifuMode:not(.movingUI) #sheld {
     margin-left: 0;
     margin-right: 0;
   }
@@ -17094,6 +17102,38 @@ body.mt-enabled.mt-focus-mode .mt-sidebar-toggle {
   }
 }
 
+/* Responsive navigation state ------------------------------------------------
+   Phone/narrow layouts have one navigation mode only: compact. The persisted
+   desktop preference remains untouched and is restored automatically when the
+   viewport grows again. */
+body.mt-enabled.nt-mobile-nav-forced .mt-brandtext,
+body.mt-enabled.nt-mobile-nav-forced .mt-brand-version,
+body.mt-enabled.nt-mobile-nav-forced .mt-nav-label,
+body.mt-enabled.nt-mobile-nav-forced .mt-sidebar kbd {
+  display: none;
+}
+
+body.mt-enabled.nt-mobile-nav-forced .mt-nav button,
+body.mt-enabled.nt-mobile-nav-forced .mt-sidebar-bottom button {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+body.mt-enabled.nt-mobile-nav-forced .mt-nav-submenu {
+  padding-left: 0;
+}
+
+body.mt-enabled.nt-mobile-nav-forced .mt-nav-library-group .mt-nav-group-chevron {
+  display: none;
+}
+
+body.mt-enabled.nt-mobile-nav-forced .mt-nav-submenu > .mt-nav-subitem {
+  justify-content: center;
+  padding-inline: 0;
+  border-left: 0;
+  border-radius: 7px;
+}
+
 /* ========================================================================== */
 /* NastyTavern 0.1.3 — forced compact mobile sidebar                          */
 /* Phones already use the compact navigation, so no collapse affordance is    */
@@ -18886,6 +18926,19 @@ body.mt-enabled #nt-character-modal #rm_print_characters_block {
   align-content: start;
 }
 
+/* Large libraries: preserve SillyTavern's native nodes and event handlers but
+   skip layout/paint for off-screen entries, mirroring the virtual-rendering
+   principle used by dedicated Character Library implementations. */
+body.mt-enabled #nt-character-modal #rm_print_characters_block.nt-character-performance-list > :is(.character_select, .group_select, .bogus_folder_select) {
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto 72px;
+}
+
+body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block.nt-character-performance-list > :is(.character_select, .group_select, .bogus_folder_select) {
+  contain-intrinsic-size: auto 188px;
+}
+
 body.mt-enabled:not(.charListGrid) #nt-character-modal #rm_print_characters_block .character_select,
 body.mt-enabled:not(.charListGrid) #nt-character-modal #rm_print_characters_block .group_select,
 body.mt-enabled:not(.charListGrid) #nt-character-modal #rm_print_characters_block .bogus_folder_select {
@@ -18961,13 +19014,18 @@ body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .cha
   width: 100%;
   min-width: 0;
   margin: 0;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  text-align: center;
   gap: 4px;
 }
 
 body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block .ch_name {
+  display: block;
   width: 100%;
   min-width: 0;
+  margin-inline: auto;
   color: var(--mt-text);
   font-size: var(--nt-font-secondary,15px);
   font-weight: 600;
@@ -26722,10 +26780,11 @@ body.mt-enabled.waifuMode #nt-chat-toolbar {
 /* Native movable popouts — one docked workspace geometry contract.
    SillyTavern may restore very small Moving UI dimensions inline; NastyTavern
    owns geometry while enabled so every supported popout opens usable by default. */
-html body.mt-enabled :is(
+html body.mt-enabled:not(.movingUI) :is(
   #floatingPrompt.nt-authors-note-panel,
   #cfgConfig.nt-cfg-scale-panel,
-  #logprobsViewer.nt-token-probability-panel
+  #logprobsViewer.nt-token-probability-panel,
+  .nt-moonlit-echoes-panel.nt-third-party-side-panel
 ) {
   position: fixed !important;
   top: calc(var(--mt-workspace-top) + var(--nt-page-gutter)) !important;
@@ -26751,14 +26810,14 @@ html body.mt-enabled :is(
 
 /* Native movable popout chrome — mirror the shared NastyTavern modal header
    without replacing SillyTavern's native controls or visibility lifecycle. */
-body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel) {
+body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel, .nt-moonlit-echoes-panel.nt-third-party-side-panel) {
   flex-direction: column;
   overflow: hidden;
 }
 
 /* Do not set display here. SillyTavern owns open/closed state (including inline
    display:none on refresh); NastyTavern only styles a panel once native code opens it. */
-body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel) > .panelControlBar.nt-native-side-panel-header {
+body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel, .nt-moonlit-echoes-panel.nt-third-party-side-panel) > .panelControlBar.nt-native-side-panel-header {
   position: relative !important;
   inset: auto !important;
   flex: 0 0 54px;
@@ -26777,7 +26836,7 @@ body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-sca
   z-index: 2;
 }
 
-body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel) > .panelControlBar.nt-native-side-panel-header .nt-native-side-panel-heading {
+body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel, .nt-moonlit-echoes-panel.nt-third-party-side-panel) > .panelControlBar.nt-native-side-panel-header .nt-native-side-panel-heading {
   margin: 0 auto 0 0;
   min-width: 0;
   overflow: hidden;
@@ -26790,7 +26849,7 @@ body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-sca
   opacity: 1;
 }
 
-body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel) > .panelControlBar.nt-native-side-panel-header .drag-grabber {
+body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel, .nt-moonlit-echoes-panel.nt-third-party-side-panel) > .panelControlBar.nt-native-side-panel-header .drag-grabber {
   position: static !important;
   inset: auto !important;
   min-width: 0;
@@ -26799,7 +26858,7 @@ body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-sca
   align-self: stretch;
 }
 
-body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel) > .panelControlBar.nt-native-side-panel-header :is(
+body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel, .nt-moonlit-echoes-panel.nt-third-party-side-panel) > .panelControlBar.nt-native-side-panel-header :is(
   .dragClose,
   #floatingPromptMaximize,
   #ANClose,
@@ -26828,7 +26887,7 @@ body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-sca
   cursor: pointer;
 }
 
-body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel) > .panelControlBar.nt-native-side-panel-header :is(
+body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel, .nt-moonlit-echoes-panel.nt-third-party-side-panel) > .panelControlBar.nt-native-side-panel-header :is(
   .dragClose,
   #floatingPromptMaximize,
   #ANClose,
@@ -26843,7 +26902,7 @@ body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-sca
   color: var(--mt-text);
 }
 
-body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel) > .panelControlBar.nt-native-side-panel-header :is(
+body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel, .nt-moonlit-echoes-panel.nt-third-party-side-panel) > .panelControlBar.nt-native-side-panel-header :is(
   .dragClose,
   #floatingPromptMaximize,
   #ANClose,
@@ -26904,6 +26963,19 @@ body.mt-enabled #logprobsViewer.nt-token-probability-panel > :not(.panelControlB
 
 body.mt-enabled #logprobsViewer.nt-token-probability-panel :is(input, textarea, select, button) {
   max-width: 100%;
+}
+
+/* Third-party movable panels that opt into the shared native-side-panel contract
+   retain their own content/handlers; NastyTavern only supplies the window chrome. */
+body.mt-enabled .nt-moonlit-echoes-panel.nt-third-party-side-panel {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: auto;
+}
+
+body.mt-enabled .nt-moonlit-echoes-panel.nt-third-party-side-panel > .panelControlBar.nt-native-side-panel-header {
+  position: sticky !important;
+  top: 0 !important;
 }
 
 /* Author's Note already exposes its own body wrapper, so keep the modal-style
@@ -27002,7 +27074,7 @@ body.mt-enabled #floatingPrompt.nt-authors-note-panel .checkbox_label {
    The width is measured from the visible native panel, so closing any observed
    panel immediately gives the full workspace back to the chat. */
 @media (min-width: 981px) {
-  body.mt-enabled.nt-native-side-panel-open:not(.nt-native-side-panel-maximized) #sheld {
+  body.mt-enabled:not(.movingUI).nt-native-side-panel-open:not(.nt-native-side-panel-maximized) #sheld {
     padding-right: calc(var(--nt-native-side-panel-width) + (var(--nt-page-gutter) * 2));
   }
 
@@ -27020,7 +27092,7 @@ body.mt-enabled #floatingPrompt.nt-authors-note-panel .checkbox_label {
 }
 
 /* Preserve SillyTavern's native maximize affordance inside the Nasty workspace. */
-html body.mt-enabled.nt-native-side-panel-maximized :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel) {
+html body.mt-enabled.nt-native-side-panel-maximized :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel, .nt-moonlit-echoes-panel.nt-third-party-side-panel) {
   left: calc(var(--mt-workspace-left) + var(--nt-page-gutter)) !important;
   right: var(--nt-page-gutter) !important;
   width: auto !important;
@@ -27029,7 +27101,7 @@ html body.mt-enabled.nt-native-side-panel-maximized :is(#floatingPrompt.nt-autho
 /* On narrow layouts a side-by-side split would become unusable, so the same panel
    becomes a workspace overlay below the Nasty app bar. */
 @media (max-width: 980px) {
-  html body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel) {
+  html body.mt-enabled :is(#floatingPrompt.nt-authors-note-panel, #cfgConfig.nt-cfg-scale-panel, #logprobsViewer.nt-token-probability-panel, .nt-moonlit-echoes-panel.nt-third-party-side-panel) {
     left: calc(var(--mt-workspace-left) + 8px) !important;
     right: 8px !important;
     top: calc(var(--mt-workspace-top) + 8px) !important;
@@ -27101,4 +27173,321 @@ body.mt-enabled .mt-account-auth > button.mt-community-presence-toggle.is-online
 body.mt-enabled .mt-account-auth > button.mt-community-presence-toggle:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--mt-accent) 48%, transparent);
   outline-offset: -2px;
+}
+
+/* DataCat opens a full browser layer outside NastyTavern's DOM. When that
+   layer is visible it must sit above the Nasty shell and receive pointer input;
+   hidden/inert state remains owned by DataCat itself. */
+body.mt-enabled #datacat-browser-stable-layer.datacat-browser-stable-layer--visible {
+  z-index: 3100 !important;
+  pointer-events: auto !important;
+}
+
+body.mt-enabled.datacat-browser-stable-layer-open #mt-root :is(.mt-sidebar, .mt-appbar, .mt-focus-restore) {
+  pointer-events: none;
+}
+
+/* Third-party extension launchers remain reachable when NastyTavern hides the
+   native top bar. The source controls stay in their original DOM; these are
+   lightweight proxies so extension click handlers remain authoritative. */
+.mt-appbar-third-party {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mt-appbar-third-party[hidden] {
+  display: none;
+}
+
+.mt-appbar-third-party .nt-third-party-launcher {
+  flex: 0 0 auto;
+}
+
+/* Character library source flyout -----------------------------------------------
+   Character-library integrations share one ordinary navigation button. The
+   source chooser opens beside the main navigation instead of expanding inside
+   it, so compact/mobile navigation has exactly the same geometry as every other
+   primary destination. */
+body.mt-enabled .mt-nav-library-group {
+  position: relative;
+  min-width: 0;
+}
+
+body.mt-enabled .mt-nav-library-group[hidden] {
+  display: none;
+}
+
+body.mt-enabled .mt-nav-library-group > .mt-nav-group-toggle {
+  width: 100%;
+}
+
+body.mt-enabled .mt-nav-library-group.is-open > .mt-nav-group-toggle {
+  color: var(--mt-text);
+  background: rgba(255,255,255,.055);
+}
+
+body.mt-enabled .mt-nav-submenu {
+  position: fixed;
+  top: var(--mt-library-flyout-top, 0px);
+  left: calc(var(--mt-nav-width) + 8px);
+  z-index: 4300;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: min(220px, calc(100vw - var(--mt-nav-width) - 20px));
+  min-width: 176px;
+  padding: 6px;
+  border: 1px solid var(--mt-border);
+  border-radius: 10px;
+  background: rgba(12,14,20,.985);
+  box-shadow: 0 10px 28px rgba(0,0,0,.28);
+  pointer-events: auto;
+}
+
+body.mt-enabled .mt-nav-submenu[hidden] {
+  display: none;
+}
+
+body.mt-enabled .mt-nav-submenu > .mt-nav-subitem {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 7px;
+  justify-content: flex-start;
+}
+
+body.mt-enabled .mt-nav-submenu > .mt-nav-subitem .mt-nav-icon,
+body.mt-enabled .mt-nav-submenu > .mt-nav-subitem .mt-nav-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+body.mt-enabled .mt-nav-submenu > .mt-nav-subitem .mt-nav-label {
+  display: inline;
+  font-size: var(--nt-font-secondary, 15px);
+  font-weight: 500;
+}
+
+body.mt-enabled.mt-nav-compact .mt-nav-library-group,
+body.mt-enabled.nt-mobile-nav-forced .mt-nav-library-group {
+  width: auto;
+  min-width: 0;
+  align-self: stretch;
+}
+
+body.mt-enabled.mt-nav-compact .mt-nav-library-group > .mt-nav-group-toggle,
+body.mt-enabled.nt-mobile-nav-forced .mt-nav-library-group > .mt-nav-group-toggle {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  padding-inline: 0;
+  justify-content: center;
+}
+
+/* Moonlit Echoes / third-party theme geometry compatibility ------------------
+   The Character modal owns card geometry. Themes may decorate native character
+   cards, but transforms/negative positioning from the drawer layout must not be
+   inherited inside NastyTavern's modal grid where they lift and clip cards. */
+body.mt-enabled #nt-character-modal #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) {
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  translate: none !important;
+  transform: none !important;
+  scale: 1 !important;
+  margin-block-start: 0 !important;
+  margin-block-end: 0 !important;
+}
+
+body.mt-enabled #nt-character-modal #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) :is(.avatar, .character_select_container, .group_select_container, .character_name_block) {
+  inset: auto !important;
+  top: auto !important;
+  translate: none !important;
+  transform: none !important;
+  scale: 1 !important;
+}
+
+body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) .avatar {
+  position: relative !important;
+  margin: 0 auto !important;
+}
+
+body.mt-enabled.charListGrid #nt-character-modal #rm_print_characters_block > :is(.character_select, .group_select, .bogus_folder_select) .avatar img {
+  position: static !important;
+  inset: auto !important;
+  margin: 0 !important;
+  translate: none !important;
+  transform: none !important;
+  scale: 1 !important;
+}
+
+/* Moonlit Echoes / Character editor action-bar compatibility -----------------
+   The editor toolbar is owned by NastyTavern once native SillyTavern actions
+   are moved into it. Third-party theme rules for the original drawer controls
+   must not reposition, hide, fade or clip those actions inside the modal. */
+body.mt-enabled #nt-character-create-modal .nt-character-create-actions {
+  position: relative !important;
+  inset: auto !important;
+  translate: none !important;
+  transform: none !important;
+  scale: 1 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: visible;
+  z-index: 2;
+}
+
+body.mt-enabled #nt-character-create-modal .nt-character-create-actions > .nt-character-create-action-item {
+  position: static !important;
+  inset: auto !important;
+  translate: none !important;
+  transform: none !important;
+  scale: 1 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  clip: auto !important;
+  clip-path: none !important;
+}
+
+body.mt-enabled #nt-character-create-modal .nt-character-create-actions > .nt-character-create-action-item.menu_button,
+body.mt-enabled #nt-character-create-modal .nt-character-create-actions > label.nt-character-create-action-item.menu_button {
+  display: grid !important;
+}
+
+/* Moonlit Echoes can keep fixed/translated drawer geometry on the native
+   Character editor container itself. Once the action row is detached, the
+   remaining drawer must be explicitly returned to the modal body's normal flow;
+   otherwise it starts at the top of the modal and renders underneath the action
+   row. Scope this reset to the Moonlit compatibility mode only so the standard
+   NastyTavern editor path is untouched. */
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor .nt-character-create-modal-body,
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #rightNavHolder.nt-character-create-modal-drawer,
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #right-nav-panel[data-mt-module="characters"],
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #right-nav-panel .scrollableInner,
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #rm_ch_create_block,
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #form_create {
+  position: static !important;
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  translate: none !important;
+  transform: none !important;
+}
+
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor .nt-character-create-modal-body {
+  flex: 1 1 0;
+  height: auto !important;
+  min-height: 0 !important;
+  margin-top: 0;
+  overflow: hidden !important;
+}
+
+/* Moonlit can leave 100%-height/scroll geometry on every nested Character
+   drawer wrapper. In a modal-owned flex chain that makes each layer slightly
+   taller than the available body (especially once native padding is added),
+   producing a scrollbar even when the editor content itself fits. Keep the
+   wrapper chain shrinkable and non-scrolling; the identity column and tab
+   panels remain the only deliberate scroll owners. */
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #rightNavHolder.nt-character-create-modal-drawer,
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #right-nav-panel[data-mt-module="characters"],
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #right-nav-panel .scrollableInner,
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #rm_ch_create_block,
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #form_create {
+  flex: 1 1 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  box-sizing: border-box;
+}
+
+/* The detached action row already provides the visual divider. Remove the
+   full-width empty strip that used to come from the native panel's top padding
+   and put the requested breathing room on the two actual editor columns instead.
+   This preserves separation without drawing a bar across the whole modal. */
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor #right-nav-panel[data-mt-module="characters"] {
+  padding-top: 0;
+  border-top: 0;
+  box-shadow: none;
+}
+
+body.mt-enabled #nt-character-create-modal.nt-moonlit-character-editor :is(.nt-character-create-identity, .nt-character-create-main) {
+  padding-top: .5rem;
+}
+
+/* Character editor modal-owned action row ------------------------------------
+   Native SillyTavern controls are temporarily hosted here while Create/Edit is
+   open. Keeping the row as a sibling of the modal body makes its geometry
+   independent from drawer-theme positioning (notably Moonlit Echoes) and keeps
+   it below the NastyTavern header in normal document flow. */
+body.mt-enabled #nt-character-create-modal .nt-character-create-action-slot {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--mt-border);
+  background: rgba(255,255,255,.012);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+body.mt-enabled #nt-character-create-modal .nt-character-create-action-slot:empty {
+  display: none;
+}
+
+body.mt-enabled #nt-character-create-modal .nt-character-create-action-slot .nt-character-create-actions {
+  position: static !important;
+  inset: auto !important;
+  translate: none !important;
+  transform: none !important;
+  scale: 1 !important;
+  display: flex !important;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: auto;
+}
+
+body.mt-enabled #nt-character-create-modal .nt-character-create-action-slot .nt-character-create-action-item {
+  position: static !important;
+  inset: auto !important;
+  translate: none !important;
+  transform: none !important;
+  scale: 1 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  clip: auto !important;
+  clip-path: none !important;
+  flex: 0 0 auto;
+}
+
+body.mt-enabled #nt-character-create-modal .nt-character-create-action-slot .nt-character-token-summary {
+  flex: 0 0 auto;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 680px), (max-height: 620px) {
+  body.mt-enabled #nt-character-create-modal .nt-character-create-action-slot {
+    padding-inline: 10px;
+  }
 }

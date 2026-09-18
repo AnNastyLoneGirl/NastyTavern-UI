@@ -193,7 +193,7 @@ const inspectCommunityResource = async (blob, meta = {}) => {
         const root = parsed && typeof parsed === 'object' ? parsed : {};
         const data = root?.data && typeof root.data === 'object' ? root.data : root;
         const book = data?.character_book && typeof data.character_book === 'object' ? data.character_book : null;
-        const knownCharacterFields = new Set(['name','description','personality','scenario','first_mes','first_message','mes_example','example_dialogue','creator_notes','system_prompt','post_history_instructions','alternate_greetings','tags','creator','character_version','version','character_book','extensions','spec','spec_version']);
+        const knownCharacterFields = new Set(['name','nt_description','description','personality','scenario','first_mes','first_message','mes_example','example_dialogue','creator_notes','system_prompt','post_history_instructions','alternate_greetings','tags','creator','character_version','version','character_book','extensions','spec','spec_version']);
         const extraData = Object.fromEntries(Object.entries(data || {}).filter(([key]) => !knownCharacterFields.has(key)));
         return {
             kind, name, raw: root, data, extraData, characterBook: book,
@@ -202,6 +202,7 @@ const inspectCommunityResource = async (blob, meta = {}) => {
             creator: asText(data.creator || root.creator),
             version: asText(data.character_version || data.version || root.character_version),
             tags: asArray(data.tags || root.tags),
+            ntDescription: asText(data.nt_description || root.nt_description),
             description: asText(data.description),
             personality: asText(data.personality),
             scenario: asText(data.scenario),
@@ -1274,6 +1275,9 @@ export class CommunityChat {
         const title = meta.display_name || stripResourceExtension(meta.name) || legacyTitle || (kind === 'character' ? t('Character Card') : t('Lorebook'));
         const hasImage = kind === 'character' && url && (meta.mime === 'image/png' || /\.png$/i.test(meta.name || ''));
         const stats = this.resourceStatsFor(message.id);
+        const resourceDescription = kind === 'character'
+            ? asText(meta.nt_description || meta.description)
+            : asText(meta.description);
         return `<div class="nt-community-attachment ${kind === 'character' ? 'is-character' : 'is-lorebook'}">
           <button type="button" class="nt-community-attachment-media" data-nt-resource-info="${message.id}" title="${t('View resource details')}">
             ${hasImage ? `<img src="${esc(url)}" alt="${esc(title)}">${this.resourceRatingSummary(message.id)}` : `<span>${kind === 'character' ? icons.characters : icons.lore}</span>`}
@@ -1282,7 +1286,7 @@ export class CommunityChat {
             <div class="nt-community-attachment-main">
               <div class="nt-community-attachment-copy">
                 <b>${esc(title)}</b>
-                <em>description</em>
+                ${resourceDescription ? `<em>${esc(resourceDescription)}</em>` : ''}
               </div>
               ${this.resourceRatingInput(message.id)}
             </div>
@@ -1591,6 +1595,13 @@ export class CommunityChat {
         if (file.size > COMMUNITY_FILE_LIMIT_BYTES) throw new Error(t('Community files are limited to 5.5 MB.'));
 
         const logicalName = safeResourceName(displayName || await inferResourceDisplayName(file, kind));
+        let sharedDescription = '';
+        if (kind === 'character') {
+            try {
+                const resourceInfo = await inspectCommunityResource(file, { kind, display_name: logicalName, name: file.name, mime: file.type });
+                sharedDescription = asText(resourceInfo?.ntDescription || resourceInfo?.description);
+            } catch (_) {}
+        }
         const normalizedExt = ext === 'lorebook' ? 'json' : ext;
         const downloadName = resourceDownloadName(logicalName, kind, normalizedExt);
         const storageExt = normalizedExt;
@@ -1613,6 +1624,7 @@ export class CommunityChat {
             name: downloadName,
             size: uploadFile.size,
             mime: contentType,
+            ...(kind === 'character' && sharedDescription ? { nt_description: sharedDescription } : {}),
         };
         const content = `${kind === 'character' ? 'Character Card' : 'Lorebook'}: ${logicalName}`;
         const { error } = await this.client.from('nt_messages').insert({ channel_id: channel.id, user_id: this.user.id, content, message_type: 'attachment', metadata });

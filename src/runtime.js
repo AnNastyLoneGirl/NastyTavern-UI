@@ -118,6 +118,8 @@ export class NastyTavern {
         this.boundKeydown = e => this.onKeyDown(e);
         this.boundDocumentClick = event => this.onDocumentClick(event);
         this.boundDocumentChange = event => this.onDocumentChange(event);
+        this.mobileNavMedia = window.matchMedia?.('(max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px)') || null;
+        this.boundResponsiveNavChange = () => this.syncResponsiveNavMode();
         this.chatCharacterContextTranslation = { source: '', expanded: '', translationSource: '', translationKey: '', translated: '', shown: false, translating: false, manualOriginal: false };
         this.characterModalRoot = null;
         this.characterModalState = null;
@@ -155,7 +157,9 @@ export class NastyTavern {
         this.characterTagSortState = null;
         this.characterTagUsageCache = null;
         this.characterEmptyStateState = null;
+        this.characterLibraryPerformanceState = null;
         this.characterPaginationStateRef = null;
+        this.thirdPartyLauncherState = new Map();
         this.viewSyncTimer = null;
         this.active = false;
         this.retagTimer = null;
@@ -220,6 +224,7 @@ export class NastyTavern {
         document.removeEventListener('keydown', this.boundKeydown, true);
         document.removeEventListener('click', this.boundDocumentClick, true);
         document.removeEventListener('change', this.boundDocumentChange, true);
+        this.mobileNavMedia?.removeEventListener?.('change', this.boundResponsiveNavChange);
         clearTimeout(this.viewSyncTimer); this.viewSyncTimer = null;
         clearTimeout(this.retagTimer); this.retagTimer = null;
         stopI18nObserver();
@@ -227,7 +232,7 @@ export class NastyTavern {
         this.nativeSidePanelObserver?.disconnect(); this.nativeSidePanelObserver = null;
         this.nativeSidePanelResizeObserver?.disconnect(); this.nativeSidePanelResizeObserver = null;
         this.nativeSidePanels.forEach(panel => {
-            panel?.classList?.remove('nt-native-side-panel', 'nt-authors-note-panel', 'nt-cfg-scale-panel', 'nt-token-probability-panel');
+            panel?.classList?.remove('nt-native-side-panel', 'nt-authors-note-panel', 'nt-cfg-scale-panel', 'nt-token-probability-panel', 'nt-moonlit-echoes-panel', 'nt-third-party-side-panel');
             panel?.querySelector?.('.nt-native-side-panel-header')?.classList?.remove('nt-native-side-panel-header');
             panel?.querySelector?.('#floatingPromptheader')?.classList?.remove('nt-native-side-panel-heading');
             panel?.querySelector?.('[data-nt-native-side-panel-title="generated"]')?.remove();
@@ -260,7 +265,7 @@ export class NastyTavern {
         await this.cleanupLorebookModal();
         await this.cleanupCharacterModal();
         document.querySelector('[data-nt-chat-character-context]')?.remove();
-        document.body?.classList.remove('mt-enabled','mt-density-compact','mt-density-comfortable','mt-nav-compact','mt-nav-hidden','mt-appbar-minimized','mt-focus-mode','mt-hide-native-topbar','mt-dock-panels','mt-motion','mt-panel-switching','nt-character-modal-open','nt-character-create-modal-open','nt-group-modal-open','nt-persona-modal-open','nt-background-modal-open','nt-lorebook-modal-open','nt-extensions-modal-open','nt-chat-tools-hub-open','nt-native-side-panel-open','nt-native-side-panel-maximized');
+        document.body?.classList.remove('mt-enabled','mt-density-compact','mt-density-comfortable','mt-nav-compact','mt-nav-hidden','mt-appbar-minimized','mt-focus-mode','mt-hide-native-topbar','mt-dock-panels','mt-motion','mt-panel-switching','nt-mobile-nav-forced','nt-character-modal-open','nt-character-create-modal-open','nt-group-modal-open','nt-persona-modal-open','nt-background-modal-open','nt-lorebook-modal-open','nt-extensions-modal-open','nt-chat-tools-hub-open','nt-native-side-panel-open','nt-native-side-panel-maximized');
         document.querySelectorAll('.mt-native-panel,.mt-drawer-content,.mt-inline-card,.mt-popup-surface').forEach(el => el.classList.remove('mt-native-panel','mt-drawer-content','mt-inline-card','mt-popup-surface'));
     }
 
@@ -283,6 +288,7 @@ export class NastyTavern {
         if (this.active) return;
         this.active = true;
         applySettings(this.settings);
+        this.syncResponsiveNavMode();
         this.shell.mount();
         this.syncCharacterLibraryIntegration();
         this.shell.updateCommandShortcut(this.settings.shortcuts?.commandPalette);
@@ -292,6 +298,7 @@ export class NastyTavern {
         this.updateStatus();
         this.enhanceChat();
         this.setupNativeSidePanels();
+        this.syncThirdPartyLaunchers();
         this.decorateNativePanels();
         this.ensureCommunityShareButtons();
         this.variableManager.mount();
@@ -312,6 +319,7 @@ export class NastyTavern {
         document.addEventListener('keydown', this.boundKeydown, true);
         document.addEventListener('click', this.boundDocumentClick, true);
         document.addEventListener('change', this.boundDocumentChange, true);
+        this.mobileNavMedia?.addEventListener?.('change', this.boundResponsiveNavChange);
         startI18nObserver();
         localizeOwnedUI();
         this.interval = setInterval(() => this.updateStatus(), 1500);
@@ -340,8 +348,8 @@ export class NastyTavern {
                         nativeSidePanelStructureChanged ||= changedNodes.some(node => {
                             const element = node?.nodeType === Node.ELEMENT_NODE ? node : null;
                             return !!element && (
-                                element.matches?.('#floatingPrompt, #cfgConfig, #logprobsViewer, [data-nt-native-side-panel]') ||
-                                element.querySelector?.('#floatingPrompt, #cfgConfig, #logprobsViewer, [data-nt-native-side-panel]')
+                                element.matches?.('#floatingPrompt, #cfgConfig, #logprobsViewer, [data-nt-native-side-panel], [id*="moonlit" i], [class*="moonlit" i], #datacat_browser_topbar_button') ||
+                                element.querySelector?.('#floatingPrompt, #cfgConfig, #logprobsViewer, [data-nt-native-side-panel], [id*="moonlit" i], [class*="moonlit" i], #datacat_browser_topbar_button')
                             );
                         });
                     }
@@ -349,7 +357,10 @@ export class NastyTavern {
                 if (mutation.type === 'attributes' && mutation.target?.matches?.('.mt-native-panel,.drawer-content')) panelStateChanged = true;
                 if (mutation.type === 'attributes' && mutation.target === document.body && mutation.attributeName === 'class') translationAvailabilityChanged = true;
             }
-            if (nativeSidePanelStructureChanged) this.setupNativeSidePanels();
+            if (nativeSidePanelStructureChanged) {
+                this.setupNativeSidePanels();
+                this.syncThirdPartyLaunchers();
+            }
             if (panelStateChanged) {
                 this.syncCharacterModalState();
                 this.scheduleNativePanelSync(100);
@@ -361,6 +372,7 @@ export class NastyTavern {
                 this.dom.tagNativeUI();
                 this.enhanceChat();
                 this.setupNativeSidePanels();
+                this.syncThirdPartyLaunchers();
                 this.decorateNativePanels();
                 this.syncCharacterLibraryIntegration();
                 this.ensureCommunityShareButtons();
@@ -393,11 +405,43 @@ export class NastyTavern {
     }
 
     getNativeSidePanelCandidates() {
-        // SillyTavern uses inline style changes for these movable popouts instead of
-        // the drawer open/closed classes used by its main workspaces. Keep the
-        // candidates centralized so future native side panels can join the same
-        // layout contract without adding another one-off observer.
-        return [...document.querySelectorAll('#floatingPrompt, #cfgConfig, #logprobsViewer, [data-nt-native-side-panel]')];
+        // Keep native/ST panels explicit, then discover opt-in third-party movable
+        // popouts by semantic extension markers. This lets themes such as Moonlit
+        // Echoes participate without turning every draggable element into a dock.
+        const panels = new Set(document.querySelectorAll('#floatingPrompt, #cfgConfig, #logprobsViewer, [data-nt-native-side-panel]'));
+        const moonlitMarkers = document.querySelectorAll('[id*="moonlit" i], [class*="moonlit" i], [data-extension-name*="moonlit" i]');
+        for (const marker of moonlitMarkers) {
+            let candidate = marker;
+            while (candidate && candidate !== document.body) {
+                if (candidate.querySelector?.(':scope > .panelControlBar')) {
+                    panels.add(candidate);
+                    candidate.classList.add('nt-moonlit-echoes-panel');
+                    break;
+                }
+                candidate = candidate.parentElement;
+            }
+        }
+        return [...panels];
+    }
+
+    syncThirdPartyLaunchers() {
+        const host = this.shell?.root?.querySelector?.('[data-mt-third-party-launchers]');
+        const datacatSource = document.querySelector('#datacat_browser_topbar_button');
+
+        // Character-library extensions belong to one discoverable navigation group
+        // instead of accumulating unrelated icon buttons in the app bar. Keep the
+        // native source as the action owner and expose only a lightweight proxy row.
+        this.shell?.setCharacterLibrarySourceAvailable?.('datacat', Boolean(datacatSource), {
+            label: 'DataCat',
+            icon: icons.extensions,
+        });
+
+        if (datacatSource) this.thirdPartyLauncherState.set('datacat', datacatSource);
+        else this.thirdPartyLauncherState.delete('datacat');
+
+        // Remove the previous app-bar bridge if upgrading without a full reload.
+        host?.querySelector('[data-nt-third-party-launcher="datacat"]')?.remove();
+        if (host) host.hidden = !host.childElementCount;
     }
 
     ensureNativeSidePanelHeader(panel) {
@@ -416,7 +460,7 @@ export class NastyTavern {
             cfgConfig: 'CFG Scale',
             logprobsViewer: 'Token Probabilities',
         };
-        const titleText = generatedTitles[panel.id];
+        const titleText = generatedTitles[panel.id] || (panel.classList.contains('nt-moonlit-echoes-panel') ? 'Moonlit Echoes' : '');
         if (titleText && !controlBar.querySelector('[data-nt-native-side-panel-title]')) {
             const title = document.createElement('div');
             title.className = 'nt-native-side-panel-heading';
@@ -442,6 +486,7 @@ export class NastyTavern {
             if (panel.id === 'floatingPrompt') panel.classList.add('nt-authors-note-panel');
             if (panel.id === 'cfgConfig') panel.classList.add('nt-cfg-scale-panel');
             if (panel.id === 'logprobsViewer') panel.classList.add('nt-token-probability-panel');
+            if (panel.classList.contains('nt-moonlit-echoes-panel')) panel.classList.add('nt-third-party-side-panel');
             this.ensureNativeSidePanelHeader(panel);
             this.nativeSidePanels.add(panel);
             this.nativeSidePanelObserver.observe(panel, {
@@ -952,10 +997,17 @@ export class NastyTavern {
         };
     }
 
+    syncResponsiveNavMode() {
+        const forceCompact = !!this.mobileNavMedia?.matches;
+        document.body?.classList.toggle('nt-mobile-nav-forced', forceCompact);
+        document.body?.classList.toggle('mt-nav-compact', forceCompact || !!this.settings.compactNav);
+    }
+
     toggleCompactNav() {
         this.settings.navHidden = false;
         this.settings.compactNav = !this.settings.compactNav;
         applySettings(this.settings);
+        this.syncResponsiveNavMode();
         saveSettings();
     }
 
@@ -973,6 +1025,7 @@ export class NastyTavern {
             }
         }
         applySettings(this.settings);
+        this.syncResponsiveNavMode();
         saveSettings();
     }
 
@@ -1051,6 +1104,17 @@ export class NastyTavern {
         if (!launcher) {
             this.syncCharacterLibraryIntegration();
             this.toast(t('Character Library is not available.'));
+            return false;
+        }
+        launcher.click();
+        return true;
+    }
+
+    openDataCat() {
+        const launcher = document.querySelector('#datacat_browser_topbar_button');
+        if (!(launcher instanceof HTMLElement)) {
+            this.syncThirdPartyLaunchers();
+            this.toast(t('DataCat is not available.'));
             return false;
         }
         launcher.click();
@@ -1176,6 +1240,7 @@ export class NastyTavern {
         this.decorateCharacterLibraryControls(panel);
         this.decorateCharacterTagSorting(panel);
         this.decorateCharacterPagination(panel);
+        this.decorateCharacterLibraryPerformance(panel);
         this.decorateCharacterEmptyState(panel);
         this.decorateCharacterLibraryEditOpen(panel);
     }
@@ -3101,6 +3166,65 @@ export class NastyTavern {
         await this.catalogueModal?.open?.();
     }
 
+    decorateCharacterLibraryPerformance(panel) {
+        const list = panel?.querySelector('#rm_print_characters_block');
+        if (!list) return;
+        const previous = this.characterLibraryPerformanceState;
+        if (previous?.list === list) return;
+        previous?.observer?.disconnect();
+        if (previous?.idle) (window.cancelIdleCallback || clearTimeout)(previous.idle);
+
+        list.classList.add('nt-character-performance-list');
+        const tuneImage = image => {
+            if (!(image instanceof HTMLImageElement)) return;
+            if (!image.hasAttribute('loading')) image.loading = 'lazy';
+            image.decoding = 'async';
+        };
+        const tuneNode = node => {
+            if (!(node instanceof Element)) return;
+            if (node.matches('img')) tuneImage(node);
+            node.querySelectorAll?.('img').forEach(tuneImage);
+        };
+
+        // Character Library's dedicated extension stays responsive with large
+        // collections by deferring off-screen image/render work. Apply the same
+        // principle to ST's native list without replacing its nodes or handlers.
+        let cursor = 0;
+        const entries = list.children;
+        const runChunk = deadline => {
+            const canContinue = () => !deadline || deadline.timeRemaining() > 2 || deadline.didTimeout;
+            let processed = 0;
+            while (cursor < entries.length && processed < 80 && canContinue()) {
+                tuneNode(entries[cursor++]);
+                processed += 1;
+            }
+            if (cursor < entries.length) {
+                const scheduleIdle = window.requestIdleCallback || (callback => setTimeout(() => callback({ timeRemaining: () => 8, didTimeout: true }), 16));
+                const idle = scheduleIdle(runChunk, { timeout: 120 });
+                if (this.characterLibraryPerformanceState?.list === list) this.characterLibraryPerformanceState.idle = idle;
+            }
+        };
+        const scheduleIdle = window.requestIdleCallback || (callback => setTimeout(() => callback({ timeRemaining: () => 8, didTimeout: true }), 16));
+        const idle = scheduleIdle(runChunk, { timeout: 120 });
+
+        const observer = new MutationObserver(mutations => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) tuneNode(node);
+            }
+        });
+        observer.observe(list, { childList: true, subtree: true });
+        this.characterLibraryPerformanceState = { list, observer, idle };
+    }
+
+    cleanCharacterLibraryPerformance() {
+        const state = this.characterLibraryPerformanceState;
+        if (!state) return;
+        state.observer?.disconnect();
+        if (state.idle) (window.cancelIdleCallback || clearTimeout)(state.idle);
+        state.list?.classList.remove('nt-character-performance-list');
+        this.characterLibraryPerformanceState = null;
+    }
+
     decorateCharacterEmptyState(panel) {
         const library = panel?.querySelector('#rm_characters_block');
         const list = panel?.querySelector('#rm_print_characters_block');
@@ -3177,6 +3301,8 @@ export class NastyTavern {
         previous?.observer?.disconnect();
         previous?.search?.removeEventListener('input', previous.onSearch);
         previous?.search?.removeEventListener('change', previous.onSearch);
+        previous?.tagControls?.removeEventListener('click', previous.onFilter);
+        previous?.tagControls?.removeEventListener('change', previous.onFilter);
         previous?.stateNode?.removeEventListener('click', previous.onAction);
         cancelAnimationFrame(previous?.frame || 0);
 
@@ -3190,31 +3316,20 @@ export class NastyTavern {
             });
             if (this.characterEmptyStateState?.list === list) this.characterEmptyStateState.frame = frame;
         };
-        const observer = new MutationObserver(mutations => {
-            // One update per mutation batch, regardless of how many cards the
-            // native filter/pagination touches.
-            for (const mutation of mutations) {
-                if (mutation.type === 'childList') {
-                    scheduleUpdate();
-                    return;
-                }
-                if (mutation.type === 'attributes' && mutation.target?.matches?.('.character_select,.group_select,.bogus_folder_select')) {
-                    scheduleUpdate();
-                    return;
-                }
-            }
-        });
-        observer.observe(list, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['class', 'hidden', 'style', 'aria-hidden'],
-        });
+        const observer = new MutationObserver(() => scheduleUpdate());
+        // Do not observe class/style attributes across thousands of cards. Native
+        // filtering can mutate every entry in one interaction; watching those
+        // attributes creates the very O(n) mutation pressure we are avoiding.
+        observer.observe(list, { childList: true });
 
         const search = panel.querySelector('#character_search_bar');
+        const tagControls = panel.querySelector('#charListFixedTop > .rm_tag_controls');
         const onSearch = scheduleUpdate;
+        const onFilter = () => requestAnimationFrame(scheduleUpdate);
         search?.addEventListener('input', onSearch);
         search?.addEventListener('change', onSearch);
+        tagControls?.addEventListener('click', onFilter);
+        tagControls?.addEventListener('change', onFilter);
 
         const onAction = event => {
             const button = event.target.closest('[data-nt-character-empty-action]');
@@ -3232,7 +3347,7 @@ export class NastyTavern {
             void this.openCharacterCreateModal();
         };
         stateNode.addEventListener('click', onAction);
-        this.characterEmptyStateState = { list, stateNode, observer, search, onSearch, onAction, frame };
+        this.characterEmptyStateState = { list, stateNode, observer, search, tagControls, onSearch, onFilter, onAction, frame };
         scheduleUpdate();
     }
 
@@ -3243,6 +3358,8 @@ export class NastyTavern {
             state.observer?.disconnect();
             state.search?.removeEventListener('input', state.onSearch);
             state.search?.removeEventListener('change', state.onSearch);
+            state.tagControls?.removeEventListener('click', state.onFilter);
+            state.tagControls?.removeEventListener('change', state.onFilter);
             state.stateNode?.removeEventListener('click', state.onAction);
             this.characterEmptyStateState = null;
         }
@@ -3329,21 +3446,32 @@ export class NastyTavern {
             }
         };
 
-        for (const character of characters) {
-            const names = new Set();
-            collect(character?.tags, names);
-            collect(character?.data?.tags, names);
-            collect(character?.data?.extensions?.tags, names);
-            collect(character?.metadata?.tags, names);
-            collect(character?.extensions?.tags, names);
-
-            const avatar = String(character?.avatar ?? '');
-            const assigned = avatar && Array.isArray(tagMap?.[avatar]) ? tagMap[avatar] : [];
-            for (const id of assigned) {
-                const name = tagNamesById.get(String(id));
-                if (name) names.add(name);
+        let mappedAssignments = 0;
+        for (const assigned of Object.values(tagMap)) {
+            if (!Array.isArray(assigned)) continue;
+            const unique = new Set(assigned.map(id => String(id)));
+            for (const id of unique) {
+                const name = tagNamesById.get(id);
+                if (name) {
+                    add(name);
+                    mappedAssignments += 1;
+                }
             }
-            for (const name of names) add(name);
+        }
+
+        // Modern SillyTavern already maintains tagMap as its lightweight index.
+        // Only fall back to parsing full character objects when that index is
+        // unavailable, avoiding thousands of nested-field reads on large sets.
+        if (!mappedAssignments && !Object.keys(tagMap).length) {
+            for (const character of characters) {
+                const names = new Set();
+                collect(character?.tags, names);
+                collect(character?.data?.tags, names);
+                collect(character?.data?.extensions?.tags, names);
+                collect(character?.metadata?.tags, names);
+                collect(character?.extensions?.tags, names);
+                for (const name of names) add(name);
+            }
         }
 
         this.characterTagUsageCache = {
@@ -3390,7 +3518,6 @@ export class NastyTavern {
         const previous = this.characterTagSortState;
         if (previous?.root === root) return;
         previous?.observer?.disconnect();
-        previous?.root?.removeEventListener('click', previous.onInteraction);
 
         let frame = 0;
         const schedule = () => {
@@ -3404,9 +3531,7 @@ export class NastyTavern {
             if (mutations.some(mutation => mutation.type === 'childList' || mutation.type === 'characterData')) schedule();
         });
         observer.observe(root, { childList: true, subtree: true, characterData: true });
-        const onInteraction = schedule;
-        root.addEventListener('click', onInteraction);
-        this.characterTagSortState = { root, observer, onInteraction, frame: 0 };
+        this.characterTagSortState = { root, observer, frame: 0 };
         schedule();
     }
 
@@ -3415,7 +3540,6 @@ export class NastyTavern {
         if (!state) return;
         cancelAnimationFrame(state.frame || 0);
         state.observer?.disconnect();
-        state.root?.removeEventListener('click', state.onInteraction);
         this.characterTagSortState = null;
     }
 
@@ -3517,6 +3641,7 @@ export class NastyTavern {
         this.characterPaginationStateRef = null;
         this.invalidateCharacterTagUsageCache();
         this.cleanCharacterEmptyState();
+        this.cleanCharacterLibraryPerformance();
         this.cleanCharacterTagSorting();
         this.cleanCharacterLibraryEditOpen();
         this.restoreCharacterLibraryControls();
@@ -3692,6 +3817,7 @@ export class NastyTavern {
                 closeAttrs: { 'data-nt-character-create-close': '' },
             }));
             root.querySelector('.nt-modal-header-actions')?.classList.add('nt-character-create-header-actions');
+
             root.addEventListener('click', event => {
                 if (event.target.closest('[data-nt-character-create-back]')) {
                     void this.returnToCharacterModal();
@@ -3705,6 +3831,7 @@ export class NastyTavern {
             });
             document.body.append(root);
         }
+
         this.characterCreateModalRoot = root;
         return root;
     }
@@ -3776,6 +3903,30 @@ export class NastyTavern {
         if (restoreFocus && opener?.isConnected) requestAnimationFrame(() => opener.focus?.({ preventScroll: true }));
     }
 
+    isMoonlitEchoesActive() {
+        const markers = document.querySelectorAll([
+            'link[href*="moonlit" i]',
+            'script[src*="moonlit" i]',
+            'style[data-extension-name*="moonlit" i]',
+            '[data-extension-name*="moonlit" i]',
+            '[data-extension*="moonlit" i]',
+            '[id*="moonlit" i]',
+            '[class*="moonlit" i]',
+        ].join(','));
+
+        return [...markers].some(marker => {
+            if (!(marker instanceof Element)) return false;
+            const id = String(marker.id || '').toLowerCase();
+            const classes = [...(marker.classList || [])].map(value => String(value).toLowerCase());
+            const href = String(marker.getAttribute?.('href') || marker.getAttribute?.('src') || '').toLowerCase();
+            const extensionName = String(marker.getAttribute?.('data-extension-name') || marker.getAttribute?.('data-extension') || '').toLowerCase();
+
+            if (href.includes('moonlit') || extensionName.includes('moonlit')) return true;
+            if (id.includes('moonlit') && !id.startsWith('nt-')) return true;
+            return classes.some(value => value.includes('moonlit') && !value.startsWith('nt-moonlit'));
+        });
+    }
+
     prepareCharacterCreateActions(panel) {
         this.restoreCharacterCreateActions();
         const form = panel?.querySelector('#form_create');
@@ -3784,6 +3935,29 @@ export class NastyTavern {
 
         const root = this.characterCreateModalRoot || document.querySelector('#nt-character-create-modal');
         const isEdit = root?.dataset.ntCharacterEditorMode === 'edit';
+        const useDetachedActionSlot = this.isMoonlitEchoesActive();
+        let actionSlot = null;
+
+        // Preserve NastyTavern's normal Character editor DOM exactly when no
+        // conflicting drawer theme is active. Moonlit Echoes needs the native
+        // action controls detached from the drawer geometry, so create the
+        // compatibility slot only for that runtime condition and remove it on
+        // close. This keeps the standard identity/main-tab layout unchanged.
+        if (useDetachedActionSlot) {
+            const modal = root?.querySelector('.nt-character-create-modal');
+            const body = root?.querySelector('[data-nt-character-create-host]');
+            if (!modal || !body) return false;
+            actionSlot = document.createElement('div');
+            actionSlot.className = 'nt-character-create-action-slot';
+            actionSlot.dataset.ntCharacterActionSlot = '';
+            actionSlot.setAttribute('role', 'toolbar');
+            actionSlot.setAttribute('aria-label', t('Character actions'));
+            modal.insertBefore(actionSlot, body);
+            root.classList.add('nt-moonlit-character-editor');
+        } else {
+            root?.classList.remove('nt-moonlit-character-editor');
+        }
+
         const toolbar = document.createElement('div');
         toolbar.className = 'nt-character-create-actions';
         if (isEdit) toolbar.classList.add('is-edit-actions');
@@ -3791,7 +3965,13 @@ export class NastyTavern {
 
         const moveAction = node => {
             if (!(node instanceof HTMLElement)) return;
-            moved.push({ node, parent: source, nextSibling: node.nextSibling });
+            moved.push({
+                node,
+                parent: node.parentNode,
+                nextSibling: node.nextSibling,
+                hadNastyActionClass: node.classList.contains('nt-character-create-action-item'),
+            });
+            node.classList.add('nt-character-create-action-item');
             toolbar.append(node);
         };
 
@@ -3898,12 +4078,16 @@ export class NastyTavern {
             }
         }
 
-        form.insertBefore(toolbar, form.firstChild);
+        if (useDetachedActionSlot) actionSlot.replaceChildren(toolbar);
+        else form.insertBefore(toolbar, form.firstChild);
+
         source.classList.add('nt-character-create-native-actions');
         this.characterCreateActionState = {
             toolbar,
             source,
             moved,
+            actionSlot,
+            useDetachedActionSlot,
             tokenSummary,
             tokenSummaryPlaceholder,
             tokenSummaryHadClass,
@@ -3921,6 +4105,8 @@ export class NastyTavern {
             toolbar,
             source,
             moved,
+            actionSlot,
+            useDetachedActionSlot,
             tokenSummary,
             tokenSummaryPlaceholder,
             tokenSummaryHadClass,
@@ -3940,14 +4126,18 @@ export class NastyTavern {
         }
 
         for (const item of [...moved].reverse()) {
-            const { node, parent, nextSibling } = item;
+            const { node, parent, nextSibling, hadNastyActionClass } = item;
             if (!node?.isConnected && !toolbar?.contains(node)) continue;
             if (nextSibling?.parentNode === parent) parent.insertBefore(node, nextSibling);
             else parent.append(node);
+            if (!hadNastyActionClass) node.classList.remove('nt-character-create-action-item');
         }
 
         source?.classList.remove('nt-character-create-native-actions');
         toolbar?.remove();
+        if (useDetachedActionSlot) actionSlot?.remove();
+        (this.characterCreateModalRoot || document.querySelector('#nt-character-create-modal'))
+            ?.classList.remove('nt-moonlit-character-editor');
         this.characterCreateActionState = null;
     }
 
@@ -4514,7 +4704,9 @@ export class NastyTavern {
     prepareCharacterCreateLayout(panel) {
         this.restoreCharacterCreateLayout();
         const form = panel?.querySelector('#form_create');
-        const toolbar = form?.querySelector(':scope > .nt-character-create-actions');
+        const root = this.characterCreateModalRoot || document.querySelector('#nt-character-create-modal');
+        const toolbar = form?.querySelector(':scope > .nt-character-create-actions')
+            || root?.querySelector('[data-nt-character-action-slot] .nt-character-create-actions');
         const nativeNameInput = panel?.querySelector('#character_name_pole');
         const name = nativeNameInput?.closest('#name_div');
         const isEditMode = this.characterCreateModalRoot?.dataset.ntCharacterEditorMode === 'edit';
@@ -4552,7 +4744,13 @@ export class NastyTavern {
                 <div class="nt-character-create-meta" data-nt-character-create-meta></div>
             </aside>
             <section class="nt-character-create-main" data-nt-character-create-main></section>`;
-        toolbar.insertAdjacentElement('afterend', workspace);
+        // The visual editor workspace must always remain inside the native
+        // character form. Moonlit Echoes gets a detached modal-owned action row,
+        // but detaching the toolbar must never detach/reorder the identity column
+        // or Profile/Opening/Behavior body. Keep the standard NastyTavern editor
+        // layout as the single source of truth in both normal and Moonlit modes.
+        if (toolbar.parentElement === form) toolbar.insertAdjacentElement('afterend', workspace);
+        else form.insertBefore(workspace, form.firstChild);
 
         const avatarHost = workspace.querySelector('[data-nt-character-create-avatar]');
         const nameHost = workspace.querySelector('[data-nt-character-create-name]');
@@ -4925,6 +5123,8 @@ export class NastyTavern {
                 return this.openCharacterModal();
             case 'character-library':
                 return this.openCharacterLibrary();
+            case 'datacat':
+                return this.openDataCat();
             case 'personas':
                 return this.openPersonaModal();
             case 'lorebooks':

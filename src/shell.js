@@ -54,7 +54,7 @@ export class AppShell {
             <div class="mt-brand">
               <span class="mt-brandmark">${icons.logo}</span>
               <span class="mt-brandtext"><b>NastyTavern</b><small>SillyTavern UI</small></span>
-              <span class="mt-brand-version">0.1.6</span>
+              <span class="mt-brand-version">0.1.7</span>
             </div>
             <nav class="mt-nav">
               ${NAV.map(([id,label,icon]) => `<button data-mt-nav="${id}" title="${t(label)}"><span class="mt-nav-icon">${icon}</span><span class="mt-nav-label">${t(label)}</span></button>`).join('')}
@@ -72,6 +72,7 @@ export class AppShell {
               <span data-mt-title>Chat</span>
             </div>
             <div class="mt-appbar-right">
+              <div class="mt-appbar-third-party" data-mt-third-party-launchers hidden></div>
               <button type="button" class="mt-appbar-command" data-mt-command title="${t('Search')} · Ctrl K" aria-label="${t('Search')}">${icons.search}</button>
               <button type="button" class="mt-appbar-icon" data-mt-ui="focus" title="${t('Focus mode')}" aria-label="${t('Focus mode')}">${icons.workspace}</button>
               <div class="mt-account" data-mt-account>
@@ -207,15 +208,22 @@ export class AppShell {
             this.toggleAccountMenu();
             return;
         }
+        const libraryToggle = event.target.closest('[data-mt-library-toggle]');
+        if (libraryToggle) {
+            this.toggleCharacterLibrariesMenu(libraryToggle);
+            return;
+        }
         const externalNav = event.target.closest('[data-mt-nav-external]');
         if (externalNav) {
             this.closeAccountMenu();
+            this.closeCharacterLibrariesMenu();
             this.onNavigate(externalNav.dataset.mtNavExternal);
             return;
         }
         const nav = event.target.closest('[data-mt-nav]');
         if (nav) {
             this.closeAccountMenu();
+            this.closeCharacterLibrariesMenu();
             this.onNavigate(nav.dataset.mtNav);
         }
         const accountNav = event.target.closest('[data-mt-account-nav]');
@@ -278,13 +286,23 @@ export class AppShell {
     onDocumentPointerDown(event) {
         const root = this.root || document.querySelector('#mt-root');
         const menu = root?.querySelector('[data-mt-account-menu]');
-        if (!menu || menu.hidden) return;
-        if (!event.target?.closest?.('[data-mt-account]')) this.closeAccountMenu();
+        if (menu && !menu.hidden && !event.target?.closest?.('[data-mt-account]')) this.closeAccountMenu();
+
+        const libraryMenu = root?.querySelector('[data-mt-library-submenu]');
+        if (libraryMenu && !libraryMenu.hidden && !event.target?.closest?.('[data-mt-library-group]')) {
+            this.closeCharacterLibrariesMenu();
+        }
     }
 
     onDocumentKeyDown(event) {
         if (event.key !== 'Escape') return;
         const root = this.root || document.querySelector('#mt-root');
+        const libraryMenu = root?.querySelector('[data-mt-library-submenu]');
+        if (libraryMenu && !libraryMenu.hidden) {
+            event.preventDefault();
+            this.closeCharacterLibrariesMenu(true);
+            return;
+        }
         const menu = root?.querySelector('[data-mt-account-menu]');
         if (menu && !menu.hidden) {
             event.preventDefault();
@@ -596,33 +614,101 @@ export class AppShell {
         }
     }
 
-    setCharacterLibraryAvailable(available) {
+    ensureCharacterLibrariesGroup() {
         const root = this.root || document.querySelector('#mt-root');
         const nav = root?.querySelector('.mt-nav');
-        if (!nav) return;
+        if (!nav) return null;
 
-        let button = nav.querySelector('[data-mt-nav-external="character-library"]');
-        if (!available) {
-            button?.remove();
+        let group = nav.querySelector('[data-mt-library-group]');
+        if (group) return group;
+
+        group = document.createElement('div');
+        group.className = 'mt-nav-group mt-nav-library-group';
+        group.dataset.mtLibraryGroup = '';
+        group.hidden = true;
+        group.innerHTML = `
+          <button type="button" class="mt-nav-group-toggle" data-mt-library-toggle aria-haspopup="menu" aria-expanded="false">
+            <span class="mt-nav-icon">${icons.folder}</span>
+            <span class="mt-nav-label">${t('Character Libraries')}</span>
+          </button>
+          <div class="mt-nav-submenu" data-mt-library-submenu role="menu" hidden></div>`;
+
+        const charactersButton = nav.querySelector('[data-mt-nav="characters"]');
+        if (charactersButton) charactersButton.insertAdjacentElement('afterend', group);
+        else nav.prepend(group);
+        return group;
+    }
+
+    toggleCharacterLibrariesMenu(toggle = null) {
+        const root = this.root || document.querySelector('#mt-root');
+        const group = toggle?.closest?.('[data-mt-library-group]') || root?.querySelector('[data-mt-library-group]');
+        const button = toggle || group?.querySelector('[data-mt-library-toggle]');
+        const submenu = group?.querySelector('[data-mt-library-submenu]');
+        if (!group || !button || !submenu) return;
+        if (!submenu.hidden) {
+            this.closeCharacterLibrariesMenu(true);
             return;
         }
 
-        if (!button) {
-            button = document.createElement('button');
-            button.type = 'button';
-            button.dataset.mtNavExternal = 'character-library';
-            button.className = 'mt-nav-character-library';
-            button.innerHTML = `<span class="mt-nav-icon">${icons.folder}</span><span class="mt-nav-label"></span>`;
-            const charactersButton = nav.querySelector('[data-mt-nav="characters"]');
-            if (charactersButton) charactersButton.insertAdjacentElement('afterend', button);
-            else nav.prepend(button);
+        const rect = button.getBoundingClientRect();
+        const viewportGap = 8;
+        submenu.hidden = false;
+        const maxTop = Math.max(viewportGap, window.innerHeight - submenu.offsetHeight - viewportGap);
+        group.style.setProperty('--mt-library-flyout-top', `${Math.min(Math.max(rect.top, viewportGap), maxTop)}px`);
+        button.setAttribute('aria-expanded', 'true');
+        group.classList.add('is-open');
+        submenu.querySelector('[data-mt-nav-external]')?.focus?.({ preventScroll: true });
+    }
+
+    closeCharacterLibrariesMenu(restoreFocus = false) {
+        const root = this.root || document.querySelector('#mt-root');
+        const group = root?.querySelector('[data-mt-library-group]');
+        const button = group?.querySelector('[data-mt-library-toggle]');
+        const submenu = group?.querySelector('[data-mt-library-submenu]');
+        if (!group || !button || !submenu) return;
+        submenu.hidden = true;
+        button.setAttribute('aria-expanded', 'false');
+        group.classList.remove('is-open');
+        group.style.removeProperty('--mt-library-flyout-top');
+        if (restoreFocus) button.focus?.({ preventScroll: true });
+    }
+
+    setCharacterLibrarySourceAvailable(key, available, { label, icon } = {}) {
+        const group = this.ensureCharacterLibrariesGroup();
+        const submenu = group?.querySelector('[data-mt-library-submenu]');
+        if (!group || !submenu) return;
+
+        let button = submenu.querySelector(`[data-mt-nav-external="${key}"]`);
+        if (!available) {
+            button?.remove();
+        } else {
+            if (!button) {
+                button = document.createElement('button');
+                button.type = 'button';
+                button.dataset.mtNavExternal = key;
+                button.className = 'mt-nav-subitem';
+                button.innerHTML = `<span class="mt-nav-icon"></span><span class="mt-nav-label"></span>`;
+                submenu.append(button);
+            }
+            const resolvedLabel = t(label || key);
+            button.title = resolvedLabel;
+            button.setAttribute('aria-label', resolvedLabel);
+            const iconNode = button.querySelector('.mt-nav-icon');
+            if (iconNode) iconNode.innerHTML = icon || icons.folder;
+            const labelNode = button.querySelector('.mt-nav-label');
+            if (labelNode) labelNode.textContent = resolvedLabel;
         }
 
-        const label = t('Character Library');
-        button.title = label;
-        button.setAttribute('aria-label', label);
-        const labelNode = button.querySelector('.mt-nav-label');
-        if (labelNode) labelNode.textContent = label;
+        const hasSources = Boolean(submenu.querySelector('[data-mt-nav-external]'));
+        group.hidden = !hasSources;
+        if (!hasSources) this.closeCharacterLibrariesMenu();
+    }
+
+    setCharacterLibraryAvailable(available) {
+        this.setCharacterLibrarySourceAvailable('character-library', available, {
+            label: 'Character Library',
+            icon: icons.folder,
+        });
     }
 
     updateCommunityBadge(value) {

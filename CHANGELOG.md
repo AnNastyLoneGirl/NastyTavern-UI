@@ -4,9 +4,42 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
+## v0.1.7
+
+Release focused on large-library performance, responsive navigation, and compatibility with SillyTavern and third-party extensions.
+
+### Added
+
+- Added Moonlit Echoes settings-popout integration to the shared NastyTavern side-panel/modal system.
+- Added a **Character Libraries** flyout in the main navigation, grouping Character Library and DataCat without adding separate global launchers.
+
+### Changed
+
+- Community shared Character Cards now use `nt_description` as their primary short description, with the legacy `description` field kept as a compatibility fallback.
+- Phone and narrow layouts now always use the compact main navigation while preserving the user's desktop expanded/compact preference when returning to desktop.
+- MovingUI keeps ownership of its saved movable geometry when enabled instead of being overridden by NastyTavern layout rules.
+
+### Performance
+
+- Reworked Character Library for very large collections with off-screen rendering containment, progressive avatar work, lightweight tag indexing, and targeted DOM updates instead of broad per-card mutation tracking.
+- Reduced repeated full-library work by preferring SillyTavern's existing tag index when available and avoiding expensive attribute-driven rescans across large character collections.
+
+### Fixed
+
+- Fixed the remaining artificial right-side reservation so a 100% chat width can use the full available workspace.
+- Fixed Moonlit Echoes compatibility across Character Management, including card geometry and the Create/Edit Character layout, action bar, spacing, and scrolling behavior.
+- Fixed compact navigation alignment for the Character Libraries launcher.
+- Fixed third-party controls injected into SillyTavern's top bar being visible but unclickable by removing the full-width NastyTavern click shield while keeping NastyTavern's own controls interactive. This also restores DataCat's native top launcher without a DataCat-specific click workaround.
+
+### Compatibility
+
+- Audited NastyTavern overlay, pointer-event, z-index, and movable-panel behavior to reduce interference with third-party extension interfaces and preserve native extension click handlers where possible.
+
+---
+
 ## v0.1.6
 
-Update focused on responsive chat scaling, native utility panels, NastyTavern Settings cleanup, Character Library integration, and large-library performance.
+Update focused on responsive chat scaling, native utility panels, NastyTavern Settings cleanup, Character Library integration, and first-pass large-library performance improvements.
 
 ### Added
 
