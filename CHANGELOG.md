@@ -6,7 +6,7 @@ All notable changes to NastyTavern UI are documented here.
 
 ## v0.1.8
 
-Update focused on integrated library workspaces, Persona Studio, Lorebook management, mobile chat layout, and updater reliability.
+Update focused on integrated library workspaces, Persona Studio, Lorebook management, mobile chat layout.
 
 ### Added
 
