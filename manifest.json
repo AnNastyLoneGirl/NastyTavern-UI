@@ -1,5 +1,5 @@
 {
-    "display_name": "NastyTavern UI",
+    "display_name": "NastyTavern Test",
     "loading_order": 110,
     "requires": [],
     "optional": [],
@@ -17,5 +17,5 @@
         "disable": "onDisable",
         "clean": "onClean"
     },
-    "revision": 58
+    "revision": 59
 }

@@ -471,6 +471,78 @@ export class LorebookManager {
         }
     }
 
+    async importBook() {
+        let picker = null;
+        try {
+            const worldInfoModule = await import('/scripts/world-info.js');
+            const importWorldInfo = worldInfoModule?.importWorldInfo;
+            const nativeInput = this.panel?.querySelector('#world_import_file');
+            if (typeof importWorldInfo !== 'function') {
+                // Compatibility fallback for older SillyTavern builds: target the
+                // native file input directly. The native import button itself is
+                // not reliable here because its handler uses a document-global
+                // selector while the World Info panel is detached in gallery view.
+                nativeInput?.click();
+                return Boolean(nativeInput);
+            }
+
+            picker = document.createElement('input');
+            picker.type = 'file';
+            picker.hidden = true;
+            if (nativeInput?.accept) picker.accept = nativeInput.accept;
+            if (nativeInput?.capture) picker.capture = nativeInput.capture;
+            document.body.append(picker);
+
+            const file = await new Promise(resolve => {
+                let settled = false;
+                const finish = value => {
+                    if (settled) return;
+                    settled = true;
+                    resolve(value);
+                };
+                picker.addEventListener('change', () => finish(picker.files?.[0] || null), { once: true });
+                // Browsers do not emit change when the picker is cancelled. Once
+                // focus returns to the page, defer one task so a selected file's
+                // change event gets the first chance to settle the promise.
+                window.addEventListener('focus', () => setTimeout(() => finish(picker.files?.[0] || null), 0), { once: true });
+                picker.click();
+            });
+            if (!file) return false;
+
+            const previousNames = new Set(Array.isArray(worldInfoModule?.world_names) ? worldInfoModule.world_names : []);
+            const imported = await importWorldInfo(file);
+            if (imported === false) return false;
+
+            const names = Array.isArray(worldInfoModule?.world_names) ? worldInfoModule.world_names : [];
+            let actualName = '';
+            const dot = file.name.lastIndexOf('.');
+            const requestedName = clean(dot > 0 ? file.name.slice(0, dot) : file.name);
+            try {
+                const utilsModule = await import('/scripts/utils.js');
+                const sanitized = typeof utilsModule?.getSanitizedFilename === 'function'
+                    ? clean(await utilsModule.getSanitizedFilename(requestedName))
+                    : '';
+                if (sanitized && names.includes(sanitized)) actualName = sanitized;
+            } catch (_) {}
+            if (!actualName && requestedName && names.includes(requestedName)) actualName = requestedName;
+            if (!actualName) actualName = names.find(name => !previousNames.has(name)) || '';
+
+            // importWorldInfo() refreshes world_names, but its own global jQuery
+            // selector cannot repopulate the detached native selects. Mirror the
+            // refreshed native state before rebuilding NastyTavern's gallery.
+            this.syncNativeWorldSelectors(worldInfoModule, actualName);
+            await this.refresh();
+            if (actualName) await this.openBook(actualName);
+            else this.showGallery();
+            return true;
+        } catch (_) {
+            this.toast?.(t('Could not import this Lorebook.'));
+            return false;
+        } finally {
+            picker?.remove();
+        }
+    }
+
     async openBook(name) {
         const requested = clean(name);
         if (!requested) return;
@@ -787,7 +859,7 @@ export class LorebookManager {
         }
         if (event.target.closest('[data-nt-lorebook-import]')) {
             event.preventDefault();
-            this.panel?.querySelector('#world_import_button')?.click();
+            void this.importBook();
             return;
         }
         if (event.target.closest('[data-nt-lorebook-settings]')) {

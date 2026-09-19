@@ -4,9 +4,21 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
+## Unreleased
+
+### Added
+
+
+
+### Fixed
+
+
+
+---
+
 ## v0.1.8
 
-Update focused on integrated library workspaces, Persona Studio, Lorebook management, mobile chat layout.
+Update focused on integrated library workspaces, Persona Studio, Lorebook management, mobile chat layout, and updater reliability.
 
 ### Added
 
@@ -26,6 +38,7 @@ Update focused on integrated library workspaces, Persona Studio, Lorebook manage
 - Fixed the mobile chat message structure so avatar/name metadata and message content use separate layout regions, preventing text, reasoning, or media from flowing underneath taller avatars while preserving native swipe behavior.
 - Fixed embedded Character Lore import/linking when SillyTavern sanitizes filesystem-invalid characters in Lorebook names, so imported Lorebooks remain correctly attached to their Character Card.
 - Fixed the Community Privacy Notice on phones and low-height screens so its content scrolls correctly and **Save & return** remains reachable.
+- Fixed Lorebook **Import** in the NastyTavern gallery so the file picker opens while the native World Info panel is detached, then refreshes/selects the imported Lorebook through SillyTavern's native importer.
 - Fixed the NastyTavern main app bar being hidden whenever SillyTavern Waifu Mode is active; the header now remains available and Waifu Mode content/panels respect its height.
 - After deleting the currently open Lorebook from Entries, NastyTavern now closes the Entries view and returns directly to the Lorebooks gallery.
 - Fixed Lorebook **New** so newly created books appear immediately in the NastyTavern gallery and open correctly without requiring a page reload.
