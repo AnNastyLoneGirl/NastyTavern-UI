@@ -180,6 +180,31 @@ export class LorebookManager {
         this.renderGallery();
     }
 
+    syncNativeWorldSelectors(worldInfoModule, editorSelection = '') {
+        if (!this.panel) return;
+        const names = Array.isArray(worldInfoModule?.world_names) ? worldInfoModule.world_names : [];
+        const selectedWorlds = Array.isArray(worldInfoModule?.selected_world_info) ? worldInfoModule.selected_world_info : [];
+        const editorSelect = this.panel.querySelector('#world_editor_select');
+        const globalSelect = this.panel.querySelector('#world_info');
+        const previousEditorName = clean(editorSelection)
+            || clean(editorSelect?.selectedOptions?.[0]?.textContent);
+
+        const rebuild = (select, selectedNames = []) => {
+            if (!select) return;
+            for (const option of Array.from(select.options || [])) {
+                if (clean(option.value)) option.remove();
+            }
+            names.forEach((name, index) => {
+                const option = new Option(name, String(index));
+                option.selected = selectedNames.includes(name);
+                select.append(option);
+            });
+        };
+
+        rebuild(globalSelect, selectedWorlds);
+        rebuild(editorSelect, previousEditorName ? [previousEditorName] : []);
+    }
+
     readBooks() {
         const select = this.panel?.querySelector('#world_editor_select');
         if (!select) return [];
@@ -387,6 +412,63 @@ export class LorebookManager {
                     <button type="button" class="nt-icon-btn" data-nt-lorebook-page="next" ${this.page >= pages ? 'disabled' : ''} aria-label="${esc(t('Next page'))}">›</button>
                 </div>
             </footer>`;
+    }
+
+    async createBook() {
+        try {
+            const [{ Popup }, worldInfoModule, utilsModule] = await Promise.all([
+                import('/scripts/popup.js'),
+                import('/scripts/world-info.js'),
+                import('/scripts/utils.js'),
+            ]);
+            const getFreeWorldName = worldInfoModule?.getFreeWorldName;
+            const createNewWorldInfo = worldInfoModule?.createNewWorldInfo;
+            const updateWorldInfoList = worldInfoModule?.updateWorldInfoList;
+            if (typeof Popup?.show?.input !== 'function' || typeof createNewWorldInfo !== 'function') {
+                this.toast?.(t('Could not create this Lorebook.'));
+                return false;
+            }
+
+            const tempName = typeof getFreeWorldName === 'function' ? getFreeWorldName() : t('New World');
+            const requestedName = clean(await Popup.show.input(
+                t('Create a new World Info'),
+                t('Enter a name for the new file:'),
+                tempName,
+            ));
+            if (!requestedName) return false;
+
+            const created = await createNewWorldInfo(requestedName, { interactive: true });
+            if (!created) return false;
+            if (typeof updateWorldInfoList === 'function') await updateWorldInfoList();
+
+            const names = Array.isArray(worldInfoModule?.world_names) ? worldInfoModule.world_names : [];
+            let actualName = names.includes(requestedName) ? requestedName : '';
+            if (!actualName && typeof utilsModule?.getSanitizedFilename === 'function') {
+                const sanitized = clean(await utilsModule.getSanitizedFilename(requestedName));
+                if (sanitized && names.includes(sanitized)) actualName = sanitized;
+            }
+
+            // While the gallery is active, NastyTavern keeps the native World Info
+            // editor detached from document. SillyTavern's updateWorldInfoList()
+            // refreshes its module state but its global jQuery selectors cannot
+            // repopulate detached selects. Mirror the freshly loaded native state
+            // into those same selects before rebuilding the gallery.
+            this.syncNativeWorldSelectors(worldInfoModule, actualName);
+            await this.refresh();
+            if (actualName) {
+                await this.openBook(actualName);
+                return true;
+            }
+
+            // The file was saved but SillyTavern did not expose a resolvable
+            // selector name. Keep the gallery current rather than pretending
+            // creation failed or relying on a fixed post-popup timeout.
+            this.showGallery();
+            return true;
+        } catch (error) {
+            this.toast?.(t('Could not create this Lorebook.'));
+            return false;
+        }
     }
 
     async openBook(name) {
@@ -621,7 +703,49 @@ export class LorebookManager {
         await this.refresh();
     }
 
+    async watchCurrentBookDeletion(bookName) {
+        const target = clean(bookName);
+        if (!target) return;
+
+        let worldInfoModule;
+        try {
+            worldInfoModule = await import('/scripts/world-info.js');
+        } catch (_) {
+            return;
+        }
+
+        // While NastyTavern owns the Lorebook workspace, the native World Info
+        // panel is detached from document. SillyTavern still updates the exported
+        // `world_names` list after a successful deletion, but its global jQuery
+        // `#world_editor_select` change event has no connected target to fire on.
+        // Watch that native source of truth only for the lifetime of this delete
+        // interaction instead of keeping a permanent observer or fixed delay.
+        const deadline = Date.now() + 60000;
+        while (Date.now() < deadline) {
+            if (this.view !== 'editor' || clean(this.currentBook) !== target) return;
+            const names = Array.isArray(worldInfoModule?.world_names) ? worldInfoModule.world_names : [];
+            if (!names.includes(target)) {
+                this.syncNativeWorldSelectors(worldInfoModule, '');
+                this.currentBook = '';
+                this.currentEntryUid = '';
+                this.currentBookData = null;
+                this.showGallery();
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
+
     onClick(event) {
+        const nativeDelete = event.target.closest?.('#world_popup_delete');
+        if (nativeDelete && this.view === 'editor' && this.currentBook) {
+            // Do not prevent or stop this event: SillyTavern owns the confirmation
+            // and deletion. We only follow the exported native state until the
+            // confirmed deletion has actually completed.
+            void this.watchCurrentBookDeletion(this.currentBook);
+            return;
+        }
+
         const open = event.target.closest('[data-nt-lorebook-open]');
         if (open) {
             event.preventDefault();
@@ -658,8 +782,7 @@ export class LorebookManager {
         }
         if (event.target.closest('[data-nt-lorebook-create]')) {
             event.preventDefault();
-            this.panel?.querySelector('#world_create_button')?.click();
-            setTimeout(() => this.scheduleRefresh(), 100);
+            void this.createBook();
             return;
         }
         if (event.target.closest('[data-nt-lorebook-import]')) {

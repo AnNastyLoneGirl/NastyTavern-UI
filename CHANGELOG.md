@@ -16,7 +16,6 @@ Update focused on integrated library workspaces, Persona Studio, Lorebook manage
 - Added a compact **Copy report** action in Extensions that copies installed third-party extension name, version, enabled state, and repository URL for diagnostics or support.
 - Added opt-in mobile model metadata in NastyTavern Settings: OpenRouter context (`ctx`), token value (`t/$`) and estimated max prompt cost (`$`), plus NanoGPT context, input/output pricing and subscription status (`sub`, `sub(2x)`, `not sub`) directly in model choices. All indicators are disabled by default.
 
-
 ### Changed
 
 - `Characters`, `Backgrounds`, `Personas`, and `Lorebooks` now integrate into NastyTavern's main workspace/navigation model while preserving SillyTavern's native data and handlers; third-party Persona Library keeps priority when installed.
@@ -27,6 +26,9 @@ Update focused on integrated library workspaces, Persona Studio, Lorebook manage
 - Fixed the mobile chat message structure so avatar/name metadata and message content use separate layout regions, preventing text, reasoning, or media from flowing underneath taller avatars while preserving native swipe behavior.
 - Fixed embedded Character Lore import/linking when SillyTavern sanitizes filesystem-invalid characters in Lorebook names, so imported Lorebooks remain correctly attached to their Character Card.
 - Fixed the Community Privacy Notice on phones and low-height screens so its content scrolls correctly and **Save & return** remains reachable.
+- Fixed the NastyTavern main app bar being hidden whenever SillyTavern Waifu Mode is active; the header now remains available and Waifu Mode content/panels respect its height.
+- After deleting the currently open Lorebook from Entries, NastyTavern now closes the Entries view and returns directly to the Lorebooks gallery.
+- Fixed Lorebook **New** so newly created books appear immediately in the NastyTavern gallery and open correctly without requiring a page reload.
 - Fixed Story Timeline navigation so **Go to** and **New Branch** keep the timeline canvas open while SillyTavern changes or branches the active chat.
 - Improved the mobile **Settings → Models** Connection Profile layout: the profile selector now uses its own row, with the six profile actions grouped on the row below.
 

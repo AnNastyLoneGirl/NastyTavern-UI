@@ -1269,8 +1269,7 @@ body.mt-enabled.waifuMode .mt-brand {
 
 body.mt-enabled.waifuMode .mt-brandtext,
 body.mt-enabled.waifuMode .mt-nav-label,
-body.mt-enabled.waifuMode .mt-sidebar kbd,
-body.mt-enabled.waifuMode .mt-appbar {
+body.mt-enabled.waifuMode .mt-sidebar kbd {
   display: none;
 }
 
@@ -1282,7 +1281,7 @@ body.mt-enabled.waifuMode .mt-sidebar-bottom button {
 
 body.mt-enabled.waifuMode:not(.movingUI) #sheld {
   margin: 0 auto;
-  padding-top: 0;
+  padding-top: var(--mt-appbar-height);
   width: var(--sheldWidth)!important;
   max-width: var(--sheldWidth)!important;
   left: 0!important;
@@ -1322,13 +1321,17 @@ body.mt-enabled.waifuMode #form_sheld {
 }
 
 body.mt-enabled.waifuMode.mt-dock-panels .mt-native-panel {
-  top: 10px;
+  top: calc(var(--mt-appbar-height) + 10px);
   left: 74px;
   right: 10px;
   bottom: 10px;
 }
 
 @media (max-width:1000px) {
+  body.mt-enabled.waifuMode .mt-appbar {
+    left: 0;
+  }
+
   body.mt-enabled.waifuMode:not(.movingUI) #sheld {
     width: 100dvw!important;
     max-width: 100dvw!important;
@@ -1343,7 +1346,7 @@ body.mt-enabled.waifuMode.mt-dock-panels .mt-native-panel {
   body.mt-enabled.waifuMode.mt-dock-panels .mt-native-panel {
     left: 8px;
     right: 8px;
-    top: 8px;
+    top: calc(var(--mt-appbar-height) + 8px);
     bottom: 8px;
   }
 }
