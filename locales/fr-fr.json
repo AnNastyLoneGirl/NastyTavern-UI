@@ -1155,5 +1155,13 @@
   "Add NanoGPT subscription status to model choices on mobile, including sub, sub(2x), or not sub when available.": "Ajoute le statut d’abonnement NanoGPT aux choix de modèles sur mobile, notamment sub, sub(2x) ou not sub lorsque disponible.",
   "Add the model context size to OpenRouter and NanoGPT choices on mobile.": "Ajoute la taille de contexte aux choix de modèles OpenRouter et NanoGPT sur mobile.",
   "Show Nano price (in/out)": "Afficher le prix Nano (entrée/sortie)",
-  "Add NanoGPT input/output price per million tokens to model choices on mobile.": "Ajoute le prix NanoGPT en entrée/sortie par million de tokens aux choix de modèles sur mobile."
+  "Add NanoGPT input/output price per million tokens to model choices on mobile.": "Ajoute le prix NanoGPT en entrée/sortie par million de tokens aux choix de modèles sur mobile.",
+  "Copy third-party extension report": "Copier le rapport des extensions tierces",
+  "Copy report": "Copier le rapport",
+  "Extension report copied.": "Rapport des extensions copié.",
+  "Could not copy extension report.": "Impossible de copier le rapport des extensions.",
+  "Installed third-party extensions": "Extensions tierces installées",
+  "No third-party extensions installed.": "Aucune extension tierce installée.",
+  "Repository": "Dépôt",
+  "Unavailable": "Indisponible"
 }

@@ -53,6 +53,7 @@ export class ExtensionsModal {
                             <input id="nt-extensions-notify-input" type="checkbox" data-nt-extensions-notify>
                             <span>${t('Notify on extension updates')}</span>
                         </label>
+                        <button type="button" class="nt-extensions-top-action" data-nt-extensions-copy-report title="${t('Copy third-party extension report')}" aria-label="${t('Copy third-party extension report')}">${icons.copy}<span>${t('Copy report')}</span></button>
                         <button type="button" class="nt-extensions-top-action" data-nt-extensions-update-all disabled>${icons.download}<span>${t('Update all')}</span></button>
                         <button type="button" class="nt-extensions-top-action" data-nt-extensions-update-enabled disabled>${icons.refresh}<span>${t('Update enabled')}</span></button>
                         <button type="button" class="nt-extensions-top-action is-primary" data-nt-extensions-install>${icons.plus}<span>${t('Install extension')}</span></button>
@@ -94,6 +95,7 @@ export class ExtensionsModal {
                     return;
                 }
                 if (target.closest('[data-nt-extensions-close]')) void this.close();
+                if (target.closest('[data-nt-extensions-copy-report]')) void this.copyExtensionReport(target.closest('[data-nt-extensions-copy-report]'));
                 if (target.closest('[data-nt-extensions-install]')) this.installExtension();
                 if (target.closest('[data-nt-extensions-update-all]')) this.runManagerUpdate('all');
                 if (target.closest('[data-nt-extensions-update-enabled]')) this.runManagerUpdate('enabled');
@@ -562,6 +564,115 @@ export class ExtensionsModal {
         }
         this.prepareManagerPopupForCompletion();
         source.click();
+    }
+
+    getManagerExtensionBlock(internalName) {
+        const externalId = String(internalName || '').replace(/^third-party/, '');
+        return [...(this.managerInfo?.querySelectorAll?.('.extension_block') || [])]
+            .find(block => block instanceof HTMLElement && block.dataset.name === externalId) || null;
+    }
+
+    normalizeRepositoryUrl(value) {
+        let url = String(value || '').trim();
+        if (!url) return '';
+        if (/^git@github\.com:/i.test(url)) url = `https://github.com/${url.replace(/^git@github\.com:/i, '')}`;
+        if (/^ssh:\/\/git@github\.com\//i.test(url)) url = `https://github.com/${url.replace(/^ssh:\/\/git@github\.com\//i, '')}`;
+        if (/^git:\/\/github\.com\//i.test(url)) url = `https://github.com/${url.replace(/^git:\/\/github\.com\//i, '')}`;
+        return url.replace(/\.git$/i, '').replace(/\/$/, '');
+    }
+
+    async getExtensionRepository(internalName, manifest, extensionsModule) {
+        const block = this.getManagerExtensionBlock(internalName);
+        const nativeHref = block?.querySelector?.('a[href]')?.getAttribute?.('href');
+        if (nativeHref) return this.normalizeRepositoryUrl(nativeHref);
+
+        const externalId = String(internalName || '').replace(/^third-party/, '');
+        const context = window.SillyTavern?.getContext?.();
+        try {
+            const response = await fetch('/api/extensions/version', {
+                method: 'POST',
+                headers: context?.getRequestHeaders?.() || { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    extensionName: externalId,
+                    global: extensionsModule?.extensionTypes?.[internalName] === 'global',
+                }),
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const remoteUrl = this.normalizeRepositoryUrl(data?.remoteUrl);
+                if (remoteUrl) return remoteUrl;
+            }
+        } catch (_) {}
+
+        return this.normalizeRepositoryUrl(manifest?.homePage);
+    }
+
+    async buildExtensionReport() {
+        let extensionsModule;
+        try {
+            extensionsModule = await import('/scripts/extensions.js');
+        } catch (_) {
+            return null;
+        }
+
+        const names = [...(extensionsModule.extensionNames || [])]
+            .filter(name => String(name).startsWith('third-party'));
+
+        const items = await Promise.all(names.map(async internalName => {
+            const manifest = extensionsModule.getExtensionManifest?.(internalName) || {};
+            const block = this.getManagerExtensionBlock(internalName);
+            const toggle = block?.querySelector?.('.extension_toggle input');
+            const enabled = toggle instanceof HTMLInputElement
+                ? toggle.checked
+                : !extensionsModule.extension_settings?.disabledExtensions?.includes?.(internalName);
+            const repository = await this.getExtensionRepository(internalName, manifest, extensionsModule);
+            const folderName = String(internalName).replace(/^third-party\/?/, '');
+            return {
+                name: String(manifest.display_name || folderName || internalName),
+                version: String(manifest.version || t('Unknown')),
+                enabled: Boolean(enabled),
+                repository: repository || t('Unavailable'),
+            };
+        }));
+
+        items.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+        const lines = [
+            'NastyTavern third-party extensions report',
+            `${t('Installed third-party extensions')}: ${items.length}`,
+            '',
+        ];
+        if (!items.length) {
+            lines.push(t('No third-party extensions installed.'));
+        } else {
+            items.forEach((item, index) => {
+                lines.push(`${index + 1}. ${item.name}`);
+                lines.push(`   ${t('Version')}: ${item.version}`);
+                lines.push(`   ${t('Enabled')}: ${item.enabled ? t('Yes') : t('No')}`);
+                lines.push(`   ${t('Repository')}: ${item.repository}`);
+                if (index < items.length - 1) lines.push('');
+            });
+        }
+        return lines.join('\n');
+    }
+
+    async copyExtensionReport(button = null) {
+        if (button instanceof HTMLButtonElement) {
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+        }
+        try {
+            const text = await this.buildExtensionReport();
+            if (!text) throw new Error('Extension report unavailable');
+            await navigator.clipboard.writeText(text);
+            this.toast?.(t('Extension report copied.'));
+        } catch (_) {
+            this.toast?.(t('Could not copy extension report.'));
+        } finally {
+            if (button instanceof HTMLButtonElement) {
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+            }
+        }
     }
 
     installExtension() {

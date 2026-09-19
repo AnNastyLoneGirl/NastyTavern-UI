@@ -24947,9 +24947,6 @@ body.mt-enabled #nt-extensions-modal #extensions_settings2 .inline-drawer-conten
     padding: 0 8px;
   }
 
-  body.mt-enabled #nt-extensions-modal .nt-extensions-top-action:last-child {
-    grid-column: 1 / -1;
-  }
 
   body.mt-enabled #nt-extensions-modal .nt-extensions-workspace {
     grid-template-columns: minmax(0,1fr);
