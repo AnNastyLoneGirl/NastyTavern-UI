@@ -2,7 +2,7 @@ import { icons } from './icons.js';
 import { t } from './i18n.js';
 import { defaults, saveSettings, applySettings } from './settings.js';
 import { escapeHtml as esc } from './utils.js';
-import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
+import { createModalShell, showModalShell, hideModalShell, ensureModalOpacityControl } from './modal-shell.js';
 import { tabsHtml } from './ui-templates.js';
 
 
@@ -42,6 +42,7 @@ export class PreferencesManager {
 
     open(tab = 'interface') {
         this.ensure();
+        ensureModalOpacityControl(this.root);
         this.tab = tab;
         showModalShell(this.root);
         this.render();
@@ -54,11 +55,14 @@ export class PreferencesManager {
     }
 
     ensure() {
-        if (this.root = document.querySelector('#nt-preferences')) return this.root;
+        if (this.root = document.querySelector('#nt-preferences')) {
+            ensureModalOpacityControl(this.root);
+            return this.root;
+        }
         const { root, body } = createModalShell({
             id: 'nt-preferences',
             title: t('NastyTavern Settings'),
-            subtitle: t('Interface, modules, backup and keyboard shortcuts'),
+            subtitle: t('Interface, chat appearance, modules, backup and keyboard shortcuts'),
             icon: icons.settings,
             size: 'large',
             modalClass: 'nt-tool-modal nt-pref-modal',
@@ -66,9 +70,11 @@ export class PreferencesManager {
             bodyClass: 'nt-pref-body',
             bodyAttrs: { 'data-nt-pref-body': '' },
             closeAttrs: { 'data-nt-pref-close': '' },
+            includeOpacityControl: true,
         });
         body.insertAdjacentHTML('beforebegin', tabsHtml('nt-pref-tab', [
             { id: 'interface', label: t('Interface') },
+            { id: 'chat', label: t('Chat appearance') },
             { id: 'modules', label: t('Modules') },
             { id: 'backup', label: t('Backup & Restore') },
             { id: 'shortcuts', label: t('Keyboard Shortcuts') },
@@ -85,12 +91,13 @@ export class PreferencesManager {
 
     render() {
         if (!this.root) return;
-        if (!['interface', 'backup', 'modules', 'shortcuts'].includes(this.tab)) this.tab = 'interface';
+        if (!['interface', 'chat', 'backup', 'modules', 'shortcuts'].includes(this.tab)) this.tab = 'interface';
         this.root.querySelectorAll('[data-nt-pref-tab]').forEach(button => {
             button.classList.toggle('is-active', button.dataset.ntPrefTab === this.tab);
         });
         const body = this.root.querySelector('[data-nt-pref-body]');
         if (this.tab === 'interface') body.innerHTML = this.renderInterface();
+        else if (this.tab === 'chat') body.innerHTML = this.callbacks.renderChatAppearanceSettings?.() || '';
         else if (this.tab === 'shortcuts') body.innerHTML = this.renderShortcuts();
         else if (this.tab === 'modules') body.innerHTML = this.renderModules();
         else body.innerHTML = this.renderBackup();
@@ -202,10 +209,14 @@ export class PreferencesManager {
     }
 
     onInput(event) {
+        const chatAppearance = this.callbacks.chatAppearanceInput?.(event.target);
+        if (chatAppearance?.handled) return;
         this.updateInterfaceSetting(event.target.closest('[data-nt-pref-setting]'));
     }
 
     onChange(event) {
+        const chatAppearance = this.callbacks.chatAppearanceChange?.(event.target);
+        if (chatAppearance?.handled) { if (chatAppearance.rerender) this.render(); return; }
         const setting = event.target.closest('[data-nt-pref-setting]');
         if (setting) { this.updateInterfaceSetting(setting); return; }
         const communityNetwork = event.target.closest('[data-nt-community-network]');
@@ -239,6 +250,8 @@ export class PreferencesManager {
         if (event.target.closest('[data-nt-pref-close]')) return this.close();
         const tab = event.target.closest('[data-nt-pref-tab]');
         if (tab) { this.cancelRecording(false); this.tab = tab.dataset.ntPrefTab; return this.render(); }
+        const chatAppearance = this.callbacks.chatAppearanceClick?.(event.target);
+        if (chatAppearance?.handled) { if (chatAppearance.rerender) this.render(); return; }
         if (event.target.closest('[data-nt-pref-export]')) return this.exportSettings();
         if (event.target.closest('[data-nt-pref-import-trigger]')) return this.root.querySelector('[data-nt-pref-import]').click();
         if (event.target.closest('[data-nt-community-privacy-review]')) {
@@ -356,6 +369,7 @@ export class PreferencesManager {
             applySettings(this.settings);
             saveSettings();
             this.callbacks.shortcutsChanged?.();
+            this.callbacks.chatAppearanceImported?.();
             this.toast?.(t('NastyTavern settings imported.'));
             this.render();
         } catch (_) {

@@ -7,6 +7,83 @@ const MODAL_STACK_BASE_Z = 4200;
 const MODAL_STACK_STEP_Z = 100;
 let escapeHandlerInstalled = false;
 
+const MODAL_OPACITY_MIN = 40;
+const MODAL_OPACITY_MAX = 100;
+const MODAL_OPACITY_STEP = 5;
+
+function clampModalOpacity(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return MODAL_OPACITY_MAX;
+    return Math.min(MODAL_OPACITY_MAX, Math.max(MODAL_OPACITY_MIN, Math.round(number / MODAL_OPACITY_STEP) * MODAL_OPACITY_STEP));
+}
+
+function applyModalOpacity(root, value) {
+    if (!root) return;
+    const opacity = clampModalOpacity(value);
+    const ratio = opacity / 100;
+    root.dataset.ntModalOpacity = String(opacity);
+    root.style.setProperty('--nt-modal-window-opacity', String(ratio));
+    root.style.setProperty('--nt-modal-backdrop-opacity', opacity < MODAL_OPACITY_MAX ? '0' : '1');
+
+    const control = root._ntModalOpacityControl;
+    if (!control) return;
+    control.input.value = String(opacity);
+    control.input.setAttribute('aria-valuetext', `${opacity}%`);
+    control.output.value = `${opacity}%`;
+    control.output.textContent = `${opacity}%`;
+}
+
+function installModalOpacityControl(root, modal, header) {
+    if (!root || !modal || !header) return null;
+    if (root._ntModalOpacityControl?.control?.isConnected) return root._ntModalOpacityControl.control;
+    root._ntModalOpacityControl = null;
+
+    const close = header.querySelector('.nt-modal-close');
+    const actions = close?.parentElement || header.querySelector('.nt-modal-header-actions, .mt-settings-header-actions') || header;
+
+    const control = document.createElement('label');
+    control.className = 'nt-modal-opacity-control';
+    control.title = t('Modal opacity');
+
+    const icon = document.createElement('span');
+    icon.className = 'nt-modal-opacity-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = icons.sliders;
+
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = String(MODAL_OPACITY_MIN);
+    input.max = String(MODAL_OPACITY_MAX);
+    input.step = String(MODAL_OPACITY_STEP);
+    input.value = root.dataset.ntModalOpacity || String(MODAL_OPACITY_MAX);
+    input.setAttribute('aria-label', t('Modal opacity'));
+
+    const output = document.createElement('output');
+    output.setAttribute('aria-hidden', 'true');
+
+    control.append(icon, input, output);
+    if (close && close.parentElement === actions) actions.insertBefore(control, close);
+    else actions.append(control);
+
+    root._ntModalOpacityControl = { control, input, output };
+    input.addEventListener('input', () => applyModalOpacity(root, input.value));
+    input.addEventListener('dblclick', () => applyModalOpacity(root, MODAL_OPACITY_MAX));
+    applyModalOpacity(root, input.value);
+    return control;
+}
+
+export function ensureModalOpacityControl(root, {
+    modalSelector = '.nt-modal-shell',
+    headerSelector = '.nt-modal-header',
+} = {}) {
+    if (!root) return null;
+    const modal = root.matches?.(modalSelector) ? root : root.querySelector?.(modalSelector);
+    if (!modal) return null;
+    const header = modal.matches?.(headerSelector) ? modal : modal.querySelector?.(headerSelector);
+    if (!header) return null;
+    return installModalOpacityControl(root, modal, header);
+}
+
 function removeFromModalStack(root) {
     const index = openModalStack.lastIndexOf(root);
     if (index >= 0) openModalStack.splice(index, 1);
@@ -107,6 +184,7 @@ export function createModalShell({
     bodyHtml = '',
     footerHtml = null,
     includeHeader = true,
+    includeOpacityControl = true,
 } = {}) {
     if (!id) throw new Error('createModalShell requires an id');
 
@@ -178,6 +256,7 @@ export function createModalShell({
         actions.append(closeButton);
         header.append(actions);
         modal.append(header);
+        if (includeOpacityControl) ensureModalOpacityControl(root, { modalSelector: '.nt-modal-shell', headerSelector: '.nt-modal-header' });
     }
 
     const body = document.createElement('div');
@@ -254,6 +333,7 @@ export function adoptModalShell(root, {
     const footer = footerSelector ? modal.querySelector(footerSelector) : null;
     footer?.classList.add('nt-modal-footer');
     root._ntModalCloseButton = modal.querySelector('.nt-modal-close');
+    if (header) ensureModalOpacityControl(root, { modalSelector, headerSelector });
     return { root, modal, backdrop, header, body, footer };
 }
 

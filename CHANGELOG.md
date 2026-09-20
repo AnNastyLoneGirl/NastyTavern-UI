@@ -4,21 +4,32 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
-## Unreleased
+## v0.1.9
+
+Update focused on global and per-character Chat Appearance, plus mobile Lorebook compatibility improvements.
 
 ### Added
 
+- Added **Global Chat Appearance** in NastyTavern Settings, with complete User and Character customization for Avatar, Name, Message, and Rich Content, including presets, categorized editing, RGBA colors, reset/copy tools, full-screen editing, and responsive controls.
+- Added **Individual Chat Appearance** for Character Cards, inheriting the global appearance by default while allowing per-character overrides with **Inherit** and **Same as User** behavior.
+- Added a shared **modal opacity** control to NastyTavern modal headers.
+- Added README demonstrations for **Global Chat Appearance** and **Individual Chat Appearance** under `docs/screenshots/`.
 
+### Changed
+
+- Chat Appearance now follows native SillyTavern styling whenever no explicit NastyTavern override is set.
+- Improved Chat Appearance responsiveness, control performance, and scroll preservation across desktop, tablet, split-screen, and mobile layouts.
 
 ### Fixed
 
-
+- Fixed side-avatar and long-message layout issues that could cause text overlap with Nasty Veil, Nasty Edge, or Nasty Banner presentation modes.
+- Fixed **World Info Gallery / Lorebooks** on mobile so the workspace keeps the NastyTavern navigation visible, initializes correctly in portrait, and supports vertical touch scrolling without requiring an orientation change.
 
 ---
 
 ## v0.1.8
 
-Update focused on integrated library workspaces, Persona Studio, Lorebook management, mobile chat layout, and updater reliability.
+Update focused on integrated library workspaces, Persona Studio, Lorebook management, mobile chat/model workflows, extension diagnostics, updater reliability, and compatibility fixes.
 
 ### Added
 
@@ -37,13 +48,12 @@ Update focused on integrated library workspaces, Persona Studio, Lorebook manage
 
 - Fixed the mobile chat message structure so avatar/name metadata and message content use separate layout regions, preventing text, reasoning, or media from flowing underneath taller avatars while preserving native swipe behavior.
 - Fixed embedded Character Lore import/linking when SillyTavern sanitizes filesystem-invalid characters in Lorebook names, so imported Lorebooks remain correctly attached to their Character Card.
-- Fixed the Community Privacy Notice on phones and low-height screens so its content scrolls correctly and **Save & return** remains reachable.
-- Fixed Lorebook **Import** in the NastyTavern gallery so the file picker opens while the native World Info panel is detached, then refreshes/selects the imported Lorebook through SillyTavern's native importer.
-- Fixed the NastyTavern main app bar being hidden whenever SillyTavern Waifu Mode is active; the header now remains available and Waifu Mode content/panels respect its height.
-- After deleting the currently open Lorebook from Entries, NastyTavern now closes the Entries view and returns directly to the Lorebooks gallery.
-- Fixed Lorebook **New** so newly created books appear immediately in the NastyTavern gallery and open correctly without requiring a page reload.
+- Fixed Lorebook **New**, **Import**, and **Delete** workflows inside the detached NastyTavern World Info workspace: newly created/imported books now appear immediately without reloading, and deleting the currently open Lorebook returns directly to the Lorebooks gallery.
 - Fixed Story Timeline navigation so **Go to** and **New Branch** keep the timeline canvas open while SillyTavern changes or branches the active chat.
 - Improved the mobile **Settings → Models** Connection Profile layout: the profile selector now uses its own row, with the six profile actions grouped on the row below.
+- Fixed the NastyTavern main app bar being hidden whenever SillyTavern Waifu Mode is active; the header now remains available and Waifu Mode content/panels respect its height.
+- Fixed **Create Character / Save** with Moonlit Echoes by preserving the native `#form_create` association when NastyTavern temporarily detaches SillyTavern submit controls for compatibility layout handling.
+- Fixed the Community Privacy Notice on phones and low-height screens so its content scrolls correctly and **Save & return** remains reachable.
 
 ---
 

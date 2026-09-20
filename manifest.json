@@ -1,21 +1,21 @@
 {
-    "display_name": "NastyTavern Test",
-    "loading_order": 110,
-    "requires": [],
-    "optional": [],
-    "js": "index.js",
-    "css": "style.css",
-    "author": "AnNastyLoneGirl + OpenAI",
-    "version": "0.1.8",
-    "homePage": "https://github.com/AnNastyLoneGirl/NastyTavern-UI",
-    "auto_update": false,
-    "minimum_client_version": "1.18.0",
-    "description": "NastyTavern transforms SillyTavern's visual design, navigation, layouts, panels, and everyday workflows into a more modern and cohesive interface.",
-    "hooks": {
-        "activate": "onActivate",
-        "enable": "onEnable",
-        "disable": "onDisable",
-        "clean": "onClean"
-    },
-    "revision": 59
+  "display_name": "NastyTavern UI",
+  "loading_order": 110,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "AnNastyLoneGirl + OpenAI",
+  "version": "0.1.9",
+  "homePage": "https://github.com/AnNastyLoneGirl/NastyTavern-UI",
+  "auto_update": false,
+  "minimum_client_version": "1.18.0",
+  "description": "NastyTavern transforms SillyTavern's visual design, navigation, layouts, panels, and everyday workflows into a more modern and cohesive interface.",
+  "hooks": {
+    "activate": "onActivate",
+    "enable": "onEnable",
+    "disable": "onDisable",
+    "clean": "onClean"
+  },
+  "revision": 78
 }

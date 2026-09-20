@@ -9,7 +9,7 @@ The underlying SillyTavern features remain intact: chats, Character Cards, Perso
 On top of that, NastyTavern adds integrated tools, improved mobile support, Community features, and the Nasty Catalogue for discovering and sharing Character Cards and Lorebooks.
 
 > **Current release version:** `0.1.7`
-> **Current test version:** `0.1.8`
+> **Current test version:** `0.1.9`
 > **Minimum SillyTavern version:** `1.18.0`
 
 ## 📸 Screenshots
@@ -34,12 +34,25 @@ On top of that, NastyTavern adds integrated tools, improved mobile support, Comm
 
 ![NastyTavern Chat Tools](docs/screenshots/timeline.png)
 
+### 🎨 Global Chat Appearance
+
+Configure the default presentation used across your chats from **NastyTavern Settings → Chat appearance**. User and Character styling can be customized independently, with dedicated controls for avatars, names, message surfaces, typography, spacing, rich content, code, links, lists, media, and more.
+
+![Global Chat Appearance](docs/screenshots/global-chat-appearance.gif)
+
+### 🎭 Individual Chat Appearance
+
+Open **Chat appearance** from an active character chat to create presentation overrides for that character without changing the global defaults. Any setting left on **Inherit** continues to follow the global NastyTavern configuration, so only the properties you explicitly customize become character-specific.
+
+![Individual Chat Appearance](docs/screenshots/individual-chat-appearance.gif)
+
 ---
 
 ## ✨ Highlights
 
 - 🎨 **Modern interface** — cleaner navigation, redesigned panels, consistent styling, and easier access to SillyTavern's main features.
 - 💬 **Nasty Chat Bar** — quickly switch chats, search messages, manage conversations, change connection profiles, and access useful tools.
+- 🎛️ **Global & Individual Chat Appearance** — define a complete global chat presentation in NastyTavern Settings, then override only the properties you want for individual character chats. User and Character styling remain independent, while per-character values inherit the global configuration by default.
 - 🧰 **Integrated tools** — Story Timeline, Context / Token Inspector, Variable Manager, World Info Inspector, Bookmarks, Notes, Calendar and Schedule.
 - 🏠 **Home Dashboard** — recent characters, favorites, quick actions, Community activity, and resource discovery from one place.
 - 📚 **Nasty Catalogue** — discover, rate, organize, download, and import Character Cards and Lorebooks shared by the Community.
@@ -149,6 +162,24 @@ Features include:
 - Sharing and publishing tools
 
 SillyTavern remains responsible for the actual Character Card data and behavior.
+
+---
+
+# 🎨 Chat Appearance
+
+Chat Appearance is split into two complementary levels so you can keep a consistent base style without losing per-character control.
+
+## Global Chat Appearance
+
+The global editor in **NastyTavern Settings → Chat appearance** defines the default presentation for chats. User and Character each have their own controls, organized into **Avatar**, **Name**, **Message**, and **Rich content** sections. Settings can inherit SillyTavern's active theme where appropriate, making the editor an extension of the existing SillyTavern appearance system rather than a separate visual layer.
+
+Use the global editor for the look you want most conversations to share: message geometry, spacing, typography, colors, dialogue styling, emphasis and narration, quoted lines, code, links, headings, lists, media, avatar presentation, and name styling.
+
+## Individual Chat Appearance
+
+Each character chat can override the global Chat Appearance configuration without duplicating the whole setup. By default, individual settings stay on **Inherit**, so changes made globally continue to propagate automatically. Only the values you deliberately customize become overrides for that character.
+
+This makes it possible to give a specific character or conversation its own visual identity while keeping the rest of NastyTavern consistent. You can change a single detail or build a complete per-character presentation, then return any setting, category, or the full chat back to the inherited global state when needed.
 
 ---
 

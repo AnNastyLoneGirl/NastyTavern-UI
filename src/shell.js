@@ -1,6 +1,6 @@
 import { icons } from './icons.js';
 import { t } from './i18n.js';
-import { adoptModalShell, showModalShell, hideModalShell } from './modal-shell.js';
+import { adoptModalShell, showModalShell, hideModalShell, ensureModalOpacityControl } from './modal-shell.js';
 
 const PAGE_LABELS = new Map([
     ['chat', 'Chat'],
@@ -43,6 +43,10 @@ export class AppShell {
         this.settingsThemeLayoutFrame = 0;
         this.boundDocumentPointerDown = event => this.onDocumentPointerDown(event);
         this.boundDocumentKeyDown = event => this.onDocumentKeyDown(event);
+        this.chatAppearanceAvailable = false;
+        this.chatAppearanceName = '';
+        this.chatAppearanceShortcut = '';
+        this.chatAppearanceOverridden = false;
     }
 
     mount() {
@@ -54,7 +58,7 @@ export class AppShell {
             <div class="mt-brand">
               <span class="mt-brandmark">${icons.logo}</span>
               <span class="mt-brandtext"><b>NastyTavern</b><small>SillyTavern UI</small></span>
-              <span class="mt-brand-version">0.1.8</span>
+              <span class="mt-brand-version">0.1.10</span>
             </div>
             <nav class="mt-nav">
               ${NAV.map(([id,label,icon]) => `<button data-mt-nav="${id}" title="${t(label)}"><span class="mt-nav-icon">${icon}</span><span class="mt-nav-label">${t(label)}</span></button>`).join('')}
@@ -74,6 +78,7 @@ export class AppShell {
             <div class="mt-appbar-right">
               <div class="mt-appbar-third-party" data-mt-third-party-launchers hidden></div>
               <button type="button" class="mt-appbar-command" data-mt-command title="${t('Search')} · Ctrl K" aria-label="${t('Search')}">${icons.search}</button>
+              <button type="button" class="mt-appbar-icon mt-chat-appearance-button" data-mt-ui="chat-appearance" data-mt-chat-appearance hidden title="${t('Chat appearance')}" aria-label="${t('Chat appearance')}">${icons.sliders || icons.settings}</button>
               <button type="button" class="mt-appbar-icon" data-mt-ui="focus" title="${t('Focus mode')}" aria-label="${t('Focus mode')}">${icons.workspace}</button>
               <div class="mt-account" data-mt-account>
                 <button type="button" class="mt-account-toggle" data-mt-account-toggle aria-haspopup="menu" aria-expanded="false" aria-controls="mt-account-menu" title="${t('Account')}">
@@ -335,6 +340,7 @@ export class AppShell {
         const root = this.root || document.querySelector('#mt-root');
         const hub = root?.querySelector('#mt-settings-hub');
         if (!hub) return;
+        ensureModalOpacityControl(hub, { modalSelector: '.mt-settings-hub-modal', headerSelector: '.nt-tool-header' });
         const section = String(sectionId || 'user-theme');
         showModalShell(hub);
         this.setSettingsSidebarHidden(false);
@@ -732,6 +738,36 @@ export class AppShell {
         root?.querySelectorAll('[data-mt-command-shortcut]').forEach(node => node.textContent = label || '—');
     }
 
+    setChatAppearanceContext({ available = false, characterName = '', shortcut = this.chatAppearanceShortcut, overridden = false } = {}) {
+        const nextAvailable = !!available;
+        const nextName = String(characterName || '').trim();
+        const nextShortcut = String(shortcut || '');
+        const nextOverridden = !!overridden;
+        const changed = nextAvailable !== this.chatAppearanceAvailable || nextName !== this.chatAppearanceName || nextShortcut !== this.chatAppearanceShortcut || nextOverridden !== this.chatAppearanceOverridden;
+        this.chatAppearanceAvailable = nextAvailable;
+        this.chatAppearanceName = nextName;
+        this.chatAppearanceShortcut = nextShortcut;
+        this.chatAppearanceOverridden = nextOverridden;
+        if (changed) this.syncChatAppearanceButton();
+    }
+
+    updateChatAppearanceShortcut(value) {
+        this.chatAppearanceShortcut = String(value || '');
+        this.syncChatAppearanceButton();
+    }
+
+    syncChatAppearanceButton() {
+        const root = this.root || document.querySelector('#mt-root');
+        const button = root?.querySelector('[data-mt-chat-appearance]');
+        if (!button) return;
+        button.hidden = this.active !== 'chat' || !this.chatAppearanceAvailable;
+        button.classList.toggle('is-active', this.chatAppearanceOverridden);
+        const shortcut = this.chatAppearanceShortcut ? ` · ${this.chatAppearanceShortcut.replaceAll('+', ' ')}` : '';
+        const context = this.chatAppearanceName ? ` — ${this.chatAppearanceName}` : '';
+        button.title = `${t('Chat appearance')}${context}${shortcut}`;
+        button.setAttribute('aria-label', this.chatAppearanceName ? `${t('Chat appearance')} — ${this.chatAppearanceName}` : t('Chat appearance'));
+    }
+
     setActive(id) {
         this.active = id;
         document.body?.setAttribute('data-mt-view', id);
@@ -741,6 +777,7 @@ export class AppShell {
         const label = PAGE_LABELS.get(id) || id;
         const titleNode = root.querySelector('[data-mt-title]');
         if (titleNode) titleNode.textContent = t(label);
+        this.syncChatAppearanceButton();
     }
 
     updateStatus({connection, offline: nativeOffline, character, persona}) {

@@ -6,6 +6,7 @@ import { getSettings, saveSettings, applySettings } from './settings.js';
 import { VariableManager } from './variable-manager.js';
 import { WorldInfoInfo } from './world-info-info.js';
 import { ChatToolbar } from './chat-toolbar.js';
+import { ChatAppearanceManager } from './chat-appearance.js';
 import { TimelineManager } from './timeline-manager.js';
 import { ContextInspector } from './context-inspector.js';
 import { ChatTools } from './chat-tools.js';
@@ -120,6 +121,12 @@ export class NastyTavern {
         this.boundKeydown = e => this.onKeyDown(e);
         this.boundDocumentClick = event => this.onDocumentClick(event);
         this.boundDocumentChange = event => this.onDocumentChange(event);
+        this.boundWorldInfoTouchStart = event => this.onWorldInfoTouchStart(event);
+        this.boundWorldInfoTouchMove = event => this.onWorldInfoTouchMove(event);
+        this.boundWorldInfoTouchEnd = event => this.onWorldInfoTouchEnd(event);
+        this.worldInfoTouchScrollState = null;
+        this.worldInfoTouchSuppressClickUntil = 0;
+        this.worldInfoGalleryRefreshTimers = [];
         this.mobileNavMedia = window.matchMedia?.('(max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px)') || null;
         this.openAiModulePromise = null;
         this.boundResponsiveNavChange = () => { this.syncResponsiveNavMode(); this.syncMobileChatMessageBlocks(); };
@@ -182,6 +189,7 @@ export class NastyTavern {
         this.currentView = 'chat';
         this.worldInfoInfo = new WorldInfoInfo(message => this.toast(message));
         this.chatToolbar = new ChatToolbar(message => this.toast(message));
+        this.chatAppearance = new ChatAppearanceManager(this.settings, message => this.toast(message));
         this.timelineManager = new TimelineManager(message => this.toast(message));
         this.contextInspector = new ContextInspector(message => this.toast(message));
         this.chatTools = new ChatTools(message => this.toast(message));
@@ -209,11 +217,18 @@ export class NastyTavern {
             openTool: id => this.openTool(id),
             getShortcutDefinitions: () => this.getShortcutDefinitions(),
             eventToShortcut: e => this.eventToShortcut(e),
-            shortcutsChanged: () => { saveSettings(); this.shell.updateCommandShortcut(this.settings.shortcuts?.commandPalette); },
+            shortcutsChanged: () => { saveSettings(); this.shell.updateCommandShortcut(this.settings.shortcuts?.commandPalette); this.shell.updateChatAppearanceShortcut(this.settings.shortcuts?.chatAppearance); },
             communityPrivacyChanged: () => { void this.handleCommunityPrivacyChanged(); },
             openCommunityPrivacy: () => this.communityChat?.openPrivacyNotice?.(),
             interfaceSettingsChanged: () => { void this.syncMobileModelLabels(); },
+            renderChatAppearanceSettings: () => this.chatAppearance.renderGlobalSettings(),
+            chatAppearanceInput: target => this.chatAppearance.handleGlobalInput(target),
+            chatAppearanceChange: target => this.chatAppearance.handleGlobalChange(target),
+            chatAppearanceClick: target => this.chatAppearance.handleGlobalClick(target),
+            resetChatAppearance: () => this.chatAppearance.resetGlobal(),
+            chatAppearanceImported: () => { this.chatAppearance.refreshSettings(); this.syncChatAppearance(); },
         });
+        this.chatAppearance.requestGlobalRender = () => this.preferences?.render?.();
         this.healthPanel = new HealthPanel(message => this.toast(message), () => this.getHealthSnapshot());
         this.aboutPanel = new AboutPanel(() => this.healthPanel.open());
         this.homeDashboard = new HomeDashboard({
@@ -240,6 +255,13 @@ export class NastyTavern {
         document.removeEventListener('keydown', this.boundKeydown, true);
         document.removeEventListener('click', this.boundDocumentClick, true);
         document.removeEventListener('change', this.boundDocumentChange, true);
+        document.removeEventListener('touchstart', this.boundWorldInfoTouchStart, true);
+        document.removeEventListener('touchmove', this.boundWorldInfoTouchMove, true);
+        document.removeEventListener('touchend', this.boundWorldInfoTouchEnd, true);
+        document.removeEventListener('touchcancel', this.boundWorldInfoTouchEnd, true);
+        this.worldInfoTouchScrollState = null;
+        for (const timer of this.worldInfoGalleryRefreshTimers || []) clearTimeout(timer);
+        this.worldInfoGalleryRefreshTimers = [];
         this.restoreCharacterEmbeddedLoreAutoLink();
         this.restoreMobileOpenRouterModelLabels();
         this.restoreMobileNanoGptModelLabels();
@@ -268,6 +290,7 @@ export class NastyTavern {
         this.palette.root?.remove(); this.palette.root = null;
         this.chatToolsHub.unmount();
         this.chatToolbar.unmount();
+        this.chatAppearance.unmount();
         this.timelineManager.unmount();
         this.contextInspector.unmount();
         this.chatTools.unmount();
@@ -317,6 +340,7 @@ export class NastyTavern {
         this.shell.mount();
         this.syncCharacterLibraryIntegration();
         this.shell.updateCommandShortcut(this.settings.shortcuts?.commandPalette);
+        this.shell.updateChatAppearanceShortcut(this.settings.shortcuts?.chatAppearance);
         this.palette.mount();
         this.dom.tagNativeUI();
         this.installObserver();
@@ -334,6 +358,7 @@ export class NastyTavern {
         this.chatTools.mount();
         this.calendarManager.mount();
         this.chatToolsHub.mount();
+        this.chatAppearance.mount();
         this.preferences.mount();
         this.healthPanel.mount();
         this.aboutPanel.mount();
@@ -345,6 +370,13 @@ export class NastyTavern {
         document.addEventListener('keydown', this.boundKeydown, true);
         document.addEventListener('click', this.boundDocumentClick, true);
         document.addEventListener('change', this.boundDocumentChange, true);
+        // World Info Gallery can install drag handlers that consume touchmove on
+        // cards. Capture touch gestures before provider handlers and manually
+        // advance the nearest scroll owner only after a clear vertical pan.
+        document.addEventListener('touchstart', this.boundWorldInfoTouchStart, { capture: true, passive: true });
+        document.addEventListener('touchmove', this.boundWorldInfoTouchMove, { capture: true, passive: false });
+        document.addEventListener('touchend', this.boundWorldInfoTouchEnd, { capture: true, passive: true });
+        document.addEventListener('touchcancel', this.boundWorldInfoTouchEnd, { capture: true, passive: true });
         this.installCharacterEmbeddedLoreAutoLink();
         this.mobileNavMedia?.addEventListener?.('change', this.boundResponsiveNavChange);
         startI18nObserver();
@@ -356,7 +388,7 @@ export class NastyTavern {
         const isNastyOwnedNode = node => {
             const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
             if (!element) return false;
-            return !!element.closest?.('#mt-root, #nt-home-dashboard, #nt-community-panel, #nt-character-details-modal, #nt-variable-manager, #nt-world-info-info, #nt-chat-toolbar, #nt-chat-history, #nt-timeline-panel, #nt-context-inspector, #nt-chat-tools, #nt-calendar-manager, #nt-chat-tools-hub, #nt-preferences, #nt-health-panel, #nt-about-panel, #mt-command-palette, #nt-character-workspace, #nt-character-create-modal, #nt-character-convert-confirm, #nt-group-modal, #nt-persona-workspace, #nt-background-workspace, #nt-lorebook-workspace, #nt-extensions-modal, #nt-catalogue-modal, #nt-catalogue-upload-modal, [data-nt-chat-character-context], [data-nt-mobile-message-block]');
+            return !!element.closest?.('#mt-root, #nt-home-dashboard, #nt-community-panel, #nt-character-details-modal, #nt-variable-manager, #nt-world-info-info, #nt-chat-toolbar, #nt-chat-history, #nt-timeline-panel, #nt-context-inspector, #nt-chat-tools, #nt-calendar-manager, #nt-chat-tools-hub, #nt-preferences, #nt-health-panel, #nt-about-panel, #mt-command-palette, #nt-character-workspace, #nt-character-create-modal, #nt-character-convert-confirm, #nt-group-modal, #nt-persona-workspace, #nt-background-workspace, #nt-lorebook-workspace, #nt-extensions-modal, #nt-catalogue-modal, #nt-catalogue-upload-modal, #nt-chat-appearance-modal, [data-nt-chat-character-context], [data-nt-mobile-message-block]');
         };
 
         this.observer = new MutationObserver(mutations => {
@@ -649,6 +681,153 @@ export class NastyTavern {
             return candidates[0];
         }
         return this.elementIsVisible(panel) ? panel : null;
+    }
+
+    worldInfoGalleryTouchSurface(target) {
+        if (!(target instanceof Element)) return null;
+        const surface = target.closest?.('.nt-third-party-workspace-surface[data-nt-third-party-workspace="world-info-gallery"]');
+        if (surface instanceof HTMLElement) return surface;
+        const panel = target.closest?.('#WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"]');
+        return panel instanceof HTMLElement ? panel : null;
+    }
+
+    worldInfoGalleryTouchEnabled() {
+        if (!this.active || this.currentView !== 'lorebooks') return false;
+        return window.matchMedia?.('(max-width: 760px), (hover: none) and (pointer: coarse)')?.matches ?? false;
+    }
+
+    worldInfoGalleryScrollCandidates(start, surface) {
+        const candidates = [];
+        const add = element => {
+            if (!(element instanceof HTMLElement) || candidates.includes(element)) return;
+            if (element.scrollHeight <= element.clientHeight + 2) return;
+            candidates.push(element);
+        };
+
+        let node = start instanceof Element ? start : null;
+        while (node) {
+            add(node);
+            if (node === surface) break;
+            node = node.parentElement;
+        }
+
+        // Provider markup varies by version. If the gesture started on a card
+        // whose ancestors do not expose the actual scroll viewport, discover a
+        // real overflowing descendant and prefer the smallest viable viewport.
+        if (!candidates.length && surface instanceof HTMLElement) {
+            const overflowed = [...surface.querySelectorAll('*')]
+                .filter(element => element instanceof HTMLElement && element.scrollHeight > element.clientHeight + 2)
+                .sort((a, b) => (a.clientHeight * a.clientWidth) - (b.clientHeight * b.clientWidth));
+            for (const element of overflowed) add(element);
+        }
+        add(surface);
+        const panel = surface?.closest?.('#WorldInfo.nt-third-party-workspace-panel');
+        add(panel);
+        return candidates;
+    }
+
+    scheduleWorldInfoGalleryViewportRefresh() {
+        for (const timer of this.worldInfoGalleryRefreshTimers || []) clearTimeout(timer);
+        this.worldInfoGalleryRefreshTimers = [];
+        if (!this.active || this.currentView !== 'lorebooks') return;
+
+        const refresh = (notifyProvider = false) => {
+            if (!this.active || this.currentView !== 'lorebooks') return;
+            this.decorateThirdPartyWorkspace('lorebooks');
+            const panel = document.querySelector('#WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"]');
+            const surface = this.findThirdPartyWorkspaceSurface('lorebooks');
+            if (!(panel instanceof HTMLElement) && !(surface instanceof HTMLElement)) return;
+
+            const viewportHeight = Math.max(1, Math.round(window.visualViewport?.height || window.innerHeight || 1));
+            document.documentElement.style.setProperty('--nt-world-info-viewport-height', `${viewportHeight}px`);
+
+            void panel?.getBoundingClientRect();
+            void surface?.getBoundingClientRect();
+            if (notifyProvider) window.dispatchEvent(new Event('resize'));
+        };
+
+        refresh(false);
+        for (const [delay, notify] of [[60, true], [220, true], [500, false]]) {
+            this.worldInfoGalleryRefreshTimers.push(setTimeout(() => refresh(notify), delay));
+        }
+    }
+
+    onWorldInfoTouchStart(event) {
+        if (!this.worldInfoGalleryTouchEnabled() || event.touches?.length !== 1) {
+            this.worldInfoTouchScrollState = null;
+            return;
+        }
+        const target = event.target instanceof Element ? event.target : null;
+        const surface = this.worldInfoGalleryTouchSurface(target);
+        if (!surface) {
+            this.worldInfoTouchScrollState = null;
+            return;
+        }
+        // Inputs need native text/selection gestures. Buttons and cards are not
+        // excluded: a tap remains a tap, while a vertical drag scrolls naturally.
+        if (target?.closest?.('input, textarea, select, [contenteditable="true"]')) {
+            this.worldInfoTouchScrollState = null;
+            return;
+        }
+        const touch = event.touches[0];
+        this.worldInfoTouchScrollState = {
+            surface,
+            target,
+            startX: touch.clientX,
+            startY: touch.clientY,
+            lastY: touch.clientY,
+            vertical: false,
+            moved: false,
+            candidates: this.worldInfoGalleryScrollCandidates(target, surface),
+        };
+    }
+
+    onWorldInfoTouchMove(event) {
+        const state = this.worldInfoTouchScrollState;
+        if (!state || event.touches?.length !== 1 || !state.surface?.isConnected) return;
+        const touch = event.touches[0];
+        const dx = touch.clientX - state.startX;
+        const dy = touch.clientY - state.startY;
+        if (!state.vertical) {
+            if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                this.worldInfoTouchScrollState = null;
+                return;
+            }
+            state.vertical = true;
+        }
+
+        const delta = state.lastY - touch.clientY;
+        state.lastY = touch.clientY;
+        if (!delta) return;
+
+        const direction = Math.sign(delta);
+        let owner = state.candidates.find(element => {
+            if (!(element instanceof HTMLElement) || !element.isConnected) return false;
+            const max = element.scrollHeight - element.clientHeight;
+            if (max <= 1) return false;
+            return direction > 0 ? element.scrollTop < max - 1 : element.scrollTop > 1;
+        });
+        if (!owner) {
+            state.candidates = this.worldInfoGalleryScrollCandidates(state.target, state.surface);
+            owner = state.candidates.find(element => element.scrollHeight > element.clientHeight + 2);
+        }
+        if (!owner) return;
+
+        // Do not let provider drag handlers consume this gesture. We deliberately
+        // drive scrollTop here so scrolling still works even if the extension has
+        // touch-action:none or a non-passive touchmove handler on its cards.
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        owner.scrollTop += delta;
+        state.moved = true;
+    }
+
+    onWorldInfoTouchEnd() {
+        if (this.worldInfoTouchScrollState?.moved) {
+            this.worldInfoTouchSuppressClickUntil = performance.now() + 350;
+        }
+        this.worldInfoTouchScrollState = null;
     }
 
     decorateThirdPartyWorkspace(view) {
@@ -1124,6 +1303,11 @@ export class NastyTavern {
 
     onDocumentClick(event) {
         const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+        if (performance.now() < this.worldInfoTouchSuppressClickUntil && this.worldInfoGalleryTouchSurface(target)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return;
+        }
         const contextTranslate = target?.closest?.('[data-nt-chat-context-translate]');
         if (contextTranslate) {
             event.preventDefault();
@@ -1274,6 +1458,7 @@ export class NastyTavern {
             { id:'communityPresence', label:'Community presence', hint:'Switch between online and offline presence', group:'NastyTavern' },
             { id:'health', label:'Health & Performance', hint:'Open diagnostic information', group:'NastyTavern' },
             { id:'focusMode', label:'Focus mode', hint:'Hide interface chrome and keep only the essentials', group:'NastyTavern' },
+            { id:'chatAppearance', label:'Chat appearance', hint:'Customize the current Character Card chat presentation', group:'NastyTavern' },
             { id:'nativeChat', label:'Chat view', hint:'Return to the main chat and close native panels', group:'SillyTavern' },
             { id:'nativeCharacters', label:'Character Management', hint:'Open native Character Management', group:'SillyTavern' },
             { id:'nativePersonas', label:'Persona Management', hint:'Open native Persona Management', group:'SillyTavern' },
@@ -1292,6 +1477,7 @@ export class NastyTavern {
         if (id === 'commandPalette') return this.palette.toggle();
         if (id === 'health') return this.healthPanel.open();
         if (id === 'focusMode') return this.handleUiAction('focus');
+        if (id === 'chatAppearance') return this.chatAppearance.open();
         if (id === 'timeline') return this.openTool('timeline');
         if (id === 'contextInspector') return this.openTool('context');
         if (id === 'worldInfoInspector') return this.openTool('worldInfo');
@@ -1353,6 +1539,7 @@ export class NastyTavern {
     }
 
     handleUiAction(action) {
+        if (action === 'chat-appearance') return this.chatAppearance.open();
         if (action === 'restore-nav') {
             this.settings.navHidden = false;
             this.settings.compactNav = false;
@@ -1594,6 +1781,17 @@ export class NastyTavern {
         ]);
     }
 
+    syncChatAppearance() {
+        const identity = this.chatAppearance?.sync?.() || null;
+        this.shell?.setChatAppearanceContext?.({
+            available: !!identity,
+            characterName: identity?.name || '',
+            shortcut: this.settings.shortcuts?.chatAppearance || '',
+            overridden: this.chatAppearance?.hasCardOverrides?.(identity) || false,
+        });
+        return identity;
+    }
+
     updateStatus() {
         const connectionState = this.dom.getConnectionState();
         const character = this.dom.getCharacterName();
@@ -1617,6 +1815,7 @@ export class NastyTavern {
         this.syncCharacterLibraryIntegration();
         this.ensureCommunityShareButtons();
         this.syncChatCharacterContext();
+        this.syncChatAppearance();
         void this.syncMobileModelLabels();
         localizeOwnedUI();
     }
@@ -4810,6 +5009,30 @@ export class NastyTavern {
         toolbar.className = 'nt-character-create-actions';
         if (isEdit) toolbar.classList.add('is-edit-actions');
         const moved = [];
+        const detachedFormControls = [];
+
+        const preserveDetachedFormOwner = node => {
+            if (!useDetachedActionSlot || !form.id || !(node instanceof HTMLElement)) return;
+
+            const submitControls = [];
+            if (node.matches('button[type="submit"], input[type="submit"], input[type="image"]')) {
+                submitControls.push(node);
+            }
+            submitControls.push(...node.querySelectorAll('button[type="submit"], input[type="submit"], input[type="image"]'));
+
+            for (const control of submitControls) {
+                if (!(control instanceof HTMLButtonElement) && !(control instanceof HTMLInputElement)) continue;
+                detachedFormControls.push({
+                    control,
+                    hadFormAttribute: control.hasAttribute('form'),
+                    formAttribute: control.getAttribute('form'),
+                });
+                // HTML submit controls stop owning their form when Moonlit compatibility
+                // moves the action toolbar outside #form_create. The standard `form`
+                // attribute preserves native SillyTavern submission without proxy clicks.
+                control.setAttribute('form', form.id);
+            }
+        };
 
         const moveAction = node => {
             if (!(node instanceof HTMLElement)) return;
@@ -4819,6 +5042,7 @@ export class NastyTavern {
                 nextSibling: node.nextSibling,
                 hadNastyActionClass: node.classList.contains('nt-character-create-action-item'),
             });
+            preserveDetachedFormOwner(node);
             node.classList.add('nt-character-create-action-item');
             toolbar.append(node);
         };
@@ -4936,6 +5160,7 @@ export class NastyTavern {
             moved,
             actionSlot,
             useDetachedActionSlot,
+            detachedFormControls,
             tokenSummary,
             tokenSummaryPlaceholder,
             tokenSummaryHadClass,
@@ -4955,6 +5180,7 @@ export class NastyTavern {
             moved,
             actionSlot,
             useDetachedActionSlot,
+            detachedFormControls,
             tokenSummary,
             tokenSummaryPlaceholder,
             tokenSummaryHadClass,
@@ -4979,6 +5205,13 @@ export class NastyTavern {
             if (nextSibling?.parentNode === parent) parent.insertBefore(node, nextSibling);
             else parent.append(node);
             if (!hadNastyActionClass) node.classList.remove('nt-character-create-action-item');
+        }
+
+        for (const item of detachedFormControls || []) {
+            const { control, hadFormAttribute, formAttribute } = item;
+            if (!control) continue;
+            if (hadFormAttribute) control.setAttribute('form', formAttribute ?? '');
+            else control.removeAttribute('form');
         }
 
         source?.classList.remove('nt-character-create-native-actions');
@@ -5942,7 +6175,13 @@ export class NastyTavern {
 
     setView(id, subtitle) {
         this.currentView = id;
+        if (id === 'lorebooks') requestAnimationFrame(() => this.scheduleWorldInfoGalleryViewportRefresh());
+        else {
+            for (const timer of this.worldInfoGalleryRefreshTimers || []) clearTimeout(timer);
+            this.worldInfoGalleryRefreshTimers = [];
+        }
         this.shell.setActive(id, subtitle);
+        this.syncChatAppearance();
         const connectionState = this.dom.getConnectionState();
         this.homeDashboard?.sync({
             view: id,
@@ -6092,6 +6331,15 @@ export class NastyTavern {
             keywords: 'focus minimal clean distraction free hide interface',
             shortcut: this.settings.shortcuts?.focusMode || '',
             run: () => this.handleUiAction('focus'),
+        });
+
+        actions.splice(2, 0, {
+            label: t('Chat appearance'),
+            icon: icons.sliders || icons.settings,
+            hint: t('Customize the current Character Card chat presentation'),
+            keywords: 'chat appearance avatar name font size spacing character card',
+            shortcut: this.settings.shortcuts?.chatAppearance || '',
+            run: () => this.chatAppearance.open(),
         });
 
         actions.splice(2, 0, {

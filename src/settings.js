@@ -20,6 +20,84 @@ export const defaults = Object.freeze({
     // Optional NanoGPT metadata restored in the native mobile model picker.
     mobileNanoPriceInfo: false,
     mobileNanoSubscriptionInfo: false,
+    // Global chat presentation defaults. Null keeps the active theme's value.
+    chatAppearance: {
+        characterAvatarVisible: null,
+        characterAvatarFormat: null,
+        characterAvatarPosition: null,
+        characterAvatarBorder: null,
+        characterAvatarSize: null,
+        characterAvatarOpacity: null,
+        characterAvatarMediaWidth: null,
+        characterAvatarMediaHeight: null,
+        characterAvatarFocalX: null,
+        characterAvatarFocalY: null,
+        characterAvatarFadeStrength: null,
+        characterAvatarTone: null,
+        characterNameVisible: null,
+        characterNameFontSize: null,
+        characterNameWeight: null,
+        characterNameColor: null,
+        characterMessageTextFontSize: null,
+        characterMessageLineHeight: null,
+        characterMessageMaxWidth: null,
+        characterMessageAlign: null,
+        characterMessagePaddingX: null,
+        characterMessagePaddingY: null,
+        characterMessageSpacing: null,
+        characterMessageRadius: null,
+        characterMessageBackgroundColor: null,
+        characterMessageBorderColor: null,
+        characterParagraphSpacingTop: null,
+        characterParagraphSpacingBottom: null,
+        characterQuoteStyle: null,
+        characterQuoteColor: null,
+        characterCodeFontSize: null,
+        characterMediaMaxWidth: null,
+        userAvatarVisible: null,
+        userAvatarFormat: null,
+        userAvatarPosition: null,
+        userAvatarBorder: null,
+        userAvatarSize: null,
+        userAvatarOpacity: null,
+        userAvatarMediaWidth: null,
+        userAvatarMediaHeight: null,
+        userAvatarFocalX: null,
+        userAvatarFocalY: null,
+        userAvatarFadeStrength: null,
+        userAvatarTone: null,
+        userNameVisible: null,
+        userNameFontSize: null,
+        userNameWeight: null,
+        userNameColor: null,
+        userMessageTextFontSize: null,
+        userMessageLineHeight: null,
+        userMessageMaxWidth: null,
+        userMessageAlign: null,
+        userMessagePaddingX: null,
+        userMessagePaddingY: null,
+        userMessageSpacing: null,
+        userMessageRadius: null,
+        userMessageBackgroundColor: null,
+        userMessageBorderColor: null,
+        userParagraphSpacingTop: null,
+        userParagraphSpacingBottom: null,
+        userQuoteStyle: null,
+        userQuoteColor: null,
+        userCodeFontSize: null,
+        userMediaMaxWidth: null,
+    },
+    // Per-character overrides keyed by stable Character Card avatar identity.
+    characterChatAppearance: {},
+    // Reusable Chat Appearance presets. Presets are shared between global and
+    // per-card workspaces; each workspace only stores which preset is currently
+    // selected for autosave.
+    chatAppearancePresets: {},
+    chatAppearancePresetSelection: {
+        global: '',
+        cards: {},
+    },
+    chatAppearancePresetSeedVersion: 0,
     historyLimit: 50,
     lorebookStudio: {
         sort: 'az',
@@ -37,7 +115,7 @@ export const defaults = Object.freeze({
         calendar: true,
         community: true,
     },
-    shortcutDefaultsVersion: 3,
+    shortcutDefaultsVersion: 4,
     shortcuts: {
         commandPalette: 'Ctrl+Alt+K',
         timeline: 'Ctrl+Alt+T',
@@ -50,6 +128,7 @@ export const defaults = Object.freeze({
         communityPresence: 'Ctrl+Alt+O',
         health: 'Ctrl+Alt+H',
         focusMode: 'Ctrl+Alt+F',
+        chatAppearance: 'Ctrl+Alt+A',
         nativeChat: '',
         nativeCharacters: '',
         nativePersonas: '',
@@ -70,6 +149,15 @@ export function getSettings() {
     if (!context?.extensionSettings) {
         const local = JSON.parse(localStorage.getItem('modern_tavern_ui_fallback') || '{}');
         const settings = Object.assign({}, defaults, local);
+        settings.chatAppearance = Object.assign({}, defaults.chatAppearance, local.chatAppearance && typeof local.chatAppearance === 'object' ? local.chatAppearance : {});
+        settings.characterChatAppearance = local.characterChatAppearance && typeof local.characterChatAppearance === 'object' && !Array.isArray(local.characterChatAppearance) ? local.characterChatAppearance : {};
+        settings.chatAppearancePresets = local.chatAppearancePresets && typeof local.chatAppearancePresets === 'object' && !Array.isArray(local.chatAppearancePresets) ? local.chatAppearancePresets : {};
+        settings.chatAppearancePresetSelection = local.chatAppearancePresetSelection && typeof local.chatAppearancePresetSelection === 'object' && !Array.isArray(local.chatAppearancePresetSelection)
+            ? { global: String(local.chatAppearancePresetSelection.global || ''), cards: local.chatAppearancePresetSelection.cards && typeof local.chatAppearancePresetSelection.cards === 'object' && !Array.isArray(local.chatAppearancePresetSelection.cards) ? local.chatAppearancePresetSelection.cards : {} }
+            : structuredClone(defaults.chatAppearancePresetSelection);
+        settings.chatAppearancePresetSeedVersion = Number.isFinite(Number(local.chatAppearancePresetSeedVersion)) ? Number(local.chatAppearancePresetSeedVersion) : 0;
+        settings.modules = Object.assign({}, defaults.modules, local.modules && typeof local.modules === 'object' ? local.modules : {});
+        settings.shortcuts = Object.assign({}, defaults.shortcuts, local.shortcuts && typeof local.shortcuts === 'object' ? local.shortcuts : {});
         delete settings.community;
         if (settings.navHidden) {
             settings.navHidden = false;
@@ -87,6 +175,16 @@ export function getSettings() {
     for (const [key, value] of Object.entries(defaults)) {
         if (!Object.hasOwn(settings, key)) settings[key] = structuredClone(value);
     }
+    if (!settings.chatAppearance || typeof settings.chatAppearance !== 'object' || Array.isArray(settings.chatAppearance)) settings.chatAppearance = structuredClone(defaults.chatAppearance);
+    for (const [key, value] of Object.entries(defaults.chatAppearance)) {
+        if (!Object.hasOwn(settings.chatAppearance, key)) settings.chatAppearance[key] = value;
+    }
+    if (!settings.characterChatAppearance || typeof settings.characterChatAppearance !== 'object' || Array.isArray(settings.characterChatAppearance)) settings.characterChatAppearance = {};
+    if (!settings.chatAppearancePresets || typeof settings.chatAppearancePresets !== 'object' || Array.isArray(settings.chatAppearancePresets)) settings.chatAppearancePresets = {};
+    if (!settings.chatAppearancePresetSelection || typeof settings.chatAppearancePresetSelection !== 'object' || Array.isArray(settings.chatAppearancePresetSelection)) settings.chatAppearancePresetSelection = structuredClone(defaults.chatAppearancePresetSelection);
+    settings.chatAppearancePresetSelection.global = String(settings.chatAppearancePresetSelection.global || '');
+    if (!settings.chatAppearancePresetSelection.cards || typeof settings.chatAppearancePresetSelection.cards !== 'object' || Array.isArray(settings.chatAppearancePresetSelection.cards)) settings.chatAppearancePresetSelection.cards = {};
+    if (!Number.isFinite(Number(settings.chatAppearancePresetSeedVersion))) settings.chatAppearancePresetSeedVersion = 0;
     if (!settings.lorebookStudio || typeof settings.lorebookStudio !== 'object') settings.lorebookStudio = structuredClone(defaults.lorebookStudio);
     for (const [key, value] of Object.entries(defaults.lorebookStudio)) {
         if (!Object.hasOwn(settings.lorebookStudio, key)) settings.lorebookStudio[key] = structuredClone(value);
@@ -110,6 +208,11 @@ export function getSettings() {
     if ((settings.shortcutDefaultsVersion || 0) < 3) {
         if (!Object.hasOwn(settings.shortcuts, 'communityPresence')) settings.shortcuts.communityPresence = defaults.shortcuts.communityPresence;
         settings.shortcutDefaultsVersion = 3;
+        context.saveSettingsDebounced?.();
+    }
+    if ((settings.shortcutDefaultsVersion || 0) < 4) {
+        if (!Object.hasOwn(settings.shortcuts, 'chatAppearance')) settings.shortcuts.chatAppearance = defaults.shortcuts.chatAppearance;
+        settings.shortcutDefaultsVersion = 4;
         context.saveSettingsDebounced?.();
     }
     if (Object.hasOwn(settings, 'chatBarMinimized') || Object.hasOwn(settings, 'extensionsBarMinimized')) {

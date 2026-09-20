@@ -22521,7 +22521,7 @@ body.mt-enabled .nt-modal-root > .nt-modal-backdrop {
 }
 
 body.mt-enabled .nt-modal-root.is-open > .nt-modal-backdrop {
-  opacity: 1;
+  opacity: var(--nt-modal-backdrop-opacity, 1);
 }
 
 body.mt-enabled .nt-modal-root > .nt-modal-shell {
@@ -22553,7 +22553,7 @@ body.mt-enabled .nt-modal-root > .nt-modal-shell {
 }
 
 body.mt-enabled .nt-modal-root.is-open > .nt-modal-shell {
-  opacity: 1;
+  opacity: var(--nt-modal-window-opacity, 1);
   transform: none;
 }
 
@@ -22651,6 +22651,56 @@ body.mt-enabled .nt-modal-header button {
   min-height: 34px;
 }
 
+
+body.mt-enabled .nt-modal-opacity-control {
+  width: 156px;
+  min-width: 0;
+  height: 34px;
+  display: grid;
+  grid-template-columns: 18px minmax(52px, 1fr) 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border: 1px solid var(--mt-border);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .018);
+  color: var(--mt-text-3);
+  box-sizing: border-box;
+}
+
+body.mt-enabled .nt-modal-opacity-control:focus-within {
+  border-color: color-mix(in srgb, var(--mt-accent) 58%, var(--mt-border-strong));
+}
+
+body.mt-enabled .nt-modal-opacity-icon {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+}
+
+body.mt-enabled .nt-modal-opacity-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+body.mt-enabled .nt-modal-opacity-control input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--mt-accent);
+  cursor: pointer;
+}
+
+body.mt-enabled .nt-modal-opacity-control output {
+  min-width: 0;
+  color: var(--mt-text-2);
+  font-size: var(--nt-font-meta, 14px);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
 body.mt-enabled .nt-modal-body {
   min-width: 0;
   min-height: 0;
@@ -22715,6 +22765,22 @@ body.mt-enabled.mt-appbar-minimized .nt-modal-root {
   body.mt-enabled .nt-modal-header small,
   body.mt-enabled .nt-modal-heading-copy > small {
     display: none;
+  }
+
+
+  body.mt-enabled .nt-modal-opacity-control {
+    width: 92px;
+    grid-template-columns: minmax(48px, 1fr) 34px;
+    gap: 5px;
+    padding-inline: 7px;
+  }
+
+  body.mt-enabled .nt-modal-opacity-icon {
+    display: none;
+  }
+
+  body.mt-enabled .nt-modal-opacity-control output {
+    font-size: 12px;
   }
 }
 
@@ -29085,3 +29151,2299 @@ body.mt-enabled #nt-lorebook-workspace :is(
   }
 }
 
+
+/* =========================================================
+   Character-scoped chat appearance
+   Global defaults live in NT Settings; per-card overrides are
+   applied only when explicitly configured so native/theme styles
+   remain untouched in Theme default / Inherit mode.
+   ========================================================= */
+body.mt-enabled [data-mt-chat-appearance][hidden] {
+  display: none !important;
+}
+
+body.mt-enabled #nt-chat-appearance-modal > .nt-modal-shell {
+  --nt-modal-shell-height: auto;
+}
+
+body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-heading {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-group {
+  flex: 0 0 auto;
+}
+
+body.mt-enabled .nt-chat-appearance-group > summary {
+  list-style: none;
+  min-height: 38px;
+  margin: 0;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta);
+  font-weight: var(--nt-weight-label);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+}
+
+body.mt-enabled .nt-chat-appearance-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+body.mt-enabled .nt-chat-appearance-group > summary::marker {
+  content: '';
+}
+
+body.mt-enabled .nt-chat-appearance-group > summary::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+body.mt-enabled .nt-chat-appearance-group[open] > summary {
+  border-bottom: 1px solid var(--mt-border);
+  color: var(--mt-text-2);
+}
+
+body.mt-enabled .nt-chat-appearance-group[open] > summary::after {
+  transform: rotate(45deg);
+}
+
+body.mt-enabled .nt-chat-appearance-group > summary:hover {
+  color: var(--mt-text-2);
+  background: color-mix(in srgb, var(--mt-accent) 6%, transparent);
+}
+
+body.mt-enabled .nt-chat-appearance-group > summary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mt-accent) 54%, transparent);
+  outline-offset: -2px;
+}
+
+body.mt-enabled .nt-chat-appearance-group-body {
+  min-width: 0;
+}
+
+body.mt-enabled #nt-chat-appearance-modal .nt-pref-action-button {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mt-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mt-surface-2) 92%, var(--mt-text) 8%);
+  color: var(--mt-text-2);
+  box-shadow: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--nt-font-button);
+  font-weight: var(--nt-weight-button);
+  line-height: 1;
+  text-shadow: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+body.mt-enabled #nt-chat-appearance-modal .nt-pref-action-button:hover {
+  border-color: color-mix(in srgb, var(--mt-accent) 30%, var(--mt-border-strong));
+  background: color-mix(in srgb, var(--mt-accent) 9%, var(--mt-surface-2));
+  color: var(--mt-text);
+}
+
+body.mt-enabled #nt-chat-appearance-modal .nt-pref-action-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mt-accent) 54%, transparent);
+  outline-offset: 2px;
+}
+
+.nt-chat-appearance-settings,
+.nt-chat-appearance-body {
+  min-width: 0;
+}
+
+.nt-chat-appearance-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nt-chat-appearance-number-control {
+  min-width: min(360px, 44vw);
+  display: grid;
+  grid-template-columns: minmax(110px, auto) minmax(120px, 1fr) 58px;
+  align-items: center;
+  gap: 8px;
+}
+
+.nt-chat-appearance-number-control input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  accent-color: var(--mt-accent);
+}
+
+.nt-chat-appearance-number-control output {
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Explicit user choices intentionally win over third-party theme message styling.
+   No rule below is active while the effective value is Theme default / Inherit. */
+body.mt-enabled.nt-chat-character-avatar-hide #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper {
+  display: none !important;
+}
+
+body.mt-enabled.nt-chat-character-avatar-show #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper {
+  display: flex !important;
+}
+
+body.mt-enabled.nt-chat-user-avatar-hide #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  display: none !important;
+}
+
+body.mt-enabled.nt-chat-user-avatar-show #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  display: flex !important;
+}
+
+/* NastyTavern avatar presentation. Theme default / Inherit leaves the
+   active SillyTavern or third-party theme untouched. Standard keeps a normal
+   avatar; the other modes integrate the existing native avatar into the
+   message layout without cloning the image or replacing SillyTavern handlers. */
+body.mt-enabled.nt-chat-character-avatar-format-standard #chat .mes[is_user="false"]:not(.smallSysMes) .avatar,
+body.mt-enabled.nt-chat-character-avatar-format-standard #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-format-standard #chat .mes[is_user="true"]:not(.smallSysMes) .avatar,
+body.mt-enabled.nt-chat-user-avatar-format-standard #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img {
+  border-radius: var(--mt-radius, 10px) !important;
+  clip-path: none !important;
+  overflow: hidden;
+}
+
+/* Left/right placement remains independent for user and character messages. */
+body.mt-enabled.nt-chat-character-avatar-position-left #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  order: 0;
+  margin-left: 0 !important;
+  margin-right: 10px !important;
+}
+
+body.mt-enabled.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-position-right #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  order: 2;
+  margin-left: 10px !important;
+  margin-right: 0 !important;
+}
+
+body.mt-enabled.nt-chat-character-avatar-position-left #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled.nt-chat-user-avatar-position-right #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block {
+  order: 1;
+  min-width: 0;
+}
+
+/* Nasty Veil: a capped side illustration with a soft inward/bottom fade.
+   Its media box is intentionally independent from message height so long
+   messages never stretch the portrait. Character defaults left and user
+   defaults right; explicit avatar position settings override those defaults. */
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"]:not(.smallSysMes),
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"]:not(.smallSysMes) {
+  --nt-chat-avatar-veil-width: clamp(150px, 25%, 360px);
+  --nt-chat-avatar-veil-height: clamp(220px, 30dvh, 300px);
+  --nt-chat-avatar-veil-safe: calc(var(--nt-chat-avatar-veil-width) + 14px);
+  /* SillyTavern chat is a vertical flex scroller. Embedded-avatar messages
+     must retain their intrinsic content height; the chat should scroll rather
+     than shrink long message cards and let their text overlap neighbors. */
+  flex: 0 0 auto;
+  position: relative;
+  isolation: isolate;
+  min-height: var(--nt-chat-avatar-veil-height);
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  position: absolute !important;
+  top: 0;
+  bottom: auto;
+  width: var(--nt-chat-avatar-veil-width) !important;
+  min-width: 0 !important;
+  height: var(--nt-chat-avatar-veil-height) !important;
+  min-height: 0 !important;
+  max-height: var(--nt-chat-avatar-veil-height) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 2;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  left: 0;
+  right: auto;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper {
+  right: 0;
+  left: auto;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil.nt-chat-character-avatar-position-left #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper {
+  left: 0;
+  right: auto;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil.nt-chat-user-avatar-position-right #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  right: 0;
+  left: auto;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img {
+  width: 100% !important;
+  min-width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  clip-path: none !important;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar {
+  display: block;
+  overflow: hidden;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img {
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  opacity: .92;
+}
+
+/* Veil fades only toward the content edge. A one-axis mask avoids the
+   bottom-corner artifact produced by the former radial mask. */
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil:not(.nt-chat-character-avatar-position-right) #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img {
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 66%, rgba(0,0,0,.74) 82%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 0%, #000 66%, rgba(0,0,0,.74) 82%, transparent 100%);
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil:not(.nt-chat-user-avatar-position-left) #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img {
+  -webkit-mask-image: linear-gradient(to left, #000 0%, #000 66%, rgba(0,0,0,.74) 82%, transparent 100%);
+  mask-image: linear-gradient(to left, #000 0%, #000 66%, rgba(0,0,0,.74) 82%, transparent 100%);
+}
+
+/* Side-media layout contract: clear both sides first, then reserve only the
+   side actually occupied by the portrait. This prevents stale opposite-side
+   spacing when a user flips Character/User avatar placement. */
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil:not(.nt-chat-character-avatar-position-right) #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block {
+  padding-left: var(--nt-chat-avatar-veil-safe) !important;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil:not(.nt-chat-user-avatar-position-left) #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block {
+  padding-right: var(--nt-chat-avatar-veil-safe) !important;
+}
+
+/* Nasty Banner: a wide crop at the top of the message that fades down into
+   the content. Left/right controls the focal side of the crop. */
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"]:not(.smallSysMes),
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"]:not(.smallSysMes) {
+  --nt-chat-avatar-banner-height: clamp(104px, calc(var(--nt-chat-avatar-size, 50px) * 2.45), 172px);
+  --nt-chat-avatar-banner-safe: clamp(72px, calc(var(--nt-chat-avatar-size, 50px) * 1.55), 108px);
+  /* SillyTavern chat is a vertical flex scroller. Embedded-avatar messages
+     must retain their intrinsic content height; the chat should scroll rather
+     than shrink long message cards and let their text overlap neighbors. */
+  flex: 0 0 auto;
+  position: relative;
+  isolation: isolate;
+  min-height: clamp(142px, calc(var(--nt-chat-avatar-size, 50px) * 2.8), 210px);
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: var(--nt-chat-avatar-banner-height) !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 2;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img {
+  width: 100% !important;
+  min-width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  clip-path: none !important;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar {
+  display: block;
+  overflow: hidden;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img {
+  display: block;
+  object-fit: cover;
+  object-position: center 34%;
+  opacity: .88;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 40%, rgba(0,0,0,.72) 62%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 40%, rgba(0,0,0,.72) 62%, transparent 100%);
+}
+
+body.mt-enabled.nt-chat-character-avatar-format-banner.nt-chat-character-avatar-position-left #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img,
+body.mt-enabled.nt-chat-user-avatar-format-banner.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img {
+  object-position: left 34%;
+}
+
+body.mt-enabled.nt-chat-character-avatar-format-banner.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img,
+body.mt-enabled.nt-chat-user-avatar-format-banner.nt-chat-user-avatar-position-right #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img {
+  object-position: right 34%;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block {
+  padding-top: var(--nt-chat-avatar-banner-safe) !important;
+}
+
+/* Nasty Edge: a narrow capped portrait rail. It keeps the avatar clickable
+   and uses a hard side boundary while fading out vertically before the media
+   box ends, rather than stretching across the complete message height. */
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes),
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) {
+  --nt-chat-avatar-edge-width: clamp(74px, calc(var(--nt-chat-avatar-size, 50px) * 1.75), 118px);
+  --nt-chat-avatar-edge-height: clamp(190px, 27dvh, 270px);
+  --nt-chat-avatar-edge-safe: calc(var(--nt-chat-avatar-edge-width) + 12px);
+  /* SillyTavern chat is a vertical flex scroller. Embedded-avatar messages
+     must retain their intrinsic content height; the chat should scroll rather
+     than shrink long message cards and let their text overlap neighbors. */
+  flex: 0 0 auto;
+  position: relative;
+  isolation: isolate;
+  min-height: var(--nt-chat-avatar-edge-height);
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  position: absolute !important;
+  top: 0;
+  bottom: auto;
+  width: var(--nt-chat-avatar-edge-width) !important;
+  min-width: 0 !important;
+  height: var(--nt-chat-avatar-edge-height) !important;
+  min-height: 0 !important;
+  max-height: var(--nt-chat-avatar-edge-height) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 2;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  left: 0;
+  right: auto;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper {
+  right: 0;
+  left: auto;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge.nt-chat-character-avatar-position-left #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper {
+  left: 0;
+  right: auto;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge.nt-chat-user-avatar-position-right #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  right: 0;
+  left: auto;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img {
+  width: 100% !important;
+  min-width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  clip-path: none !important;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar {
+  display: block;
+  overflow: hidden;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar img {
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  opacity: .94;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 80%, rgba(0,0,0,.72) 90%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 80%, rgba(0,0,0,.72) 90%, transparent 100%);
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge:not(.nt-chat-character-avatar-position-right) #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block {
+  padding-left: var(--nt-chat-avatar-edge-safe) !important;
+}
+
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge:not(.nt-chat-user-avatar-position-left) #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block {
+  padding-right: var(--nt-chat-avatar-edge-safe) !important;
+}
+
+body.mt-enabled.nt-chat-character-name-hide #chat .mes[is_user="false"]:not(.smallSysMes) .name_text {
+  display: none !important;
+}
+
+body.mt-enabled.nt-chat-character-name-show #chat .mes[is_user="false"]:not(.smallSysMes) .name_text {
+  display: inline !important;
+}
+
+body.mt-enabled.nt-chat-user-name-hide #chat .mes[is_user="true"]:not(.smallSysMes) .name_text {
+  display: none !important;
+}
+
+body.mt-enabled.nt-chat-user-name-show #chat .mes[is_user="true"]:not(.smallSysMes) .name_text {
+  display: inline !important;
+}
+
+body.mt-enabled.nt-chat-character-name-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text {
+  font-size: var(--nt-chat-character-name-font-size) !important;
+}
+
+body.mt-enabled.nt-chat-user-name-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text {
+  font-size: var(--nt-chat-user-name-font-size) !important;
+}
+
+@media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px) {
+  .nt-chat-appearance-number-control {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) 58px;
+  }
+
+  .nt-chat-appearance-number-control select {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  body.mt-enabled.nt-chat-character-avatar-position-right #chat .mes[is_user="false"].nt-mobile-message-structured:not(.smallSysMes),
+  body.mt-enabled.nt-chat-user-avatar-position-right #chat .mes[is_user="true"].nt-mobile-message-structured:not(.smallSysMes) {
+    grid-template-columns: minmax(0, 1fr) max-content;
+  }
+
+  body.mt-enabled.nt-chat-character-avatar-position-right #chat .mes[is_user="false"].nt-mobile-message-structured:not(.smallSysMes) > .mesAvatarWrapper,
+  body.mt-enabled.nt-chat-user-avatar-position-right #chat .mes[is_user="true"].nt-mobile-message-structured:not(.smallSysMes) > .mesAvatarWrapper {
+    grid-column: 2;
+    margin: 0 !important;
+  }
+
+  body.mt-enabled.nt-chat-character-avatar-position-right #chat .mes[is_user="false"].nt-mobile-message-structured > .nt-mobile-message-header,
+  body.mt-enabled.nt-chat-user-avatar-position-right #chat .mes[is_user="true"].nt-mobile-message-structured > .nt-mobile-message-header {
+    grid-column: 1;
+  }
+
+  body.mt-enabled.nt-chat-character-avatar-position-left #chat .mes[is_user="false"].nt-mobile-message-structured:not(.smallSysMes) > .mesAvatarWrapper,
+  body.mt-enabled.nt-chat-user-avatar-position-left #chat .mes[is_user="true"].nt-mobile-message-structured:not(.smallSysMes) > .mesAvatarWrapper {
+    margin: 0 !important;
+  }
+
+  body.mt-enabled.nt-chat-character-avatar-hide #chat .mes[is_user="false"].nt-mobile-message-structured:not(.smallSysMes),
+  body.mt-enabled.nt-chat-user-avatar-hide #chat .mes[is_user="true"].nt-mobile-message-structured:not(.smallSysMes) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.mt-enabled.nt-chat-character-avatar-hide #chat .mes[is_user="false"].nt-mobile-message-structured > .nt-mobile-message-header,
+  body.mt-enabled.nt-chat-user-avatar-hide #chat .mes[is_user="true"].nt-mobile-message-structured > .nt-mobile-message-header {
+    grid-column: 1;
+  }
+}
+
+body.mt-enabled .mt-chat-appearance-button.is-active {
+  border-color: color-mix(in srgb, var(--mt-accent) 42%, var(--mt-border-strong));
+  background: color-mix(in srgb, var(--mt-accent) 11%, rgba(255,255,255,.022));
+  color: var(--mt-accent);
+}
+
+/* Chat Appearance embedded-avatar responsive layout. Keep NastyTavern's
+   structured mobile message model: the decorative portrait is absolute while
+   metadata and content stay in normal flow with explicit safe space. */
+@media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px) {
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"].nt-mobile-message-structured:not(.smallSysMes),
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"].nt-mobile-message-structured:not(.smallSysMes),
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"].nt-mobile-message-structured:not(.smallSysMes),
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"].nt-mobile-message-structured:not(.smallSysMes),
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"].nt-mobile-message-structured:not(.smallSysMes),
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"].nt-mobile-message-structured:not(.smallSysMes) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    column-gap: 0;
+  }
+
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"].nt-mobile-message-structured:not(.smallSysMes),
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"].nt-mobile-message-structured:not(.smallSysMes) {
+    --nt-chat-avatar-veil-width: clamp(112px, 30%, 230px);
+    --nt-chat-avatar-veil-height: clamp(176px, 34dvh, 250px);
+    --nt-chat-avatar-veil-safe: calc(var(--nt-chat-avatar-veil-width) + 10px);
+    min-height: var(--nt-chat-avatar-veil-height);
+  }
+
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"].nt-mobile-message-structured:not(.smallSysMes),
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"].nt-mobile-message-structured:not(.smallSysMes) {
+    --nt-chat-avatar-edge-width: clamp(62px, calc(var(--nt-chat-avatar-size, 50px) * 1.45), 88px);
+    --nt-chat-avatar-edge-height: clamp(156px, 30dvh, 220px);
+    --nt-chat-avatar-edge-safe: calc(var(--nt-chat-avatar-edge-width) + 10px);
+    min-height: var(--nt-chat-avatar-edge-height);
+  }
+
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"].nt-mobile-message-structured:not(.smallSysMes),
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"].nt-mobile-message-structured:not(.smallSysMes) {
+    --nt-chat-avatar-banner-height: clamp(84px, calc(var(--nt-chat-avatar-size, 50px) * 1.95), 132px);
+    --nt-chat-avatar-banner-safe: clamp(58px, calc(var(--nt-chat-avatar-size, 50px) * 1.25), 82px);
+    min-height: clamp(126px, calc(var(--nt-chat-avatar-size, 50px) * 2.45), 178px);
+  }
+
+  /* The mobile header is a sibling of .mes_block, so it needs the same
+     single-side reservation contract as the message content. */
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"].nt-mobile-message-structured > .nt-mobile-message-header,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"].nt-mobile-message-structured > .nt-mobile-message-header,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"].nt-mobile-message-structured > .nt-mobile-message-header,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"].nt-mobile-message-structured > .nt-mobile-message-header {
+    grid-column: 1 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil:not(.nt-chat-character-avatar-position-right) #chat .mes[is_user="false"].nt-mobile-message-structured > .nt-mobile-message-header,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil.nt-chat-user-avatar-position-left #chat .mes[is_user="true"].nt-mobile-message-structured > .nt-mobile-message-header {
+    padding-left: var(--nt-chat-avatar-veil-safe) !important;
+  }
+
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil:not(.nt-chat-user-avatar-position-left) #chat .mes[is_user="true"].nt-mobile-message-structured > .nt-mobile-message-header,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil.nt-chat-character-avatar-position-right #chat .mes[is_user="false"].nt-mobile-message-structured > .nt-mobile-message-header {
+    padding-right: var(--nt-chat-avatar-veil-safe) !important;
+  }
+
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge:not(.nt-chat-character-avatar-position-right) #chat .mes[is_user="false"].nt-mobile-message-structured > .nt-mobile-message-header,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge.nt-chat-user-avatar-position-left #chat .mes[is_user="true"].nt-mobile-message-structured > .nt-mobile-message-header {
+    padding-left: var(--nt-chat-avatar-edge-safe) !important;
+  }
+
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge:not(.nt-chat-user-avatar-position-left) #chat .mes[is_user="true"].nt-mobile-message-structured > .nt-mobile-message-header,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge.nt-chat-character-avatar-position-right #chat .mes[is_user="false"].nt-mobile-message-structured > .nt-mobile-message-header {
+    padding-right: var(--nt-chat-avatar-edge-safe) !important;
+  }
+
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-veil #chat .mes[is_user="false"].nt-mobile-message-structured > .mes_block,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-veil #chat .mes[is_user="true"].nt-mobile-message-structured > .mes_block,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-edge #chat .mes[is_user="false"].nt-mobile-message-structured > .mes_block,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-edge #chat .mes[is_user="true"].nt-mobile-message-structured > .mes_block,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"].nt-mobile-message-structured > .mes_block,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"].nt-mobile-message-structured > .mes_block {
+    grid-column: 1 !important;
+  }
+
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"].nt-mobile-message-structured > .nt-mobile-message-header,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"].nt-mobile-message-structured > .nt-mobile-message-header {
+    grid-column: 1 !important;
+    padding-top: var(--nt-chat-avatar-banner-safe) !important;
+  }
+
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-character-avatar-show):not(.nt-chat-character-avatar-hide).nt-chat-character-avatar-format-banner #chat .mes[is_user="false"].nt-mobile-message-structured > .mes_block,
+  body.mt-enabled:is(:not(.hideChatAvatars), .nt-chat-user-avatar-show):not(.nt-chat-user-avatar-hide).nt-chat-user-avatar-format-banner #chat .mes[is_user="true"].nt-mobile-message-structured > .mes_block {
+    padding-top: 0 !important;
+  }
+}
+
+/* =========================================================
+   Chat Appearance workspace v0.1.9 — role-first controls
+   ========================================================= */
+body.mt-enabled .nt-chat-appearance-workspace {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+body.mt-enabled .nt-chat-appearance-overview {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--mt-border);
+}
+
+body.mt-enabled .nt-chat-appearance-overview-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+body.mt-enabled .nt-chat-appearance-overview-copy > b {
+  min-width: 0;
+  color: var(--mt-text);
+  font-size: var(--nt-font-section-title);
+  font-weight: var(--nt-weight-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.mt-enabled .nt-chat-appearance-overview-copy > small {
+  color: var(--mt-text-3);
+  line-height: 1.4;
+}
+
+body.mt-enabled .nt-chat-appearance-overview-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+body.mt-enabled .nt-chat-appearance-count {
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta);
+  white-space: nowrap;
+}
+
+body.mt-enabled .nt-chat-appearance-preset-manager {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  border: 1px solid var(--mt-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mt-surface-1) 88%, var(--mt-surface-2));
+}
+
+body.mt-enabled .nt-chat-appearance-preset-select {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+body.mt-enabled .nt-chat-appearance-preset-select > span {
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta);
+  font-weight: var(--nt-weight-label);
+  white-space: nowrap;
+}
+
+body.mt-enabled .nt-chat-appearance-preset-select select {
+  min-width: 0;
+  min-height: 34px;
+  width: 100%;
+}
+
+body.mt-enabled .nt-chat-appearance-preset-status {
+  min-width: 0;
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.mt-enabled .nt-chat-appearance-preset-status.is-active {
+  color: color-mix(in srgb, var(--mt-accent) 68%, var(--mt-text));
+}
+
+body.mt-enabled .nt-chat-appearance-preset-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+body.mt-enabled .nt-chat-appearance-icon-button {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--mt-border);
+  border-radius: 6px;
+  background: var(--mt-surface-2);
+  color: var(--mt-text-2);
+  box-shadow: none;
+  cursor: pointer;
+}
+
+body.mt-enabled .nt-chat-appearance-icon-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+body.mt-enabled .nt-chat-appearance-icon-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--mt-accent) 35%, var(--mt-border));
+  color: var(--mt-text);
+  background: color-mix(in srgb, var(--mt-accent) 8%, var(--mt-surface-2));
+}
+
+body.mt-enabled .nt-chat-appearance-icon-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mt-accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+body.mt-enabled .nt-chat-appearance-icon-button:disabled {
+  opacity: .38;
+  cursor: default;
+}
+
+body.mt-enabled .nt-chat-appearance-icon-button.is-danger:hover:not(:disabled) {
+  color: var(--SmartThemeQuoteColor, #d66);
+  border-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #d66) 42%, var(--mt-border));
+  background: color-mix(in srgb, var(--SmartThemeQuoteColor, #d66) 8%, var(--mt-surface-2));
+}
+
+body.mt-enabled .nt-chat-appearance-color-control select,
+body.mt-enabled .nt-chat-appearance-number-control select {
+  min-height: 34px;
+}
+
+body.mt-enabled .nt-chat-appearance-role-tabs {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border-bottom: 1px solid var(--mt-border);
+}
+
+body.mt-enabled .nt-chat-appearance-role-tab {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 0;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--mt-text-3);
+  box-shadow: none;
+  font: inherit;
+  font-weight: var(--nt-weight-label);
+  cursor: pointer;
+}
+
+body.mt-enabled .nt-chat-appearance-role-tab:hover {
+  color: var(--mt-text-2);
+  background: color-mix(in srgb, var(--mt-accent) 5%, transparent);
+}
+
+body.mt-enabled .nt-chat-appearance-role-tab.is-active {
+  color: var(--mt-text);
+  border-bottom-color: var(--mt-accent);
+  background: color-mix(in srgb, var(--mt-accent) 7%, transparent);
+}
+
+body.mt-enabled .nt-chat-appearance-role-tab:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mt-accent) 54%, transparent);
+  outline-offset: -2px;
+}
+
+body.mt-enabled .nt-chat-appearance-role-count {
+  min-width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--mt-accent) 28%, var(--mt-border));
+  border-radius: 6px;
+  color: var(--mt-text-2);
+  font-size: var(--nt-font-meta);
+  line-height: 1;
+}
+
+body.mt-enabled .nt-chat-appearance-groups {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 10px;
+}
+
+body.mt-enabled .nt-chat-appearance-group {
+  min-width: 0;
+  flex: none;
+  margin: 0;
+  border: 1px solid var(--mt-border);
+  border-radius: 8px;
+  overflow: clip;
+  background: var(--mt-surface-1);
+}
+
+body.mt-enabled .nt-chat-appearance-group > summary {
+  min-height: 40px;
+  padding: 0 11px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+body.mt-enabled .nt-chat-appearance-group-summary > span:first-child {
+  color: inherit;
+  font-size: var(--nt-font-body);
+  font-weight: var(--nt-weight-label);
+}
+
+body.mt-enabled .nt-chat-appearance-group-meta {
+  margin-left: auto;
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta);
+  font-weight: var(--nt-weight-regular);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+body.mt-enabled .nt-chat-appearance-group > summary::after {
+  margin-left: 3px;
+}
+
+body.mt-enabled .nt-chat-appearance-group-body {
+  min-width: 0;
+  display: grid;
+}
+
+body.mt-enabled .nt-chat-appearance-group-body .nt-pref-setting-row {
+  min-width: 0;
+  gap: 12px;
+  padding: 10px 11px;
+}
+
+body.mt-enabled .nt-chat-appearance-group-body .nt-pref-setting-row > span:first-child {
+  min-width: 0;
+}
+
+body.mt-enabled .nt-chat-appearance-group-body .nt-pref-setting-row > span:first-child > small {
+  max-width: 52ch;
+}
+
+body.mt-enabled .nt-chat-appearance-number-control {
+  width: min(100%, 350px);
+  min-width: 260px;
+  grid-template-columns: minmax(92px, auto) minmax(90px, 1fr) 64px;
+}
+
+body.mt-enabled .nt-chat-appearance-color-row {
+  align-items: center;
+}
+
+body.mt-enabled .nt-chat-appearance-color-control {
+  width: min(100%, 350px);
+  min-width: 260px;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+body.mt-enabled .nt-chat-appearance-color-custom {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px minmax(138px, .85fr) minmax(150px, 1.15fr);
+  gap: 6px;
+  align-items: center;
+}
+
+body.mt-enabled .nt-chat-appearance-alpha-control {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(64px, 1fr) 52px auto;
+  gap: 5px;
+  align-items: center;
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta);
+}
+
+body.mt-enabled .nt-chat-appearance-alpha-control input[type="range"] {
+  min-width: 64px;
+  width: 100%;
+}
+
+body.mt-enabled .nt-chat-appearance-alpha-control input[type="number"] {
+  width: 52px;
+  min-width: 0;
+  height: 32px;
+  padding-inline: 6px;
+  text-align: right;
+}
+
+body.mt-enabled .nt-chat-appearance-color-custom:not(.is-active) {
+  opacity: .48;
+}
+
+body.mt-enabled .nt-chat-appearance-color-custom input[type="color"] {
+  width: 34px;
+  min-width: 34px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--mt-border);
+  border-radius: 6px;
+  background: var(--mt-surface-2);
+  cursor: pointer;
+}
+
+body.mt-enabled .nt-chat-appearance-color-custom input[type="text"] {
+  min-width: 0;
+  width: 100%;
+  height: 34px;
+  padding-inline: 9px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--nt-font-meta);
+}
+
+body.mt-enabled .nt-chat-appearance-color-custom input[type="text"].is-invalid {
+  border-color: var(--SmartThemeQuoteColor, #d66);
+  outline-color: var(--SmartThemeQuoteColor, #d66);
+}
+
+/* Role-specific explicit avatar controls. Theme/Inherit adds none of these classes. */
+body.mt-enabled.nt-chat-character-avatar-border-on #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img {
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--mt-accent) 38%, var(--mt-border-strong)) !important;
+}
+body.mt-enabled.nt-chat-user-avatar-border-on #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img {
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--mt-accent) 38%, var(--mt-border-strong)) !important;
+}
+body.mt-enabled.nt-chat-character-avatar-border-off #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-border-off #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img {
+  border: 0 !important;
+}
+
+body.mt-enabled.nt-chat-character-avatar-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) {
+  --nt-chat-avatar-size: var(--nt-chat-character-avatar-size);
+}
+body.mt-enabled.nt-chat-user-avatar-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) {
+  --nt-chat-avatar-size: var(--nt-chat-user-avatar-size);
+}
+
+body.mt-enabled.nt-chat-character-avatar-size-custom:not(.nt-chat-character-avatar-format-veil):not(.nt-chat-character-avatar-format-banner):not(.nt-chat-character-avatar-format-edge) #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-character-avatar-size-custom:not(.nt-chat-character-avatar-format-veil):not(.nt-chat-character-avatar-format-banner):not(.nt-chat-character-avatar-format-edge) #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar {
+  width: var(--nt-chat-character-avatar-size) !important;
+  min-width: var(--nt-chat-character-avatar-size) !important;
+  height: var(--nt-chat-character-avatar-size) !important;
+  min-height: var(--nt-chat-character-avatar-size) !important;
+}
+body.mt-enabled.nt-chat-user-avatar-size-custom:not(.nt-chat-user-avatar-format-veil):not(.nt-chat-user-avatar-format-banner):not(.nt-chat-user-avatar-format-edge) #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-size-custom:not(.nt-chat-user-avatar-format-veil):not(.nt-chat-user-avatar-format-banner):not(.nt-chat-user-avatar-format-edge) #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper > .avatar {
+  width: var(--nt-chat-user-avatar-size) !important;
+  min-width: var(--nt-chat-user-avatar-size) !important;
+  height: var(--nt-chat-user-avatar-size) !important;
+  min-height: var(--nt-chat-user-avatar-size) !important;
+}
+body.mt-enabled.nt-chat-character-avatar-size-custom:not(.nt-chat-character-avatar-format-veil):not(.nt-chat-character-avatar-format-banner):not(.nt-chat-character-avatar-format-edge) #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img {
+  width: var(--nt-chat-character-avatar-size) !important;
+  height: var(--nt-chat-character-avatar-size) !important;
+  object-fit: cover;
+}
+body.mt-enabled.nt-chat-user-avatar-size-custom:not(.nt-chat-user-avatar-format-veil):not(.nt-chat-user-avatar-format-banner):not(.nt-chat-user-avatar-format-edge) #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img {
+  width: var(--nt-chat-user-avatar-size) !important;
+  height: var(--nt-chat-user-avatar-size) !important;
+  object-fit: cover;
+}
+
+body.mt-enabled.nt-chat-character-avatar-media-width-custom.nt-chat-character-avatar-format-veil #chat .mes[is_user="false"]:not(.smallSysMes) { --nt-chat-avatar-veil-width: var(--nt-chat-character-avatar-media-width); }
+body.mt-enabled.nt-chat-user-avatar-media-width-custom.nt-chat-user-avatar-format-veil #chat .mes[is_user="true"]:not(.smallSysMes) { --nt-chat-avatar-veil-width: var(--nt-chat-user-avatar-media-width); }
+body.mt-enabled.nt-chat-character-avatar-media-width-custom.nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes) { --nt-chat-avatar-edge-width: var(--nt-chat-character-avatar-media-width); }
+body.mt-enabled.nt-chat-user-avatar-media-width-custom.nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) { --nt-chat-avatar-edge-width: var(--nt-chat-user-avatar-media-width); }
+
+body.mt-enabled.nt-chat-character-avatar-media-height-custom.nt-chat-character-avatar-format-veil #chat .mes[is_user="false"]:not(.smallSysMes) { --nt-chat-avatar-veil-height: var(--nt-chat-character-avatar-media-height); }
+body.mt-enabled.nt-chat-user-avatar-media-height-custom.nt-chat-user-avatar-format-veil #chat .mes[is_user="true"]:not(.smallSysMes) { --nt-chat-avatar-veil-height: var(--nt-chat-user-avatar-media-height); }
+body.mt-enabled.nt-chat-character-avatar-media-height-custom.nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes) { --nt-chat-avatar-edge-height: var(--nt-chat-character-avatar-media-height); }
+body.mt-enabled.nt-chat-user-avatar-media-height-custom.nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) { --nt-chat-avatar-edge-height: var(--nt-chat-user-avatar-media-height); }
+body.mt-enabled.nt-chat-character-avatar-media-height-custom.nt-chat-character-avatar-format-banner #chat .mes[is_user="false"]:not(.smallSysMes) { --nt-chat-avatar-banner-height: var(--nt-chat-character-avatar-media-height); }
+body.mt-enabled.nt-chat-user-avatar-media-height-custom.nt-chat-user-avatar-format-banner #chat .mes[is_user="true"]:not(.smallSysMes) { --nt-chat-avatar-banner-height: var(--nt-chat-user-avatar-media-height); }
+
+body.mt-enabled.nt-chat-character-avatar-opacity-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img { opacity: var(--nt-chat-character-avatar-opacity) !important; }
+body.mt-enabled.nt-chat-user-avatar-opacity-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { opacity: var(--nt-chat-user-avatar-opacity) !important; }
+body.mt-enabled.nt-chat-character-avatar-focal-x-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-character-avatar-focal-y-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img {
+  object-position: var(--nt-chat-character-avatar-focal-x, 50%) var(--nt-chat-character-avatar-focal-y, 50%) !important;
+}
+body.mt-enabled.nt-chat-user-avatar-focal-x-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-focal-y-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img {
+  object-position: var(--nt-chat-user-avatar-focal-x, 50%) var(--nt-chat-user-avatar-focal-y, 50%) !important;
+}
+
+body.mt-enabled.nt-chat-character-avatar-tone-muted #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-tone-muted #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { filter: saturate(.7) brightness(.94); }
+body.mt-enabled.nt-chat-character-avatar-tone-dim #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-tone-dim #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { filter: saturate(.78) brightness(.76); }
+body.mt-enabled.nt-chat-character-avatar-tone-normal #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-tone-normal #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { filter: none; }
+
+/* Explicit fade strength only replaces masks when the user chose a value. */
+body.mt-enabled.nt-chat-character-avatar-fade-custom.nt-chat-character-avatar-format-veil:not(.nt-chat-character-avatar-position-right) #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 var(--nt-chat-character-avatar-fade-start), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 var(--nt-chat-character-avatar-fade-start), transparent 100%);
+}
+body.mt-enabled.nt-chat-user-avatar-fade-custom.nt-chat-user-avatar-format-veil.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 var(--nt-chat-user-avatar-fade-start), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 var(--nt-chat-user-avatar-fade-start), transparent 100%);
+}
+body.mt-enabled.nt-chat-character-avatar-fade-custom.nt-chat-character-avatar-format-veil.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img {
+  -webkit-mask-image: linear-gradient(to left, #000 0, #000 var(--nt-chat-character-avatar-fade-start), transparent 100%);
+  mask-image: linear-gradient(to left, #000 0, #000 var(--nt-chat-character-avatar-fade-start), transparent 100%);
+}
+body.mt-enabled.nt-chat-user-avatar-fade-custom.nt-chat-user-avatar-format-veil:not(.nt-chat-user-avatar-position-left) #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img {
+  -webkit-mask-image: linear-gradient(to left, #000 0, #000 var(--nt-chat-user-avatar-fade-start), transparent 100%);
+  mask-image: linear-gradient(to left, #000 0, #000 var(--nt-chat-user-avatar-fade-start), transparent 100%);
+}
+body.mt-enabled.nt-chat-character-avatar-fade-custom.nt-chat-character-avatar-format-edge #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 var(--nt-chat-character-avatar-fade-start), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 var(--nt-chat-character-avatar-fade-start), transparent 100%);
+}
+body.mt-enabled.nt-chat-user-avatar-fade-custom.nt-chat-user-avatar-format-edge #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 var(--nt-chat-user-avatar-fade-start), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 var(--nt-chat-user-avatar-fade-start), transparent 100%);
+}
+
+/* Role-specific identity and message typography. */
+body.mt-enabled.nt-chat-character-name-weight-regular #chat .mes[is_user="false"]:not(.smallSysMes) .name_text,
+body.mt-enabled.nt-chat-user-name-weight-regular #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-character-name-weight-medium #chat .mes[is_user="false"]:not(.smallSysMes) .name_text,
+body.mt-enabled.nt-chat-user-name-weight-medium #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-character-name-weight-bold #chat .mes[is_user="false"]:not(.smallSysMes) .name_text,
+body.mt-enabled.nt-chat-user-name-weight-bold #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-character-name-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text { color: var(--nt-chat-character-name-color) !important; }
+body.mt-enabled.nt-chat-user-name-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { color: var(--nt-chat-user-name-color) !important; }
+
+body.mt-enabled.nt-chat-character-message-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text { font-size: var(--nt-chat-character-message-font-size) !important; }
+body.mt-enabled.nt-chat-user-message-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text { font-size: var(--nt-chat-user-message-font-size) !important; }
+body.mt-enabled.nt-chat-character-message-line-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text { line-height: var(--nt-chat-character-message-line-height) !important; }
+body.mt-enabled.nt-chat-user-message-line-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text { line-height: var(--nt-chat-user-message-line-height) !important; }
+
+body.mt-enabled.nt-chat-character-message-max-width-custom #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block {
+  width: min(100%, var(--nt-chat-character-message-max-width));
+  max-width: var(--nt-chat-character-message-max-width);
+}
+body.mt-enabled.nt-chat-user-message-max-width-custom #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block {
+  width: min(100%, var(--nt-chat-user-message-max-width));
+  max-width: var(--nt-chat-user-message-max-width);
+}
+body.mt-enabled.nt-chat-character-message-align-left #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled.nt-chat-user-message-align-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block { margin-left: 0; margin-right: auto; }
+body.mt-enabled.nt-chat-character-message-align-center #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled.nt-chat-user-message-align-center #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block { margin-left: auto; margin-right: auto; }
+body.mt-enabled.nt-chat-character-message-align-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block,
+body.mt-enabled.nt-chat-user-message-align-right #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block { margin-left: auto; margin-right: 0; }
+
+body.mt-enabled.nt-chat-character-message-padding-x-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text { padding-left: var(--nt-chat-character-message-padding-x); padding-right: var(--nt-chat-character-message-padding-x); }
+body.mt-enabled.nt-chat-user-message-padding-x-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text { padding-left: var(--nt-chat-user-message-padding-x); padding-right: var(--nt-chat-user-message-padding-x); }
+body.mt-enabled.nt-chat-character-message-padding-y-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text { padding-top: var(--nt-chat-character-message-padding-y); padding-bottom: var(--nt-chat-character-message-padding-y); }
+body.mt-enabled.nt-chat-user-message-padding-y-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text { padding-top: var(--nt-chat-user-message-padding-y); padding-bottom: var(--nt-chat-user-message-padding-y); }
+body.mt-enabled.nt-chat-character-message-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) { margin-bottom: var(--nt-chat-character-message-spacing); }
+body.mt-enabled.nt-chat-user-message-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) { margin-bottom: var(--nt-chat-user-message-spacing); }
+body.mt-enabled.nt-chat-character-message-radius-custom #chat .mes[is_user="false"]:not(.smallSysMes) { border-radius: var(--nt-chat-character-message-radius) !important; }
+body.mt-enabled.nt-chat-user-message-radius-custom #chat .mes[is_user="true"]:not(.smallSysMes) { border-radius: var(--nt-chat-user-message-radius) !important; }
+body.mt-enabled.nt-chat-character-message-background-custom #chat .mes[is_user="false"]:not(.smallSysMes) { background-color: var(--nt-chat-character-message-background) !important; }
+body.mt-enabled.nt-chat-user-message-background-custom #chat .mes[is_user="true"]:not(.smallSysMes) { background-color: var(--nt-chat-user-message-background) !important; }
+body.mt-enabled.nt-chat-character-message-border-custom #chat .mes[is_user="false"]:not(.smallSysMes) { border: 1px solid var(--nt-chat-character-message-border-color) !important; }
+body.mt-enabled.nt-chat-user-message-border-custom #chat .mes[is_user="true"]:not(.smallSysMes) { border: 1px solid var(--nt-chat-user-message-border-color) !important; }
+body.mt-enabled.nt-chat-character-paragraph-top-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text p { margin-top: var(--nt-chat-character-paragraph-spacing-top) !important; }
+body.mt-enabled.nt-chat-user-paragraph-top-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text p { margin-top: var(--nt-chat-user-paragraph-spacing-top) !important; }
+body.mt-enabled.nt-chat-character-paragraph-bottom-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text p { margin-bottom: var(--nt-chat-character-paragraph-spacing-bottom) !important; }
+body.mt-enabled.nt-chat-user-paragraph-bottom-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text p { margin-bottom: var(--nt-chat-user-paragraph-spacing-bottom) !important; }
+
+/* Rich content is semantic only: no parsing or rewriting of message text. */
+body.mt-enabled.nt-chat-character-text-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { color: var(--nt-chat-character-text-color); }
+body.mt-enabled.nt-chat-user-text-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { color: var(--nt-chat-user-text-color); }
+body.mt-enabled.nt-chat-character-quote-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { color: var(--nt-chat-character-quote-color); }
+body.mt-enabled.nt-chat-user-quote-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { color: var(--nt-chat-user-quote-color); }
+body.mt-enabled.nt-chat-character-emphasis-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i) { color: var(--nt-chat-character-emphasis-color); }
+body.mt-enabled.nt-chat-user-emphasis-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { color: var(--nt-chat-user-emphasis-color); }
+body.mt-enabled.nt-chat-character-quote-style-plain #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote,
+body.mt-enabled.nt-chat-user-quote-style-plain #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { margin-inline: 0; padding-inline: 0; border-inline-start: 0; background: transparent; }
+body.mt-enabled.nt-chat-character-quote-style-compact #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote,
+body.mt-enabled.nt-chat-user-quote-style-compact #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { margin-block: 6px; padding: 5px 8px; }
+body.mt-enabled.nt-chat-character-quote-style-accent-edge #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote,
+body.mt-enabled.nt-chat-user-quote-style-accent-edge #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { margin-inline: 0; padding-inline-start: 10px; border-inline-start: 2px solid var(--mt-accent); background: transparent; }
+body.mt-enabled.nt-chat-character-code-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code, pre) { font-size: var(--nt-chat-character-code-font-size) !important; }
+body.mt-enabled.nt-chat-user-code-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code, pre) { font-size: var(--nt-chat-user-code-font-size) !important; }
+body.mt-enabled.nt-chat-character-media-width-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { max-width: var(--nt-chat-character-media-max-width) !important; height: auto; }
+body.mt-enabled.nt-chat-user-media-width-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { max-width: var(--nt-chat-user-media-max-width) !important; height: auto; }
+
+/* Make the split role workspace collapse naturally instead of growing into a long settings page. */
+@media (max-width: 900px) {
+  body.mt-enabled .nt-chat-appearance-preset-manager {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  body.mt-enabled .nt-chat-appearance-preset-status {
+    grid-column: 1 / 2;
+    grid-row: 2;
+  }
+  body.mt-enabled .nt-chat-appearance-preset-actions {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  body.mt-enabled .nt-chat-appearance-overview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  body.mt-enabled .nt-chat-appearance-overview-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  body.mt-enabled .nt-chat-appearance-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px) {
+  body.mt-enabled .nt-chat-appearance-workspace {
+    gap: 10px;
+  }
+  body.mt-enabled .nt-chat-appearance-preset-manager {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+    padding: 9px;
+  }
+  body.mt-enabled .nt-chat-appearance-preset-select {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  body.mt-enabled .nt-chat-appearance-preset-status,
+  body.mt-enabled .nt-chat-appearance-preset-actions {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  body.mt-enabled .nt-chat-appearance-preset-actions {
+    justify-content: flex-start;
+  }
+  body.mt-enabled .nt-chat-appearance-overview {
+    padding-bottom: 9px;
+  }
+  body.mt-enabled .nt-chat-appearance-overview-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px;
+  }
+  body.mt-enabled .nt-chat-appearance-count {
+    grid-column: 1 / -1;
+  }
+  body.mt-enabled .nt-chat-appearance-role-tab {
+    min-height: 36px;
+  }
+  body.mt-enabled .nt-chat-appearance-number-control,
+  body.mt-enabled .nt-chat-appearance-color-control {
+    width: 100%;
+    min-width: 0;
+  }
+  body.mt-enabled .nt-chat-appearance-number-control {
+    grid-template-columns: minmax(0, 1fr) 62px;
+  }
+  body.mt-enabled .nt-chat-appearance-number-control select {
+    grid-column: 1 / -1;
+  }
+  body.mt-enabled .nt-chat-appearance-color-control {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.mt-enabled .nt-chat-appearance-group-body .nt-pref-setting-row {
+    align-items: stretch;
+  }
+}
+body.mt-enabled.nt-chat-character-avatar-fade-custom.nt-chat-character-avatar-format-banner #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 var(--nt-chat-character-avatar-fade-start), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 var(--nt-chat-character-avatar-fade-start), transparent 100%);
+}
+body.mt-enabled.nt-chat-user-avatar-fade-custom.nt-chat-user-avatar-format-banner #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 var(--nt-chat-user-avatar-fade-start), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 var(--nt-chat-user-avatar-fade-start), transparent 100%);
+}
+/* Presentation-aware avatar border for embedded modes. */
+body.mt-enabled.nt-chat-character-avatar-border-on.nt-chat-character-avatar-format-veil:not(.nt-chat-character-avatar-position-right) #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-character-avatar-border-on.nt-chat-character-avatar-format-edge:not(.nt-chat-character-avatar-position-right) #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-border-on.nt-chat-user-avatar-format-veil.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-border-on.nt-chat-user-avatar-format-edge.nt-chat-user-avatar-position-left #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--mt-accent) 34%, transparent);
+}
+body.mt-enabled.nt-chat-character-avatar-border-on.nt-chat-character-avatar-format-veil.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-character-avatar-border-on.nt-chat-character-avatar-format-edge.nt-chat-character-avatar-position-right #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-border-on.nt-chat-user-avatar-format-veil:not(.nt-chat-user-avatar-position-left) #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-border-on.nt-chat-user-avatar-format-edge:not(.nt-chat-user-avatar-position-left) #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--mt-accent) 34%, transparent);
+}
+body.mt-enabled.nt-chat-character-avatar-border-on.nt-chat-character-avatar-format-banner #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-border-on.nt-chat-user-avatar-format-banner #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--mt-accent) 30%, transparent);
+}
+body.mt-enabled.nt-chat-character-avatar-border-off #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-border-off #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper {
+  box-shadow: none;
+}
+
+
+/* =========================================================
+   Chat Appearance v0.1.9 — structured editor + isolated rich content
+   ========================================================= */
+body.mt-enabled .nt-chat-appearance-subtabs {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--mt-border);
+  scrollbar-width: thin;
+}
+body.mt-enabled .nt-chat-appearance-subtab {
+  appearance: none;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--mt-text-3);
+  font: inherit;
+  font-weight: var(--nt-weight-label);
+  white-space: nowrap;
+  cursor: pointer;
+}
+body.mt-enabled .nt-chat-appearance-subtab > span:last-child:not(:first-child) {
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: var(--mt-surface-2);
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta);
+}
+body.mt-enabled .nt-chat-appearance-subtab:hover { color: var(--mt-text-2); background: var(--mt-surface-2); }
+body.mt-enabled .nt-chat-appearance-subtab.is-active {
+  color: var(--mt-text);
+  border-color: color-mix(in srgb, var(--mt-accent) 34%, var(--mt-border));
+  background: color-mix(in srgb, var(--mt-accent) 8%, var(--mt-surface-2));
+}
+body.mt-enabled .nt-chat-appearance-editor {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(160px, 210px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+body.mt-enabled .nt-chat-appearance-category-nav {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+}
+body.mt-enabled .nt-chat-appearance-category {
+  appearance: none;
+  min-width: 0;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--mt-text-3);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+body.mt-enabled .nt-chat-appearance-category > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.mt-enabled .nt-chat-appearance-category > small {
+  min-width: 19px;
+  height: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  background: var(--mt-surface-2);
+  color: var(--mt-text-3);
+}
+body.mt-enabled .nt-chat-appearance-category:hover { color: var(--mt-text-2); background: var(--mt-surface-2); }
+body.mt-enabled .nt-chat-appearance-category.is-active {
+  color: var(--mt-text);
+  border-color: color-mix(in srgb, var(--mt-accent) 34%, var(--mt-border));
+  background: color-mix(in srgb, var(--mt-accent) 7%, var(--mt-surface-2));
+}
+body.mt-enabled .nt-chat-appearance-category-panel { min-width: 0; }
+body.mt-enabled .nt-chat-appearance-category-content {
+  min-width: 0;
+  border: 1px solid var(--mt-border);
+  border-radius: 8px;
+  background: var(--mt-surface-1);
+  overflow: clip;
+}
+body.mt-enabled .nt-chat-appearance-category-header {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--mt-border);
+  background: color-mix(in srgb, var(--mt-surface-2) 52%, var(--mt-surface-1));
+}
+body.mt-enabled .nt-chat-appearance-category-header > div { min-width: 0; display: grid; gap: 2px; }
+body.mt-enabled .nt-chat-appearance-category-header b { color: var(--mt-text); font-size: var(--nt-font-body); }
+body.mt-enabled .nt-chat-appearance-category-header small,
+body.mt-enabled .nt-chat-appearance-category-header > span { color: var(--mt-text-3); font-size: var(--nt-font-meta); }
+body.mt-enabled .nt-chat-appearance-category-controls { min-width: 0; display: grid; }
+body.mt-enabled .nt-chat-appearance-category-controls .nt-pref-setting-row {
+  min-width: 0;
+  gap: 14px;
+  padding: 10px 11px;
+}
+body.mt-enabled .nt-chat-appearance-category-controls .nt-pref-setting-row + .nt-pref-setting-row { border-top: 1px solid color-mix(in srgb, var(--mt-border) 72%, transparent); }
+body.mt-enabled .nt-chat-appearance-number-control {
+  width: min(100%, 330px);
+  min-width: 245px;
+  display: grid;
+  grid-template-columns: minmax(92px, auto) minmax(110px, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+}
+body.mt-enabled .nt-chat-appearance-number-field {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border: 1px solid var(--mt-border);
+  border-radius: 6px;
+  background: var(--mt-surface-2);
+  overflow: hidden;
+}
+body.mt-enabled .nt-chat-appearance-number-field input[type="number"] {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--mt-text);
+}
+body.mt-enabled .nt-chat-appearance-number-field > span { padding: 0 8px 0 4px; color: var(--mt-text-3); font-size: var(--nt-font-meta); }
+body.mt-enabled .nt-chat-appearance-number-control output { min-width: 52px; text-align: right; color: var(--mt-text-3); font-size: var(--nt-font-meta); }
+
+@media (max-width: 760px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px) {
+  body.mt-enabled .nt-chat-appearance-editor { grid-template-columns: minmax(0, 1fr); gap: 9px; }
+  body.mt-enabled .nt-chat-appearance-category-nav {
+    position: static;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  body.mt-enabled .nt-chat-appearance-category { flex: 0 0 auto; grid-template-columns: auto auto; white-space: nowrap; }
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-pref-setting-row { align-items: stretch; }
+  body.mt-enabled .nt-chat-appearance-number-control,
+  body.mt-enabled .nt-chat-appearance-color-control { width: 100%; min-width: 0; }
+  body.mt-enabled .nt-chat-appearance-number-control { grid-template-columns: minmax(0, 1fr) auto; }
+  body.mt-enabled .nt-chat-appearance-number-control select { grid-column: 1 / -1; }
+}
+
+/* Avatar additions. */
+body.mt-enabled.nt-chat-character-avatar-fit-cover #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-fit-cover #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { object-fit: cover !important; }
+body.mt-enabled.nt-chat-character-avatar-fit-contain #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-fit-contain #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { object-fit: contain !important; }
+body.mt-enabled.nt-chat-character-avatar-border-width-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img { border-width: var(--nt-chat-character-avatar-border-width) !important; }
+body.mt-enabled.nt-chat-user-avatar-border-width-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { border-width: var(--nt-chat-user-avatar-border-width) !important; }
+body.mt-enabled.nt-chat-character-avatar-radius-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar,
+body.mt-enabled.nt-chat-character-avatar-radius-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img { border-radius: var(--nt-chat-character-avatar-radius) !important; }
+body.mt-enabled.nt-chat-user-avatar-radius-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar,
+body.mt-enabled.nt-chat-user-avatar-radius-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { border-radius: var(--nt-chat-user-avatar-radius) !important; }
+
+/* Name additions. */
+body.mt-enabled.nt-chat-character-name-weight-semibold #chat .mes[is_user="false"]:not(.smallSysMes) .name_text,
+body.mt-enabled.nt-chat-user-name-weight-semibold #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-character-name-style-normal #chat .mes[is_user="false"]:not(.smallSysMes) .name_text, body.mt-enabled.nt-chat-user-name-style-normal #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-style: normal !important; }
+body.mt-enabled.nt-chat-character-name-style-italic #chat .mes[is_user="false"]:not(.smallSysMes) .name_text, body.mt-enabled.nt-chat-user-name-style-italic #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-style: italic !important; }
+body.mt-enabled.nt-chat-character-name-transform-none #chat .mes[is_user="false"]:not(.smallSysMes) .name_text, body.mt-enabled.nt-chat-user-name-transform-none #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { text-transform: none !important; }
+body.mt-enabled.nt-chat-character-name-transform-uppercase #chat .mes[is_user="false"]:not(.smallSysMes) .name_text, body.mt-enabled.nt-chat-user-name-transform-uppercase #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { text-transform: uppercase !important; }
+body.mt-enabled.nt-chat-character-name-transform-lowercase #chat .mes[is_user="false"]:not(.smallSysMes) .name_text, body.mt-enabled.nt-chat-user-name-transform-lowercase #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { text-transform: lowercase !important; }
+body.mt-enabled.nt-chat-character-name-letter-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text { letter-spacing: var(--nt-chat-character-name-letter-spacing) !important; }
+body.mt-enabled.nt-chat-user-name-letter-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { letter-spacing: var(--nt-chat-user-name-letter-spacing) !important; }
+body.mt-enabled.nt-chat-character-name-line-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text { line-height: var(--nt-chat-character-name-line-height) !important; }
+body.mt-enabled.nt-chat-user-name-line-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { line-height: var(--nt-chat-user-name-line-height) !important; }
+body.mt-enabled.nt-chat-character-name-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text { margin-bottom: var(--nt-chat-character-name-spacing-bottom) !important; }
+body.mt-enabled.nt-chat-user-name-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { margin-bottom: var(--nt-chat-user-name-spacing-bottom) !important; }
+
+/* Message surface additions. */
+body.mt-enabled.nt-chat-character-message-border-width-custom #chat .mes[is_user="false"]:not(.smallSysMes) { border-width: var(--nt-chat-character-message-border-width) !important; }
+body.mt-enabled.nt-chat-user-message-border-width-custom #chat .mes[is_user="true"]:not(.smallSysMes) { border-width: var(--nt-chat-user-message-border-width) !important; }
+body.mt-enabled.nt-chat-character-message-border-style-solid #chat .mes[is_user="false"]:not(.smallSysMes), body.mt-enabled.nt-chat-user-message-border-style-solid #chat .mes[is_user="true"]:not(.smallSysMes) { border-style: solid !important; }
+body.mt-enabled.nt-chat-character-message-border-style-dashed #chat .mes[is_user="false"]:not(.smallSysMes), body.mt-enabled.nt-chat-user-message-border-style-dashed #chat .mes[is_user="true"]:not(.smallSysMes) { border-style: dashed !important; }
+body.mt-enabled.nt-chat-character-message-border-style-dotted #chat .mes[is_user="false"]:not(.smallSysMes), body.mt-enabled.nt-chat-user-message-border-style-dotted #chat .mes[is_user="true"]:not(.smallSysMes) { border-style: dotted !important; }
+body.mt-enabled.nt-chat-character-message-border-style-none #chat .mes[is_user="false"]:not(.smallSysMes), body.mt-enabled.nt-chat-user-message-border-style-none #chat .mes[is_user="true"]:not(.smallSysMes) { border-style: none !important; }
+
+/* Rich content isolation. Dialogue is <q>; quoted lines are blockquote only. */
+body.mt-enabled.nt-chat-character-text-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { color: var(--nt-chat-character-text-color) !important; }
+body.mt-enabled.nt-chat-character-normal-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-size: var(--nt-chat-character-normal-font-size) !important; }
+body.mt-enabled.nt-chat-character-normal-line-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { line-height: var(--nt-chat-character-normal-line-height) !important; }
+body.mt-enabled.nt-chat-character-normal-letter-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { letter-spacing: var(--nt-chat-character-normal-letter-spacing) !important; }
+body.mt-enabled.nt-chat-character-normal-weight-regular #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-character-normal-weight-medium #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-character-normal-weight-semibold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-character-normal-weight-bold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-character-normal-style-normal #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-style: normal !important; }
+body.mt-enabled.nt-chat-character-normal-style-italic #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-style: italic !important; }
+body.mt-enabled.nt-chat-character-dialogue-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { color: var(--nt-chat-character-dialogue-color) !important; }
+body.mt-enabled.nt-chat-character-dialogue-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { font-size: var(--nt-chat-character-dialogue-font-size) !important; }
+body.mt-enabled.nt-chat-character-dialogue-letter-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { letter-spacing: var(--nt-chat-character-dialogue-letter-spacing) !important; }
+body.mt-enabled.nt-chat-character-dialogue-weight-regular #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-character-dialogue-weight-medium #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-character-dialogue-weight-semibold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-character-dialogue-weight-bold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-character-dialogue-style-normal #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { font-style: normal !important; }
+body.mt-enabled.nt-chat-character-dialogue-style-italic #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { font-style: italic !important; }
+body.mt-enabled.nt-chat-character-emphasis-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i) { font-size: var(--nt-chat-character-emphasis-font-size) !important; }
+body.mt-enabled.nt-chat-character-emphasis-letter-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i) { letter-spacing: var(--nt-chat-character-emphasis-letter-spacing) !important; }
+body.mt-enabled.nt-chat-character-emphasis-weight-regular #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i) { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-character-emphasis-weight-medium #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i) { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-character-emphasis-weight-semibold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i) { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-character-emphasis-weight-bold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i) { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-character-emphasis-style-normal #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i) { font-style: normal !important; }
+body.mt-enabled.nt-chat-character-emphasis-style-italic #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i) { font-style: italic !important; }
+body.mt-enabled.nt-chat-character-quote-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { font-size: var(--nt-chat-character-quote-font-size) !important; }
+body.mt-enabled.nt-chat-character-quote-padding-x-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { padding-left: var(--nt-chat-character-quote-padding-x) !important; padding-right: var(--nt-chat-character-quote-padding-x) !important; }
+body.mt-enabled.nt-chat-character-quote-padding-y-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { padding-top: var(--nt-chat-character-quote-padding-y) !important; padding-bottom: var(--nt-chat-character-quote-padding-y) !important; }
+body.mt-enabled.nt-chat-character-quote-margin-y-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { margin-top: var(--nt-chat-character-quote-margin-y) !important; margin-bottom: var(--nt-chat-character-quote-margin-y) !important; }
+body.mt-enabled.nt-chat-character-quote-weight-regular #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-character-quote-weight-medium #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-character-quote-weight-semibold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-character-quote-weight-bold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-character-quote-text-style-normal #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { font-style: normal !important; }
+body.mt-enabled.nt-chat-character-quote-text-style-italic #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { font-style: italic !important; }
+body.mt-enabled.nt-chat-character-code-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code, pre) { color: var(--nt-chat-character-code-color) !important; }
+body.mt-enabled.nt-chat-character-code-background-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code, pre) { background: var(--nt-chat-character-code-background) !important; }
+body.mt-enabled.nt-chat-character-code-radius-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code, pre) { border-radius: var(--nt-chat-character-code-radius) !important; }
+body.mt-enabled.nt-chat-character-code-padding-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text pre { padding: var(--nt-chat-character-code-padding) !important; }
+body.mt-enabled.nt-chat-character-code-padding-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text code:not(pre code) { padding: calc(var(--nt-chat-character-code-padding) * .35) calc(var(--nt-chat-character-code-padding) * .55) !important; }
+body.mt-enabled.nt-chat-character-link-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text a { color: var(--nt-chat-character-link-color) !important; }
+body.mt-enabled.nt-chat-character-link-weight-regular #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text a { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-character-link-weight-medium #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text a { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-character-link-weight-semibold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text a { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-character-link-weight-bold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text a { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-character-link-decoration-underline #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text a { text-decoration: underline !important; }
+body.mt-enabled.nt-chat-character-link-decoration-none #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text a { text-decoration: none !important; }
+body.mt-enabled.nt-chat-character-media-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { max-height: var(--nt-chat-character-media-max-height) !important; }
+body.mt-enabled.nt-chat-character-media-radius-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { border-radius: var(--nt-chat-character-media-radius) !important; }
+body.mt-enabled.nt-chat-character-media-opacity-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { opacity: var(--nt-chat-character-media-opacity); }
+body.mt-enabled.nt-chat-user-text-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { color: var(--nt-chat-user-text-color) !important; }
+body.mt-enabled.nt-chat-user-normal-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-size: var(--nt-chat-user-normal-font-size) !important; }
+body.mt-enabled.nt-chat-user-normal-line-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { line-height: var(--nt-chat-user-normal-line-height) !important; }
+body.mt-enabled.nt-chat-user-normal-letter-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { letter-spacing: var(--nt-chat-user-normal-letter-spacing) !important; }
+body.mt-enabled.nt-chat-user-normal-weight-regular #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-user-normal-weight-medium #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-user-normal-weight-semibold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-user-normal-weight-bold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-user-normal-style-normal #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-style: normal !important; }
+body.mt-enabled.nt-chat-user-normal-style-italic #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-style: italic !important; }
+body.mt-enabled.nt-chat-user-dialogue-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { color: var(--nt-chat-user-dialogue-color) !important; }
+body.mt-enabled.nt-chat-user-dialogue-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { font-size: var(--nt-chat-user-dialogue-font-size) !important; }
+body.mt-enabled.nt-chat-user-dialogue-letter-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { letter-spacing: var(--nt-chat-user-dialogue-letter-spacing) !important; }
+body.mt-enabled.nt-chat-user-dialogue-weight-regular #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-user-dialogue-weight-medium #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-user-dialogue-weight-semibold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-user-dialogue-weight-bold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-user-dialogue-style-normal #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { font-style: normal !important; }
+body.mt-enabled.nt-chat-user-dialogue-style-italic #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { font-style: italic !important; }
+body.mt-enabled.nt-chat-user-emphasis-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { font-size: var(--nt-chat-user-emphasis-font-size) !important; }
+body.mt-enabled.nt-chat-user-emphasis-letter-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { letter-spacing: var(--nt-chat-user-emphasis-letter-spacing) !important; }
+body.mt-enabled.nt-chat-user-emphasis-weight-regular #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-user-emphasis-weight-medium #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-user-emphasis-weight-semibold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-user-emphasis-weight-bold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-user-emphasis-style-normal #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { font-style: normal !important; }
+body.mt-enabled.nt-chat-user-emphasis-style-italic #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { font-style: italic !important; }
+body.mt-enabled.nt-chat-user-quote-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { font-size: var(--nt-chat-user-quote-font-size) !important; }
+body.mt-enabled.nt-chat-user-quote-padding-x-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { padding-left: var(--nt-chat-user-quote-padding-x) !important; padding-right: var(--nt-chat-user-quote-padding-x) !important; }
+body.mt-enabled.nt-chat-user-quote-padding-y-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { padding-top: var(--nt-chat-user-quote-padding-y) !important; padding-bottom: var(--nt-chat-user-quote-padding-y) !important; }
+body.mt-enabled.nt-chat-user-quote-margin-y-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { margin-top: var(--nt-chat-user-quote-margin-y) !important; margin-bottom: var(--nt-chat-user-quote-margin-y) !important; }
+body.mt-enabled.nt-chat-user-quote-weight-regular #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-user-quote-weight-medium #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-user-quote-weight-semibold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-user-quote-weight-bold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-user-quote-text-style-normal #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { font-style: normal !important; }
+body.mt-enabled.nt-chat-user-quote-text-style-italic #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { font-style: italic !important; }
+body.mt-enabled.nt-chat-user-code-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code, pre) { color: var(--nt-chat-user-code-color) !important; }
+body.mt-enabled.nt-chat-user-code-background-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code, pre) { background: var(--nt-chat-user-code-background) !important; }
+body.mt-enabled.nt-chat-user-code-radius-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code, pre) { border-radius: var(--nt-chat-user-code-radius) !important; }
+body.mt-enabled.nt-chat-user-code-padding-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text pre { padding: var(--nt-chat-user-code-padding) !important; }
+body.mt-enabled.nt-chat-user-code-padding-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text code:not(pre code) { padding: calc(var(--nt-chat-user-code-padding) * .35) calc(var(--nt-chat-user-code-padding) * .55) !important; }
+body.mt-enabled.nt-chat-user-link-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a { color: var(--nt-chat-user-link-color) !important; }
+body.mt-enabled.nt-chat-user-link-weight-regular #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-user-link-weight-medium #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-user-link-weight-semibold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-user-link-weight-bold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-user-link-decoration-underline #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a { text-decoration: underline !important; }
+body.mt-enabled.nt-chat-user-link-decoration-none #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a { text-decoration: none !important; }
+body.mt-enabled.nt-chat-user-media-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { max-height: var(--nt-chat-user-media-max-height) !important; }
+body.mt-enabled.nt-chat-user-media-radius-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { border-radius: var(--nt-chat-user-media-radius) !important; }
+body.mt-enabled.nt-chat-user-media-opacity-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { opacity: var(--nt-chat-user-media-opacity); }
+
+/* When normal text is customized, keep semantic elements on their own SillyTavern theme colors unless explicitly overridden. */
+body.mt-enabled.nt-chat-character-text-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q,
+body.mt-enabled.nt-chat-user-text-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q,
+body.mt-enabled.nt-chat-character-text-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote,
+body.mt-enabled.nt-chat-user-text-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { color: var(--SmartThemeQuoteColor, var(--mt-text)); }
+body.mt-enabled.nt-chat-character-text-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i),
+body.mt-enabled.nt-chat-user-text-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { color: var(--SmartThemeEmColor, var(--mt-text-2)); }
+
+body.mt-enabled.nt-chat-character-name-weight-medium #chat .mes[is_user="false"]:not(.smallSysMes) .name_text, body.mt-enabled.nt-chat-user-name-weight-medium #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-weight: 500 !important; }
+
+/* Additional structured Chat Appearance controls. */
+body.mt-enabled.nt-chat-character-avatar-border-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img { border-color: var(--nt-chat-character-avatar-border-color) !important; }
+body.mt-enabled.nt-chat-user-avatar-border-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { border-color: var(--nt-chat-user-avatar-border-color) !important; }
+body.mt-enabled.nt-chat-character-name-align-left #chat .mes[is_user="false"]:not(.smallSysMes) .name_text, body.mt-enabled.nt-chat-user-name-align-left #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { text-align: left !important; }
+body.mt-enabled.nt-chat-character-name-align-center #chat .mes[is_user="false"]:not(.smallSysMes) .name_text, body.mt-enabled.nt-chat-user-name-align-center #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { text-align: center !important; }
+body.mt-enabled.nt-chat-character-name-align-right #chat .mes[is_user="false"]:not(.smallSysMes) .name_text, body.mt-enabled.nt-chat-user-name-align-right #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { text-align: right !important; }
+body.mt-enabled.nt-chat-character-text-align-left #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text, body.mt-enabled.nt-chat-user-text-align-left #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text { text-align: left !important; }
+body.mt-enabled.nt-chat-character-text-align-center #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text, body.mt-enabled.nt-chat-user-text-align-center #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text { text-align: center !important; }
+body.mt-enabled.nt-chat-character-text-align-right #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text, body.mt-enabled.nt-chat-user-text-align-right #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text { text-align: right !important; }
+body.mt-enabled.nt-chat-character-dialogue-line-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { line-height: var(--nt-chat-character-dialogue-line-height) !important; }
+body.mt-enabled.nt-chat-character-emphasis-line-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em, i) { line-height: var(--nt-chat-character-emphasis-line-height) !important; }
+body.mt-enabled.nt-chat-character-quote-line-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { line-height: var(--nt-chat-character-quote-line-height) !important; }
+body.mt-enabled.nt-chat-character-quote-background-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { background: var(--nt-chat-character-quote-background) !important; }
+body.mt-enabled.nt-chat-character-quote-border-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { border-color: var(--nt-chat-character-quote-border-color) !important; }
+body.mt-enabled.nt-chat-character-quote-border-width-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { border-inline-start-width: var(--nt-chat-character-quote-border-width) !important; }
+body.mt-enabled.nt-chat-character-code-line-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code, pre) { line-height: var(--nt-chat-character-code-line-height) !important; }
+body.mt-enabled.nt-chat-character-code-border-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code, pre) { border-color: var(--nt-chat-character-code-border-color) !important; }
+body.mt-enabled.nt-chat-character-code-border-width-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code, pre) { border-width: var(--nt-chat-character-code-border-width) !important; border-style: solid; }
+body.mt-enabled.nt-chat-character-heading-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { color: var(--nt-chat-character-heading-color) !important; }
+body.mt-enabled.nt-chat-character-heading-scale-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { font-size: var(--nt-chat-character-heading-scale) !important; }
+body.mt-enabled.nt-chat-character-heading-top-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { margin-top: var(--nt-chat-character-heading-spacing-top) !important; }
+body.mt-enabled.nt-chat-character-heading-bottom-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { margin-bottom: var(--nt-chat-character-heading-spacing-bottom) !important; }
+body.mt-enabled.nt-chat-character-list-marker-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(ul,ol) > li::marker { color: var(--nt-chat-character-list-marker-color); }
+body.mt-enabled.nt-chat-character-list-indent-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(ul,ol) { padding-inline-start: var(--nt-chat-character-list-indent) !important; }
+body.mt-enabled.nt-chat-character-list-item-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(ul,ol) > li + li { margin-top: var(--nt-chat-character-list-item-spacing) !important; }
+body.mt-enabled.nt-chat-character-media-border-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { border-color: var(--nt-chat-character-media-border-color) !important; }
+body.mt-enabled.nt-chat-character-media-border-width-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { border-width: var(--nt-chat-character-media-border-width) !important; border-style: solid; }
+body.mt-enabled.nt-chat-character-heading-weight-regular #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-character-heading-weight-medium #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-character-heading-weight-semibold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-character-heading-weight-bold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { font-weight: 700 !important; }
+body.mt-enabled.nt-chat-user-dialogue-line-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { line-height: var(--nt-chat-user-dialogue-line-height) !important; }
+body.mt-enabled.nt-chat-user-emphasis-line-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em, i) { line-height: var(--nt-chat-user-emphasis-line-height) !important; }
+body.mt-enabled.nt-chat-user-quote-line-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { line-height: var(--nt-chat-user-quote-line-height) !important; }
+body.mt-enabled.nt-chat-user-quote-background-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { background: var(--nt-chat-user-quote-background) !important; }
+body.mt-enabled.nt-chat-user-quote-border-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { border-color: var(--nt-chat-user-quote-border-color) !important; }
+body.mt-enabled.nt-chat-user-quote-border-width-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { border-inline-start-width: var(--nt-chat-user-quote-border-width) !important; }
+body.mt-enabled.nt-chat-user-code-line-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code, pre) { line-height: var(--nt-chat-user-code-line-height) !important; }
+body.mt-enabled.nt-chat-user-code-border-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code, pre) { border-color: var(--nt-chat-user-code-border-color) !important; }
+body.mt-enabled.nt-chat-user-code-border-width-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code, pre) { border-width: var(--nt-chat-user-code-border-width) !important; border-style: solid; }
+body.mt-enabled.nt-chat-user-heading-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { color: var(--nt-chat-user-heading-color) !important; }
+body.mt-enabled.nt-chat-user-heading-scale-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { font-size: var(--nt-chat-user-heading-scale) !important; }
+body.mt-enabled.nt-chat-user-heading-top-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { margin-top: var(--nt-chat-user-heading-spacing-top) !important; }
+body.mt-enabled.nt-chat-user-heading-bottom-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { margin-bottom: var(--nt-chat-user-heading-spacing-bottom) !important; }
+body.mt-enabled.nt-chat-user-list-marker-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(ul,ol) > li::marker { color: var(--nt-chat-user-list-marker-color); }
+body.mt-enabled.nt-chat-user-list-indent-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(ul,ol) { padding-inline-start: var(--nt-chat-user-list-indent) !important; }
+body.mt-enabled.nt-chat-user-list-item-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(ul,ol) > li + li { margin-top: var(--nt-chat-user-list-item-spacing) !important; }
+body.mt-enabled.nt-chat-user-media-border-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { border-color: var(--nt-chat-user-media-border-color) !important; }
+body.mt-enabled.nt-chat-user-media-border-width-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img, video, canvas, iframe) { border-width: var(--nt-chat-user-media-border-width) !important; border-style: solid; }
+body.mt-enabled.nt-chat-user-heading-weight-regular #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { font-weight: 400 !important; }
+body.mt-enabled.nt-chat-user-heading-weight-medium #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { font-weight: 500 !important; }
+body.mt-enabled.nt-chat-user-heading-weight-semibold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { font-weight: 600 !important; }
+body.mt-enabled.nt-chat-user-heading-weight-bold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { font-weight: 700 !important; }
+
+/* Chat Appearance — per-control reset + precise numeric slider/input pair. */
+body.mt-enabled .nt-chat-appearance-category-controls .nt-pref-setting-row {
+  grid-template-columns: minmax(0, 1fr) auto 32px;
+}
+body.mt-enabled .nt-chat-appearance-control-reset {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--mt-text-3);
+  cursor: pointer;
+}
+body.mt-enabled .nt-chat-appearance-control-reset:hover,
+body.mt-enabled .nt-chat-appearance-control-reset:focus-visible {
+  border-color: var(--mt-border);
+  background: var(--mt-surface-2);
+  color: var(--mt-text);
+}
+body.mt-enabled .nt-chat-appearance-control-reset svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+body.mt-enabled .nt-chat-appearance-number-control {
+  width: min(100%, 540px);
+  min-width: 360px;
+  grid-template-columns: minmax(92px, auto) minmax(220px, 1fr) auto;
+}
+body.mt-enabled .nt-chat-appearance-number-editor {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(92px, 118px);
+  gap: 8px;
+  align-items: center;
+}
+body.mt-enabled .nt-chat-appearance-number-editor input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--mt-accent);
+}
+body.mt-enabled .nt-chat-appearance-number-editor input[type="range"]:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px) {
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-pref-setting-row {
+    grid-template-columns: minmax(0, 1fr) 32px;
+  }
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-pref-setting-row > span:first-child {
+    grid-column: 1 / -1;
+  }
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-pref-setting-row > select,
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-number-control,
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-control {
+    grid-column: 1;
+    width: 100%;
+    min-width: 0;
+  }
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-control-reset {
+    grid-column: 2;
+    align-self: center;
+  }
+  body.mt-enabled .nt-chat-appearance-number-control {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  body.mt-enabled .nt-chat-appearance-number-control > select {
+    grid-column: 1 / -1;
+  }
+  body.mt-enabled .nt-chat-appearance-number-editor {
+    grid-template-columns: minmax(80px, 1fr) minmax(84px, 108px);
+  }
+}
+
+/* NastyTavern 0.1.9 — World Info Gallery mobile touch-scroll compatibility
+   The third-party gallery owns its own DOM and interactions. NastyTavern only
+   provides the workspace boundary, so keep vertical pan gestures native and
+   let the integrated gallery surface be the scroll owner on touch layouts. */
+@media (max-width: 760px), (orientation: landscape) and (max-height: 560px) and (max-width: 1024px) {
+  html body.mt-enabled #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"] {
+    min-height: 0;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
+
+  html body.mt-enabled #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"]
+    .nt-third-party-workspace-surface[data-nt-third-party-workspace="world-info-gallery"] {
+    min-height: 0;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
+
+  /* Gallery/card containers must not turn a vertical finger drag into a
+     captured gesture. Keep this scoped to the World Info Gallery integration
+     so native SillyTavern and other third-party workspaces remain untouched. */
+  html body.mt-enabled .nt-third-party-workspace-surface[data-nt-third-party-workspace="world-info-gallery"]
+    :is(
+      [class*="gallery" i],
+      [class*="grid" i],
+      [class*="cards" i],
+      [class*="list" i],
+      [class*="content" i],
+      [class*="body" i]
+    ) {
+    touch-action: pan-y;
+  }
+
+  html body.mt-enabled .nt-third-party-workspace-surface[data-nt-third-party-workspace="world-info-gallery"]
+    :is(button, a, [role="button"], input, select, textarea) {
+    touch-action: manipulation;
+  }
+}
+
+/* NastyTavern 0.1.9 — World Info Gallery mobile workspace geometry
+   Third-party World Info surfaces sometimes force a viewport-wide width on
+   phones. Keep the integrated Lorebooks workspace inside NastyTavern's real
+   content area so the persistent navigation rail remains visible and usable. */
+@media (max-width: 760px), (orientation: landscape) and (max-height: 560px) and (max-width: 1024px) {
+  html body.mt-enabled[data-mt-view="lorebooks"]
+    #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"] {
+    box-sizing: border-box;
+    left: var(--mt-workspace-left) !important;
+    right: 0 !important;
+    width: calc(100dvw - var(--mt-workspace-left)) !important;
+    max-width: calc(100dvw - var(--mt-workspace-left)) !important;
+    min-width: 0 !important;
+    overflow-x: clip;
+  }
+
+  html body.mt-enabled[data-mt-view="lorebooks"]
+    #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"]
+    .nt-third-party-workspace-surface[data-nt-third-party-workspace="world-info-gallery"] {
+    box-sizing: border-box;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-inline: 0 !important;
+    overflow-x: clip;
+  }
+
+  /* If the provider itself uses a fixed viewport surface, constrain that fixed
+     surface to the same workspace boundary instead of allowing 100vw. */
+  html body.mt-enabled[data-mt-view="lorebooks"]
+    .nt-third-party-workspace-surface.nt-third-party-fixed-workspace[data-nt-third-party-workspace="world-info-gallery"] {
+    left: var(--mt-workspace-left) !important;
+    right: 0 !important;
+    width: calc(100dvw - var(--mt-workspace-left)) !important;
+    max-width: calc(100dvw - var(--mt-workspace-left)) !important;
+    min-width: 0 !important;
+  }
+}
+
+/* NastyTavern 0.1.9 — World Info Gallery touch arbitration
+   Some World Info Gallery builds put touch-action:none on card descendants for
+   their own drag handling. A parent pan-y cannot override that intersection,
+   so explicitly restore vertical pan on the integrated gallery subtree. */
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
+  html body.mt-enabled[data-mt-view="lorebooks"]
+    .nt-third-party-workspace-surface[data-nt-third-party-workspace="world-info-gallery"],
+  html body.mt-enabled[data-mt-view="lorebooks"]
+    .nt-third-party-workspace-surface[data-nt-third-party-workspace="world-info-gallery"] * {
+    touch-action: pan-y !important;
+  }
+
+  html body.mt-enabled[data-mt-view="lorebooks"]
+    .nt-third-party-workspace-surface[data-nt-third-party-workspace="world-info-gallery"]
+    :is(input, textarea, select, [contenteditable="true"]) {
+    touch-action: manipulation !important;
+  }
+}
+
+/* NastyTavern 0.1.9 — World Info Gallery initial portrait viewport
+   Some World Info Gallery builds only compute a usable scroll viewport after a
+   resize/orientation event. Establish the real mobile workspace geometry on the
+   first portrait render so scrolling does not depend on rotating the device. */
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
+  html body.mt-enabled[data-mt-view="lorebooks"]
+    #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"] {
+    position: fixed !important;
+    top: var(--mt-workspace-top) !important;
+    bottom: auto !important;
+    height: calc(var(--nt-world-info-viewport-height, 100dvh) - var(--mt-workspace-top)) !important;
+    max-height: calc(var(--nt-world-info-viewport-height, 100dvh) - var(--mt-workspace-top)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html body.mt-enabled[data-mt-view="lorebooks"]
+    #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"]
+    .nt-third-party-workspace-surface[data-nt-third-party-workspace="world-info-gallery"] {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* NastyTavern 0.1.9 — World Info Gallery initial portrait viewport
+   Establish the actual scroll viewport on first mobile render instead of
+   relying on an orientation change to make the provider recalculate it. */
+@media (max-width: 760px), (hover: none) and (pointer: coarse) {
+  html body.mt-enabled[data-mt-view="lorebooks"]
+    #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"] {
+    position: fixed !important;
+    top: var(--mt-workspace-top) !important;
+    bottom: auto !important;
+    height: calc(var(--nt-world-info-viewport-height, 100dvh) - var(--mt-workspace-top)) !important;
+    max-height: calc(var(--nt-world-info-viewport-height, 100dvh) - var(--mt-workspace-top)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html body.mt-enabled[data-mt-view="lorebooks"]
+    #WorldInfo.nt-third-party-workspace-panel[data-nt-third-party-workspace="world-info-gallery"]
+    .nt-third-party-workspace-surface[data-nt-third-party-workspace="world-info-gallery"] {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Chat Appearance — structured parameter groups and expanded per-element controls. */
+body.mt-enabled .nt-chat-appearance-category-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+body.mt-enabled .nt-chat-appearance-category-action {
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid var(--mt-border);
+  border-radius: 7px;
+  background: var(--mt-surface-1);
+  color: var(--mt-text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+body.mt-enabled .nt-chat-appearance-category-action:hover,
+body.mt-enabled .nt-chat-appearance-category-action:focus-visible {
+  color: var(--mt-text);
+  border-color: color-mix(in srgb, var(--mt-accent) 42%, var(--mt-border));
+}
+body.mt-enabled .nt-chat-appearance-category-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+body.mt-enabled .nt-chat-appearance-category-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mt-accent);
+  flex: 0 0 auto;
+}
+body.mt-enabled .nt-chat-appearance-control-section + .nt-chat-appearance-control-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--mt-border);
+}
+body.mt-enabled .nt-chat-appearance-control-section > h4 {
+  margin: 0 0 8px;
+  color: var(--mt-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+body.mt-enabled .nt-chat-appearance-control-section-body {
+  display: grid;
+  gap: 1px;
+}
+
+/* Expanded Avatar controls. */
+body.mt-enabled.nt-chat-character-avatar-min-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar,
+body.mt-enabled.nt-chat-user-avatar-min-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar { min-width: var(--nt-chat-character-avatar-min-size); min-height: var(--nt-chat-character-avatar-min-size); }
+body.mt-enabled.nt-chat-user-avatar-min-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar { min-width: var(--nt-chat-user-avatar-min-size); min-height: var(--nt-chat-user-avatar-min-size); }
+body.mt-enabled.nt-chat-character-avatar-max-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar,
+body.mt-enabled.nt-chat-character-avatar-max-size-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img { max-width: var(--nt-chat-character-avatar-max-size); max-height: var(--nt-chat-character-avatar-max-size); }
+body.mt-enabled.nt-chat-user-avatar-max-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar,
+body.mt-enabled.nt-chat-user-avatar-max-size-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { max-width: var(--nt-chat-user-avatar-max-size); max-height: var(--nt-chat-user-avatar-max-size); }
+body.mt-enabled.nt-chat-character-avatar-offset-x-custom #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper { translate: var(--nt-chat-character-avatar-offset-x) 0; }
+body.mt-enabled.nt-chat-user-avatar-offset-x-custom #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper { translate: var(--nt-chat-user-avatar-offset-x) 0; }
+body.mt-enabled.nt-chat-character-avatar-offset-y-custom #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper { transform: translateY(var(--nt-chat-character-avatar-offset-y)); }
+body.mt-enabled.nt-chat-user-avatar-offset-y-custom #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper { transform: translateY(var(--nt-chat-user-avatar-offset-y)); }
+body.mt-enabled.nt-chat-character-avatar-align-start #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-align-start #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper { align-self: flex-start; }
+body.mt-enabled.nt-chat-character-avatar-align-center #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-align-center #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper { align-self: center; }
+body.mt-enabled.nt-chat-character-avatar-align-end #chat .mes[is_user="false"]:not(.smallSysMes) > .mesAvatarWrapper,
+body.mt-enabled.nt-chat-user-avatar-align-end #chat .mes[is_user="true"]:not(.smallSysMes) > .mesAvatarWrapper { align-self: flex-end; }
+body.mt-enabled.nt-chat-character-avatar-border-style-solid #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-border-style-solid #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { border-style: solid; }
+body.mt-enabled.nt-chat-character-avatar-border-style-dashed #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-border-style-dashed #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { border-style: dashed; }
+body.mt-enabled.nt-chat-character-avatar-border-style-dotted #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-border-style-dotted #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { border-style: dotted; }
+body.mt-enabled.nt-chat-character-avatar-border-style-none #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled.nt-chat-user-avatar-border-style-none #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { border-style: none; }
+body.mt-enabled.nt-chat-character-avatar-saturation-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img { filter: saturate(var(--nt-chat-character-avatar-saturation)); }
+body.mt-enabled.nt-chat-user-avatar-saturation-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { filter: saturate(var(--nt-chat-user-avatar-saturation)); }
+body.mt-enabled.nt-chat-character-avatar-grayscale-custom #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img { filter: grayscale(var(--nt-chat-character-avatar-grayscale)); }
+body.mt-enabled.nt-chat-user-avatar-grayscale-custom #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img { filter: grayscale(var(--nt-chat-user-avatar-grayscale)); }
+
+/* Expanded Name controls. */
+body.mt-enabled.nt-chat-character-name-font-inherit #chat .mes[is_user="false"]:not(.smallSysMes) .name_text,
+body.mt-enabled.nt-chat-user-name-font-inherit #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-family: inherit; }
+body.mt-enabled.nt-chat-character-name-font-system #chat .mes[is_user="false"]:not(.smallSysMes) .name_text,
+body.mt-enabled.nt-chat-user-name-font-system #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-family: system-ui, sans-serif; }
+body.mt-enabled.nt-chat-character-name-font-serif #chat .mes[is_user="false"]:not(.smallSysMes) .name_text,
+body.mt-enabled.nt-chat-user-name-font-serif #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-family: Georgia, 'Times New Roman', serif; }
+body.mt-enabled.nt-chat-character-name-font-mono #chat .mes[is_user="false"]:not(.smallSysMes) .name_text,
+body.mt-enabled.nt-chat-user-name-font-mono #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+body.mt-enabled.nt-chat-character-name-word-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text { word-spacing: var(--nt-chat-character-name-word-spacing); }
+body.mt-enabled.nt-chat-user-name-word-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { word-spacing: var(--nt-chat-user-name-word-spacing); }
+body.mt-enabled.nt-chat-character-name-margin-top-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text { margin-top: var(--nt-chat-character-name-margin-top); }
+body.mt-enabled.nt-chat-user-name-margin-top-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { margin-top: var(--nt-chat-user-name-margin-top); }
+body.mt-enabled.nt-chat-character-name-background-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text { background: var(--nt-chat-character-name-background); }
+body.mt-enabled.nt-chat-user-name-background-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { background: var(--nt-chat-user-name-background); }
+body.mt-enabled.nt-chat-character-name-padding-x-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text { padding-inline: var(--nt-chat-character-name-padding-x); }
+body.mt-enabled.nt-chat-user-name-padding-x-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { padding-inline: var(--nt-chat-user-name-padding-x); }
+body.mt-enabled.nt-chat-character-name-padding-y-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text { padding-block: var(--nt-chat-character-name-padding-y); }
+body.mt-enabled.nt-chat-user-name-padding-y-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { padding-block: var(--nt-chat-user-name-padding-y); }
+body.mt-enabled.nt-chat-character-name-radius-custom #chat .mes[is_user="false"]:not(.smallSysMes) .name_text { border-radius: var(--nt-chat-character-name-radius); }
+body.mt-enabled.nt-chat-user-name-radius-custom #chat .mes[is_user="true"]:not(.smallSysMes) .name_text { border-radius: var(--nt-chat-user-name-radius); }
+
+/* Expanded Message geometry/surface. */
+body.mt-enabled.nt-chat-character-message-min-width-custom #chat .mes[is_user="false"]:not(.smallSysMes) > .mes_block { min-width: min(100%, var(--nt-chat-character-message-min-width)); }
+body.mt-enabled.nt-chat-user-message-min-width-custom #chat .mes[is_user="true"]:not(.smallSysMes) > .mes_block { min-width: min(100%, var(--nt-chat-user-message-min-width)); }
+body.mt-enabled.nt-chat-character-message-min-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) { min-height: var(--nt-chat-character-message-min-height); }
+body.mt-enabled.nt-chat-user-message-min-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) { min-height: var(--nt-chat-user-message-min-height); }
+body.mt-enabled.nt-chat-character-message-max-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) { max-height: var(--nt-chat-character-message-max-height); overflow-y: auto; }
+body.mt-enabled.nt-chat-user-message-max-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) { max-height: var(--nt-chat-user-message-max-height); overflow-y: auto; }
+body.mt-enabled.nt-chat-character-message-shadow-custom #chat .mes[is_user="false"]:not(.smallSysMes) { box-shadow: 0 4px 18px rgb(0 0 0 / calc(var(--nt-chat-character-message-shadow-strength) * .45)); }
+body.mt-enabled.nt-chat-user-message-shadow-custom #chat .mes[is_user="true"]:not(.smallSysMes) { box-shadow: 0 4px 18px rgb(0 0 0 / calc(var(--nt-chat-user-message-shadow-strength) * .45)); }
+
+/* Font-family utilities kept scoped to the semantic element only. */
+body.mt-enabled :is(.nt-chat-character-normal-font-inherit,.nt-chat-user-normal-font-inherit) {}
+body.mt-enabled.nt-chat-character-normal-font-system #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)),
+body.mt-enabled.nt-chat-user-normal-font-system #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-family: system-ui, sans-serif; }
+body.mt-enabled.nt-chat-character-normal-font-serif #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)),
+body.mt-enabled.nt-chat-user-normal-font-serif #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-family: Georgia, 'Times New Roman', serif; }
+body.mt-enabled.nt-chat-character-normal-font-mono #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)),
+body.mt-enabled.nt-chat-user-normal-font-mono #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+body.mt-enabled.nt-chat-character-normal-word-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { word-spacing: var(--nt-chat-character-normal-word-spacing); }
+body.mt-enabled.nt-chat-user-normal-word-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { word-spacing: var(--nt-chat-user-normal-word-spacing); }
+body.mt-enabled.nt-chat-character-normal-align-left #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)), body.mt-enabled.nt-chat-user-normal-align-left #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { text-align:left; }
+body.mt-enabled.nt-chat-character-normal-align-center #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)), body.mt-enabled.nt-chat-user-normal-align-center #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { text-align:center; }
+body.mt-enabled.nt-chat-character-normal-align-right #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)), body.mt-enabled.nt-chat-user-normal-align-right #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { text-align:right; }
+body.mt-enabled.nt-chat-character-normal-paragraph-top-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { margin-top: var(--nt-chat-character-normal-paragraph-top); }
+body.mt-enabled.nt-chat-user-normal-paragraph-top-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { margin-top: var(--nt-chat-user-normal-paragraph-top); }
+body.mt-enabled.nt-chat-character-normal-paragraph-bottom-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { margin-bottom: var(--nt-chat-character-normal-paragraph-bottom); }
+body.mt-enabled.nt-chat-user-normal-paragraph-bottom-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text > p:not(:has(q, em, i, blockquote, code, pre, a, img, video, canvas, iframe)) { margin-bottom: var(--nt-chat-user-normal-paragraph-bottom); }
+
+/* Dialogue, emphasis and quotes remain independent semantic targets. */
+body.mt-enabled.nt-chat-character-dialogue-font-system #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q, body.mt-enabled.nt-chat-user-dialogue-font-system #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { font-family: system-ui, sans-serif; }
+body.mt-enabled.nt-chat-character-dialogue-font-serif #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q, body.mt-enabled.nt-chat-user-dialogue-font-serif #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { font-family: Georgia, 'Times New Roman', serif; }
+body.mt-enabled.nt-chat-character-dialogue-font-mono #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q, body.mt-enabled.nt-chat-user-dialogue-font-mono #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+body.mt-enabled.nt-chat-character-dialogue-word-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q { word-spacing: var(--nt-chat-character-dialogue-word-spacing); }
+body.mt-enabled.nt-chat-user-dialogue-word-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { word-spacing: var(--nt-chat-user-dialogue-word-spacing); }
+body.mt-enabled.nt-chat-character-dialogue-align-left #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q, body.mt-enabled.nt-chat-user-dialogue-align-left #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { text-align:left; }
+body.mt-enabled.nt-chat-character-dialogue-align-center #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q, body.mt-enabled.nt-chat-user-dialogue-align-center #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { text-align:center; }
+body.mt-enabled.nt-chat-character-dialogue-align-right #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text q, body.mt-enabled.nt-chat-user-dialogue-align-right #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text q { text-align:right; }
+body.mt-enabled.nt-chat-character-emphasis-font-system #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em,i), body.mt-enabled.nt-chat-user-emphasis-font-system #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em,i) { font-family: system-ui, sans-serif; }
+body.mt-enabled.nt-chat-character-emphasis-font-serif #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em,i), body.mt-enabled.nt-chat-user-emphasis-font-serif #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em,i) { font-family: Georgia, 'Times New Roman', serif; }
+body.mt-enabled.nt-chat-character-emphasis-font-mono #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em,i), body.mt-enabled.nt-chat-user-emphasis-font-mono #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em,i) { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+body.mt-enabled.nt-chat-character-emphasis-word-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em,i) { word-spacing: var(--nt-chat-character-emphasis-word-spacing); }
+body.mt-enabled.nt-chat-user-emphasis-word-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em,i) { word-spacing: var(--nt-chat-user-emphasis-word-spacing); }
+body.mt-enabled.nt-chat-character-quote-font-system #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote, body.mt-enabled.nt-chat-user-quote-font-system #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { font-family: system-ui, sans-serif; }
+body.mt-enabled.nt-chat-character-quote-font-serif #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote, body.mt-enabled.nt-chat-user-quote-font-serif #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { font-family: Georgia, 'Times New Roman', serif; }
+body.mt-enabled.nt-chat-character-quote-font-mono #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote, body.mt-enabled.nt-chat-user-quote-font-mono #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+body.mt-enabled.nt-chat-character-quote-letter-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { letter-spacing: var(--nt-chat-character-quote-letter-spacing); }
+body.mt-enabled.nt-chat-user-quote-letter-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { letter-spacing: var(--nt-chat-user-quote-letter-spacing); }
+body.mt-enabled.nt-chat-character-quote-word-spacing-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { word-spacing: var(--nt-chat-character-quote-word-spacing); }
+body.mt-enabled.nt-chat-user-quote-word-spacing-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { word-spacing: var(--nt-chat-user-quote-word-spacing); }
+body.mt-enabled.nt-chat-character-quote-radius-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { border-radius: var(--nt-chat-character-quote-radius); }
+body.mt-enabled.nt-chat-user-quote-radius-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { border-radius: var(--nt-chat-user-quote-radius); }
+body.mt-enabled.nt-chat-character-quote-max-width-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { max-width: var(--nt-chat-character-quote-max-width); }
+body.mt-enabled.nt-chat-user-quote-max-width-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { max-width: var(--nt-chat-user-quote-max-width); }
+body.mt-enabled.nt-chat-character-quote-indent-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote { margin-inline-start: var(--nt-chat-character-quote-indent); }
+body.mt-enabled.nt-chat-user-quote-indent-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { margin-inline-start: var(--nt-chat-user-quote-indent); }
+body.mt-enabled.nt-chat-character-quote-border-style-dashed #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote, body.mt-enabled.nt-chat-user-quote-border-style-dashed #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { border-inline-start-style:dashed; }
+body.mt-enabled.nt-chat-character-quote-border-style-dotted #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote, body.mt-enabled.nt-chat-user-quote-border-style-dotted #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { border-inline-start-style:dotted; }
+body.mt-enabled.nt-chat-character-quote-border-style-none #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote, body.mt-enabled.nt-chat-user-quote-border-style-none #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { border-inline-start-style:none; }
+
+/* Code, links, headings, lists and media. */
+body.mt-enabled.nt-chat-character-code-font-system #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-font-system #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { font-family: system-ui, sans-serif; }
+body.mt-enabled.nt-chat-character-code-font-serif #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-font-serif #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { font-family: Georgia, 'Times New Roman', serif; }
+body.mt-enabled.nt-chat-character-code-font-mono #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-font-mono #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+body.mt-enabled.nt-chat-character-code-wrap-wrap #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text pre, body.mt-enabled.nt-chat-user-code-wrap-wrap #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text pre { white-space: pre-wrap; overflow-wrap:anywhere; }
+body.mt-enabled.nt-chat-character-code-wrap-scroll #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text pre, body.mt-enabled.nt-chat-user-code-wrap-scroll #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text pre { white-space:pre; overflow-x:auto; }
+body.mt-enabled.nt-chat-character-inline-code-padding-x-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text code:not(pre code) { padding-inline: var(--nt-chat-character-inline-code-padding-x); }
+body.mt-enabled.nt-chat-user-inline-code-padding-x-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text code:not(pre code) { padding-inline: var(--nt-chat-user-inline-code-padding-x); }
+body.mt-enabled.nt-chat-character-inline-code-padding-y-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text code:not(pre code) { padding-block: var(--nt-chat-character-inline-code-padding-y); }
+body.mt-enabled.nt-chat-user-inline-code-padding-y-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text code:not(pre code) { padding-block: var(--nt-chat-user-inline-code-padding-y); }
+body.mt-enabled.nt-chat-character-block-code-padding-x-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text pre { padding-inline: var(--nt-chat-character-block-code-padding-x); }
+body.mt-enabled.nt-chat-user-block-code-padding-x-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text pre { padding-inline: var(--nt-chat-user-block-code-padding-x); }
+body.mt-enabled.nt-chat-character-block-code-padding-y-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text pre { padding-block: var(--nt-chat-character-block-code-padding-y); }
+body.mt-enabled.nt-chat-user-block-code-padding-y-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text pre { padding-block: var(--nt-chat-user-block-code-padding-y); }
+body.mt-enabled.nt-chat-character-link-hover-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text a:hover { color:var(--nt-chat-character-link-hover-color); }
+body.mt-enabled.nt-chat-user-link-hover-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a:hover { color:var(--nt-chat-user-link-hover-color); }
+body.mt-enabled.nt-chat-character-link-visited-color-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text a:visited { color:var(--nt-chat-character-link-visited-color); }
+body.mt-enabled.nt-chat-user-link-visited-color-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a:visited { color:var(--nt-chat-user-link-visited-color); }
+body.mt-enabled.nt-chat-character-link-underline-thickness-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text a, body.mt-enabled.nt-chat-user-link-underline-thickness-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a { text-decoration-thickness: var(--nt-chat-character-link-underline-thickness); }
+body.mt-enabled.nt-chat-user-link-underline-thickness-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text a { text-decoration-thickness: var(--nt-chat-user-link-underline-thickness); }
+body.mt-enabled.nt-chat-character-heading-line-height-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { line-height:var(--nt-chat-character-heading-line-height); }
+body.mt-enabled.nt-chat-user-heading-line-height-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(h1,h2,h3,h4,h5,h6) { line-height:var(--nt-chat-user-heading-line-height); }
+body.mt-enabled.nt-chat-character-h1-scale-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text h1 { font-size:var(--nt-chat-character-h1-scale); }
+body.mt-enabled.nt-chat-user-h1-scale-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text h1 { font-size:var(--nt-chat-user-h1-scale); }
+body.mt-enabled.nt-chat-character-h2-scale-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text h2 { font-size:var(--nt-chat-character-h2-scale); }
+body.mt-enabled.nt-chat-user-h2-scale-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text h2 { font-size:var(--nt-chat-user-h2-scale); }
+body.mt-enabled.nt-chat-character-h3-scale-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text h3 { font-size:var(--nt-chat-character-h3-scale); }
+body.mt-enabled.nt-chat-user-h3-scale-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text h3 { font-size:var(--nt-chat-user-h3-scale); }
+body.mt-enabled.nt-chat-character-list-style-disc #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text ul, body.mt-enabled.nt-chat-user-list-style-disc #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text ul { list-style-type:disc; }
+body.mt-enabled.nt-chat-character-list-style-circle #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text ul, body.mt-enabled.nt-chat-user-list-style-circle #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text ul { list-style-type:circle; }
+body.mt-enabled.nt-chat-character-list-style-square #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text ul, body.mt-enabled.nt-chat-user-list-style-square #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text ul { list-style-type:square; }
+body.mt-enabled.nt-chat-character-list-style-decimal #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(ul,ol), body.mt-enabled.nt-chat-user-list-style-decimal #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(ul,ol) { list-style-type:decimal; }
+body.mt-enabled.nt-chat-character-list-top-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(ul,ol) { margin-top:var(--nt-chat-character-list-spacing-top); }
+body.mt-enabled.nt-chat-user-list-top-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(ul,ol) { margin-top:var(--nt-chat-user-list-spacing-top); }
+body.mt-enabled.nt-chat-character-list-bottom-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(ul,ol) { margin-bottom:var(--nt-chat-character-list-spacing-bottom); }
+body.mt-enabled.nt-chat-user-list-bottom-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(ul,ol) { margin-bottom:var(--nt-chat-user-list-spacing-bottom); }
+body.mt-enabled.nt-chat-character-media-align-start #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe), body.mt-enabled.nt-chat-user-media-align-start #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { display:block; margin-inline:0 auto; }
+body.mt-enabled.nt-chat-character-media-align-center #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe), body.mt-enabled.nt-chat-user-media-align-center #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { display:block; margin-inline:auto; }
+body.mt-enabled.nt-chat-character-media-align-end #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe), body.mt-enabled.nt-chat-user-media-align-end #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { display:block; margin-inline:auto 0; }
+body.mt-enabled.nt-chat-character-media-fit-cover #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video), body.mt-enabled.nt-chat-user-media-fit-cover #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video) { object-fit:cover; }
+body.mt-enabled.nt-chat-character-media-fit-contain #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video), body.mt-enabled.nt-chat-user-media-fit-contain #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video) { object-fit:contain; }
+body.mt-enabled.nt-chat-character-media-margin-top-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { margin-top:var(--nt-chat-character-media-margin-top); }
+body.mt-enabled.nt-chat-user-media-margin-top-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { margin-top:var(--nt-chat-user-media-margin-top); }
+body.mt-enabled.nt-chat-character-media-margin-bottom-custom #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { margin-bottom:var(--nt-chat-character-media-margin-bottom); }
+body.mt-enabled.nt-chat-user-media-margin-bottom-custom #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { margin-bottom:var(--nt-chat-user-media-margin-bottom); }
+
+@media (max-width: 760px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px) {
+  body.mt-enabled .nt-chat-appearance-category-header {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  body.mt-enabled .nt-chat-appearance-category-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  body.mt-enabled .nt-chat-appearance-category-action {
+    flex: 1 1 auto;
+  }
+}
+
+/* Composition fixes for expanded controls: effects coexist instead of overwriting each other. */
+body.mt-enabled.nt-chat-character-avatar-tone-normal #chat .mes[is_user="false"]:not(.smallSysMes) { --nt-chat-avatar-tone-sat: 100%; --nt-chat-avatar-tone-bright: 1; }
+body.mt-enabled.nt-chat-character-avatar-tone-muted #chat .mes[is_user="false"]:not(.smallSysMes) { --nt-chat-avatar-tone-sat: 70%; --nt-chat-avatar-tone-bright: .94; }
+body.mt-enabled.nt-chat-character-avatar-tone-dim #chat .mes[is_user="false"]:not(.smallSysMes) { --nt-chat-avatar-tone-sat: 78%; --nt-chat-avatar-tone-bright: .76; }
+body.mt-enabled.nt-chat-user-avatar-tone-normal #chat .mes[is_user="true"]:not(.smallSysMes) { --nt-chat-avatar-tone-sat: 100%; --nt-chat-avatar-tone-bright: 1; }
+body.mt-enabled.nt-chat-user-avatar-tone-muted #chat .mes[is_user="true"]:not(.smallSysMes) { --nt-chat-avatar-tone-sat: 70%; --nt-chat-avatar-tone-bright: .94; }
+body.mt-enabled.nt-chat-user-avatar-tone-dim #chat .mes[is_user="true"]:not(.smallSysMes) { --nt-chat-avatar-tone-sat: 78%; --nt-chat-avatar-tone-bright: .76; }
+body.mt-enabled.nt-chat-character-avatar-saturation-custom #chat .mes[is_user="false"]:not(.smallSysMes),
+body.mt-enabled.nt-chat-character-avatar-grayscale-custom #chat .mes[is_user="false"]:not(.smallSysMes) { --nt-chat-avatar-custom-sat: var(--nt-chat-character-avatar-saturation, 100%); --nt-chat-avatar-gray: var(--nt-chat-character-avatar-grayscale, 0%); }
+body.mt-enabled.nt-chat-user-avatar-saturation-custom #chat .mes[is_user="true"]:not(.smallSysMes),
+body.mt-enabled.nt-chat-user-avatar-grayscale-custom #chat .mes[is_user="true"]:not(.smallSysMes) { --nt-chat-avatar-custom-sat: var(--nt-chat-user-avatar-saturation, 100%); --nt-chat-avatar-gray: var(--nt-chat-user-avatar-grayscale, 0%); }
+body.mt-enabled:is(.nt-chat-character-avatar-saturation-custom,.nt-chat-character-avatar-grayscale-custom) #chat .mes[is_user="false"]:not(.smallSysMes) .avatar img,
+body.mt-enabled:is(.nt-chat-user-avatar-saturation-custom,.nt-chat-user-avatar-grayscale-custom) #chat .mes[is_user="true"]:not(.smallSysMes) .avatar img {
+  filter: saturate(var(--nt-chat-avatar-custom-sat, var(--nt-chat-avatar-tone-sat, 100%))) brightness(var(--nt-chat-avatar-tone-bright, 1)) grayscale(var(--nt-chat-avatar-gray, 0%));
+}
+
+body.mt-enabled.nt-chat-character-emphasis-align-left #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em,i), body.mt-enabled.nt-chat-user-emphasis-align-left #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em,i) { text-align:left; }
+body.mt-enabled.nt-chat-character-emphasis-align-center #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em,i), body.mt-enabled.nt-chat-user-emphasis-align-center #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em,i) { text-align:center; }
+body.mt-enabled.nt-chat-character-emphasis-align-right #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(em,i), body.mt-enabled.nt-chat-user-emphasis-align-right #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(em,i) { text-align:right; }
+body.mt-enabled.nt-chat-character-quote-align-left #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote, body.mt-enabled.nt-chat-user-quote-align-left #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { text-align:left; }
+body.mt-enabled.nt-chat-character-quote-align-center #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote, body.mt-enabled.nt-chat-user-quote-align-center #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { text-align:center; }
+body.mt-enabled.nt-chat-character-quote-align-right #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote, body.mt-enabled.nt-chat-user-quote-align-right #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { text-align:right; }
+body.mt-enabled.nt-chat-character-quote-border-style-solid #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text blockquote, body.mt-enabled.nt-chat-user-quote-border-style-solid #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text blockquote { border-inline-start-style:solid; }
+body.mt-enabled.nt-chat-character-code-weight-regular #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-weight-regular #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { font-weight:400; }
+body.mt-enabled.nt-chat-character-code-weight-medium #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-weight-medium #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { font-weight:500; }
+body.mt-enabled.nt-chat-character-code-weight-semibold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-weight-semibold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { font-weight:600; }
+body.mt-enabled.nt-chat-character-code-weight-bold #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-weight-bold #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { font-weight:700; }
+body.mt-enabled.nt-chat-character-code-border-style-solid #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-border-style-solid #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { border-style:solid; }
+body.mt-enabled.nt-chat-character-code-border-style-dashed #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-border-style-dashed #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { border-style:dashed; }
+body.mt-enabled.nt-chat-character-code-border-style-dotted #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-border-style-dotted #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { border-style:dotted; }
+body.mt-enabled.nt-chat-character-code-border-style-none #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(code,pre), body.mt-enabled.nt-chat-user-code-border-style-none #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(code,pre) { border-style:none; }
+body.mt-enabled.nt-chat-character-media-border-style-solid #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe), body.mt-enabled.nt-chat-user-media-border-style-solid #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { border-style:solid; }
+body.mt-enabled.nt-chat-character-media-border-style-dashed #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe), body.mt-enabled.nt-chat-user-media-border-style-dashed #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { border-style:dashed; }
+body.mt-enabled.nt-chat-character-media-border-style-dotted #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe), body.mt-enabled.nt-chat-user-media-border-style-dotted #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { border-style:dotted; }
+body.mt-enabled.nt-chat-character-media-border-style-none #chat .mes[is_user="false"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe), body.mt-enabled.nt-chat-user-media-border-style-none #chat .mes[is_user="true"]:not(.smallSysMes) .mes_text :is(img,video,canvas,iframe) { border-style:none; }
+
+@media (max-width: 720px) {
+  body.mt-enabled .nt-chat-appearance-color-custom {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+  body.mt-enabled .nt-chat-appearance-color-custom > input[type="text"] {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Chat Appearance — compact RGBA editor layout.
+   Keep the color mode, swatch, alpha and full RGBA value visually grouped,
+   while leaving the per-setting reset directly adjacent to the editor. */
+body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-row {
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 650px) 32px;
+  column-gap: 8px;
+}
+
+body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-control {
+  width: 100%;
+  min-width: 0;
+  max-width: 650px;
+  grid-template-columns: minmax(108px, max-content) minmax(0, 1fr);
+  gap: 8px;
+}
+
+body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-custom {
+  min-width: 0;
+  width: 100%;
+  grid-template-columns: 34px minmax(170px, 220px) minmax(230px, 1fr);
+  gap: 8px;
+}
+
+body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-alpha-control {
+  min-width: 0;
+  grid-template-columns: auto minmax(82px, 1fr) 50px auto;
+  gap: 5px;
+}
+
+body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-custom > input[type="text"] {
+  min-width: 230px;
+  width: 100%;
+  text-overflow: clip;
+}
+
+body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-row > .nt-chat-appearance-control-reset {
+  margin-inline-start: 0;
+  justify-self: start;
+}
+
+@media (max-width: 1180px) {
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-row {
+    grid-template-columns: minmax(0, 1fr) 32px;
+  }
+
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-row > span:first-child {
+    grid-column: 1 / -1;
+  }
+
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-control {
+    grid-column: 1;
+    max-width: none;
+  }
+
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-row > .nt-chat-appearance-control-reset {
+    grid-column: 2;
+    align-self: center;
+  }
+}
+
+@media (max-width: 720px) {
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-control {
+    grid-template-columns: 1fr;
+  }
+
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-custom {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-color-custom > input[type="text"] {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+}
+
+/* Chat Appearance — alpha value readability.
+   Three-digit percentages must remain fully visible without widening the whole RGBA editor. */
+body.mt-enabled .nt-chat-appearance-alpha-control input[type="number"] {
+  box-sizing: border-box;
+  width: 60px;
+  min-width: 60px;
+  padding-inline: 8px;
+  text-align: right;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+body.mt-enabled .nt-chat-appearance-alpha-control input[type="number"]::-webkit-outer-spin-button,
+body.mt-enabled .nt-chat-appearance-alpha-control input[type="number"]::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-alpha-control {
+  grid-template-columns: auto minmax(82px, 1fr) 60px auto;
+}
