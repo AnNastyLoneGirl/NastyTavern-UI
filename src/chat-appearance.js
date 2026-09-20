@@ -612,6 +612,7 @@ export class ChatAppearanceManager {
         this.activeGroup = { card: 'Avatar', global: 'Avatar' };
         this.activeCategory = { card: 'Visibility & layout', global: 'Visibility & layout' };
         this.scrollPosition = { card: 0, global: 0 };
+        this.cardPanelMode = 'modal';
         const presetSeedVersion = Number(this.settings.chatAppearancePresetSeedVersion || 0);
         normalizeChatAppearanceSettings(this.settings);
         if (presetSeedVersion !== Number(this.settings.chatAppearancePresetSeedVersion || 0)) saveSettings();
@@ -635,6 +636,7 @@ export class ChatAppearanceManager {
         this.activeGroup = { card: 'Avatar', global: 'Avatar' };
         this.activeCategory = { card: 'Visibility & layout', global: 'Visibility & layout' };
         this.scrollPosition = { card: 0, global: 0 };
+        this.cardPanelMode = 'modal';
         this.clearAppliedStyles();
     }
 
@@ -927,6 +929,7 @@ export class ChatAppearanceManager {
     ensure() {
         if (this.root?.isConnected) {
             ensureModalOpacityControl(this.root);
+            this.syncCardPanelMode();
             return this.root;
         }
         const { root } = createModalShell({
@@ -939,6 +942,7 @@ export class ChatAppearanceManager {
             bodyClass: 'nt-chat-appearance-body',
             bodyAttrs: { 'data-nt-chat-appearance-body': '' },
             closeAttrs: { 'data-nt-chat-appearance-close': '' },
+            headerActionsHtml: `<button type="button" class="nt-chat-appearance-position-toggle" data-nt-chat-appearance-position-toggle title="${esc(t('Use side panel'))}" aria-label="${esc(t('Use side panel'))}" aria-pressed="false">${icons.panel}</button>`,
             includeOpacityControl: true,
         });
         root.addEventListener('click', event => this.onModalClick(event));
@@ -946,7 +950,28 @@ export class ChatAppearanceManager {
         root.addEventListener('change', event => this.onModalChange(event));
         document.body.append(root);
         this.root = root;
+        this.syncCardPanelMode();
         return root;
+    }
+
+    syncCardPanelMode() {
+        if (!this.root) return;
+        const sidePanel = this.cardPanelMode === 'side';
+        const sidePanelOpen = sidePanel && !this.root.hidden;
+        this.root.classList.toggle('is-side-panel', sidePanel);
+        document.body?.classList.toggle('nt-chat-appearance-side-panel-open', sidePanelOpen);
+        const toggle = this.root.querySelector('[data-nt-chat-appearance-position-toggle]');
+        if (!toggle) return;
+        const label = t(sidePanel ? 'Use centered modal' : 'Use side panel');
+        toggle.setAttribute('aria-pressed', sidePanel ? 'true' : 'false');
+        toggle.setAttribute('aria-label', label);
+        toggle.setAttribute('title', label);
+        toggle.classList.toggle('is-active', sidePanel);
+    }
+
+    toggleCardPanelMode() {
+        this.cardPanelMode = this.cardPanelMode === 'side' ? 'modal' : 'side';
+        this.syncCardPanelMode();
     }
 
     open() {
@@ -960,11 +985,13 @@ export class ChatAppearanceManager {
         this.modalIdentity = identity;
         this.renderModal();
         showModalShell(this.root);
+        this.syncCardPanelMode();
         return true;
     }
 
     close({ immediate = false } = {}) {
         if (!this.root || this.root.hidden) return;
+        document.body?.classList.remove('nt-chat-appearance-side-panel-open');
         hideModalShell(this.root, { immediate });
         this.modalIdentity = null;
     }
@@ -1211,6 +1238,10 @@ export class ChatAppearanceManager {
     }
 
     onModalClick(event) {
+        if (event.target.closest('[data-nt-chat-appearance-position-toggle]')) {
+            this.toggleCardPanelMode();
+            return;
+        }
         if (event.target.closest('[data-nt-chat-appearance-close]')) return this.close();
         const result = this.handleWorkspaceClick(event.target, 'card');
         if (result?.handled && result.rerender) this.renderModal();

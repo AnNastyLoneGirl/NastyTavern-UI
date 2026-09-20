@@ -31447,3 +31447,202 @@ body.mt-enabled .nt-chat-appearance-alpha-control input[type="number"]::-webkit-
 body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-alpha-control {
   grid-template-columns: auto minmax(82px, 1fr) 60px auto;
 }
+
+/* ========================================================================== */
+/* Individual Chat Appearance — desktop position switch + compact categories  */
+/* The side position mirrors the right-edge workspace used by native side     */
+/* panels while keeping the shared NastyTavern modal primitive as source of   */
+/* truth. Mobile keeps the regular modal presentation.                         */
+/* ========================================================================== */
+@media (min-width: 901px) {
+  body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-position-toggle {
+    appearance: none;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--mt-border);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .018);
+    color: var(--mt-text-3);
+    cursor: pointer;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-position-toggle:hover,
+  body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-position-toggle.is-active {
+    color: var(--mt-text);
+    border-color: color-mix(in srgb, var(--mt-accent) 42%, var(--mt-border));
+    background: color-mix(in srgb, var(--mt-accent) 9%, var(--mt-surface-2));
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-position-toggle:focus-visible {
+    outline: 2px solid var(--mt-accent);
+    outline-offset: 2px;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-position-toggle svg {
+    width: 17px;
+    height: 17px;
+    fill: currentColor;
+  }
+
+  /* Category navigation becomes the third tab level on desktop. */
+  body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-editor {
+    display: block;
+    min-width: 0;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-category-nav {
+    position: static;
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    min-width: 0;
+    margin: 0 0 8px;
+    padding: 0 0 5px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-bottom: 1px solid var(--mt-border);
+    scrollbar-width: thin;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-category {
+    flex: 0 0 auto;
+    min-height: 32px;
+    grid-template-columns: auto auto;
+    padding: 5px 9px;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-category > span:first-child {
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  /* Right-edge panel presentation. The root stays non-blocking so the chat
+     remains usable while the editor is open. */
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel {
+    align-items: stretch;
+    justify-content: flex-end;
+    padding: calc(var(--mt-workspace-top) + var(--nt-page-gutter)) var(--nt-page-gutter) var(--nt-page-gutter) 0;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel > .nt-modal-backdrop {
+    display: none;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel > .nt-modal-shell {
+    --nt-modal-shell-height: auto;
+    --nt-modal-shell-max-width: none;
+    width: var(--nt-native-side-panel-width);
+    max-width: calc(100vw - var(--mt-workspace-left) - (var(--nt-page-gutter) * 2));
+    height: auto;
+    max-height: none;
+    margin: 0;
+    border-radius: var(--mt-radius);
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-modal-header {
+    padding-inline: 12px;
+    gap: 8px;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-modal-heading {
+    gap: 8px;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-modal-heading-copy > small {
+    display: none;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-modal-opacity-control {
+    width: 132px;
+    grid-template-columns: 16px minmax(42px, 1fr) 34px;
+    gap: 5px;
+    padding-inline: 6px;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-body {
+    padding: 12px;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-workspace {
+    gap: 9px;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-overview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-overview-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-preset-manager {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-preset-status {
+    grid-column: 1 / 2;
+    grid-row: 2;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-preset-actions {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-category-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-category-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-category-controls .nt-pref-setting-row {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-number-control,
+  body.mt-enabled #nt-chat-appearance-modal.is-side-panel .nt-chat-appearance-color-control {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Side-panel mode participates in the same desktop workspace contract as
+     Author's Note and Moonlit panels: reserve the panel width instead of
+     covering the chat. */
+  body.mt-enabled:not(.movingUI).nt-chat-appearance-side-panel-open #sheld {
+    padding-right: calc(var(--nt-native-side-panel-width) + (var(--nt-page-gutter) * 2));
+  }
+
+  body.mt-enabled.nt-chat-appearance-side-panel-open #send_form {
+    left: calc((100vw + var(--mt-workspace-left) - var(--nt-native-side-panel-width) - (var(--nt-page-gutter) * 2)) / 2) !important;
+    width: min(
+      calc(100vw - var(--mt-workspace-left) - var(--nt-native-side-panel-width) - (var(--nt-page-gutter) * 2) - 64px),
+      calc(var(--nt-chat-inline-size) - 28px)
+    ) !important;
+  }
+
+  body.mt-enabled.nt-chat-appearance-side-panel-open #nt-chat-toolbar {
+    right: calc(var(--nt-native-side-panel-width) + (var(--nt-page-gutter) * 2));
+  }
+}
+
+@media (max-width: 900px) {
+  body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-position-toggle {
+    display: none;
+  }
+}
