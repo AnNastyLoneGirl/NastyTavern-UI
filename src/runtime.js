@@ -4015,7 +4015,7 @@ export class NastyTavern {
         data.personality = value('#personality_textarea');
         data.scenario = value('#scenario_pole');
         data.first_mes = value('#firstmessage_textarea');
-        data.mes_example = this.serializeCharacterDialogueExamples(
+        data.mes_example = this.syncCharacterDialogueExamplesField() || this.serializeCharacterDialogueExamples(
             Array.isArray(this.characterDialogueExamplesDraft)
                 ? this.characterDialogueExamplesDraft
                 : this.parseCharacterDialogueExamples(value('#mes_example_textarea'))
@@ -5264,6 +5264,26 @@ export class NastyTavern {
             .join('\n');
     }
 
+    syncCharacterDialogueExamplesField({ notify = false } = {}) {
+        const field = this.characterDialogueExamplesField();
+        if (!(field instanceof HTMLTextAreaElement)) return '';
+
+        const examples = Array.isArray(this.characterDialogueExamplesDraft)
+            ? this.characterDialogueExamplesDraft
+            : this.parseCharacterDialogueExamples(field.value);
+        const serialized = this.serializeCharacterDialogueExamples(examples);
+        const changed = field.value !== serialized;
+        if (changed) field.value = serialized;
+
+        // Keep SillyTavern's native field as the source of truth even though the
+        // NastyTavern editor presents each example separately. This is important
+        // for both native create submission and Edit Character live-save.
+        if (notify && (changed || notify === 'change')) {
+            field.dispatchEvent(new Event(notify === 'change' ? 'change' : 'input', { bubbles: true }));
+        }
+        return serialized;
+    }
+
     characterCreateSelectedTagNames(panel) {
         const tagList = panel?.querySelector('#tagList');
         if (!tagList) return [];
@@ -5322,7 +5342,9 @@ export class NastyTavern {
             const examples = Array.isArray(this.characterDialogueExamplesDraft)
                 ? this.characterDialogueExamplesDraft
                 : this.parseCharacterDialogueExamples(nativeExamples);
-            formData.set('mes_example', this.serializeCharacterDialogueExamples(examples));
+            const serializedExamples = this.syncCharacterDialogueExamplesField()
+                || this.serializeCharacterDialogueExamples(examples);
+            formData.set('mes_example', serializedExamples);
 
             // Mirror the selected library tags into the native character-card tags field.
             const selectedTags = this.characterCreateSelectedTagNames(panel);
@@ -5352,7 +5374,7 @@ export class NastyTavern {
             jsonData.data.nt_description = String(description);
             jsonData.data.nt_contexte = String(context);
             jsonData.data.tags = [...selectedTags];
-            jsonData.data.mes_example = this.serializeCharacterDialogueExamples(examples);
+            jsonData.data.mes_example = serializedExamples;
 
             jsonData.nt_uuid = pendingNtUuid;
             jsonData.nt_creator = ntCreator || 'unknown';
@@ -5448,6 +5470,7 @@ export class NastyTavern {
         const popup = this.characterDialogueExamplesPopup;
         this.characterDialogueExamplesPopup = null;
         if (!popup) return;
+        this.syncCharacterDialogueExamplesField({ notify: 'change' });
         try { void popup.completeCancelled?.(); } catch { /* SillyTavern may already be closing it. */ }
     }
 
@@ -5515,6 +5538,7 @@ export class NastyTavern {
 
         const addExample = () => {
             examples.push('');
+            this.syncCharacterDialogueExamplesField({ notify: 'change' });
             render();
             requestAnimationFrame(() => list?.querySelector('[data-nt-dialogue-example-row]:last-child [data-nt-dialogue-example-input]')?.focus?.());
         };
@@ -5525,6 +5549,7 @@ export class NastyTavern {
             const index = Number(textarea.dataset.ntDialogueExampleInput);
             if (!Number.isInteger(index) || index < 0 || index >= examples.length) return;
             examples[index] = textarea.value;
+            this.syncCharacterDialogueExamplesField({ notify: 'input' });
         });
         content.addEventListener('click', event => {
             const add = event.target.closest?.('[data-nt-dialogue-example-add]');
@@ -5539,6 +5564,7 @@ export class NastyTavern {
             const index = Number(remove.dataset.ntDialogueExampleRemove);
             if (!Number.isInteger(index) || index < 0 || index >= examples.length) return;
             examples.splice(index, 1);
+            this.syncCharacterDialogueExamplesField({ notify: 'change' });
             render();
         });
 
@@ -5549,6 +5575,7 @@ export class NastyTavern {
             large: true,
             allowVerticalScrolling: true,
             onClose: async () => {
+                this.syncCharacterDialogueExamplesField({ notify: 'change' });
                 if (this.characterDialogueExamplesPopup === popup) this.characterDialogueExamplesPopup = null;
             },
         };
