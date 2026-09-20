@@ -24,6 +24,7 @@ Update focused on global and per-character Chat Appearance, plus mobile Lorebook
 
 - Fixed side-avatar and long-message layout issues that could cause text overlap with Nasty Veil, Nasty Edge, or Nasty Banner presentation modes.
 - Fixed **World Info Gallery / Lorebooks** on mobile so the workspace keeps the NastyTavern navigation visible, initializes correctly in portrait, and supports vertical touch scrolling without requiring an orientation change.
+- Fixed Example Dialogue handling in Create Character and Edit Character, restoring proper formatting and saving of example dialogues.
 
 ---
 
