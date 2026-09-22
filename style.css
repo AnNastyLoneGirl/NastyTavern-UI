@@ -17520,8 +17520,27 @@ body.mt-enabled .mt-settings-native-host[data-mt-settings-section="models"] #rm_
 
 /* Prompt keeps its useful multi-column sampler layout while sharing the same */
 /* typography, controls, separators and surface treatment as every section.   */
-body.mt-enabled .mt-settings-native-host[data-mt-settings-section="prompts"] #left-nav-panel {
+/*
+ * #left-nav-panel is normally a SillyTavern drawer and therefore carries its
+ * own viewport/drawer width. Once it is mounted inside NastyTavern Settings,
+ * that width must no longer participate in layout. Without this reset, themes
+ * or user layouts that make the native drawer narrow can collapse Prompt into
+ * a thin column while the rest of the Settings workspace stays empty.
+ */
+body.mt-enabled .mt-settings-native-host[data-mt-settings-section="prompts"] > #left-nav-panel.nt-settings-native-mounted {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: 1 1 auto !important;
+  align-self: stretch;
+  box-sizing: border-box;
+  margin: 0 !important;
   background: transparent !important;
+}
+
+body.mt-enabled .mt-settings-native-host[data-mt-settings-section="prompts"] > #left-nav-panel.nt-settings-native-mounted > :not(.mt-workspace-chrome) {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* The native workspace chrome is redundant because the modal owns navigation. */
