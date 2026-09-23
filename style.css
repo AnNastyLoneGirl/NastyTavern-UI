@@ -31845,3 +31845,52 @@ body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-alpha-
     max-width: 100%;
   }
 }
+/* Mobile bulk message deletion ------------------------------------------------
+   SillyTavern replaces #send_form with #dialogue_del_mes while bulk-delete
+   mode is active. NastyTavern fixes the composer to the viewport on phones,
+   so the native delete controls need the same viewport anchoring or they remain
+   in #form_sheld below the scrollable chat and appear to be missing. Keep the
+   native controls/handlers; only restore compatible geometry. */
+@media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px) {
+  body.mt-enabled #dialogue_del_mes {
+    position: fixed;
+    left: calc(var(--mt-nav-width) + 8px);
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    width: auto;
+    min-height: 52px;
+    margin: 0;
+    padding: 6px;
+    box-sizing: border-box;
+    z-index: 3995;
+    text-align: right;
+    border: 1px solid var(--mt-border);
+    border-radius: 14px;
+    background: var(--mt-bg-soft);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .24);
+    pointer-events: auto;
+  }
+
+  body.mt-enabled #dialogue_del_mes > .menu_button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    margin: 0 0 0 6px;
+    vertical-align: middle;
+    touch-action: manipulation;
+  }
+
+  /* The native deletion checkbox is a direct child of .mes. In the structured
+     phone grid, keeping it in normal flow creates an implicit grid cell and can
+     shift the avatar/header. Overlay it instead while SillyTavern controls its
+     display state. */
+  body.mt-enabled #chat .mes.nt-mobile-message-structured > .del_checkbox {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 12;
+    margin: 0;
+  }
+}
+

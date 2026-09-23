@@ -24,6 +24,7 @@ Update focused on global and per-character Chat Appearance, plus mobile Lorebook
 
 ### Fixed
 
+- Fixed mobile **Delete messages** mode so SillyTavern's native Delete/Cancel controls stay visible and selection checkboxes no longer disrupt the phone message layout.
 - Fixed the mobile chat composer so multiline input dynamically reserves its actual height in the chat scroll area, keeping the latest message lines visible as the composer expands.
 - Fixed mobile message editing so SillyTavern's native confirm, cancel, copy, delete, and move controls stay visible and functional in a compact in-flow toolbar that no longer overlaps the avatar.
 - Fixed the NastyTavern **Settings → Prompt** workspace so SillyTavern drawer width rules can no longer collapse its content into a narrow column.
