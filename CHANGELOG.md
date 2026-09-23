@@ -18,7 +18,7 @@ Update focused on global and per-character Chat Appearance, plus mobile Lorebook
 ### Changed
 
 - Message edit **Confirm** and **Delete** actions now use semantic success (green) and danger (red) colors consistently across desktop, tablet, and mobile layouts.
-- Restyled the entire chat input composer with NastyTavern surfaces and dynamic accent colors, including the textarea plus all left/right native or extension-injected controls.
+- Restyled the entire chat input composer with a cooler NastyTavern surface, frameless action buttons, and consistent dynamic accent coloring across native and extension controls.
 - Chat Appearance now follows native SillyTavern styling whenever no explicit NastyTavern override is set.
 - Improved Chat Appearance responsiveness, control performance, and scroll preservation across desktop, tablet, split-screen, and mobile layouts.
 

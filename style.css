@@ -393,19 +393,19 @@ body.mt-enabled #send_form {
   bottom: 18px;
   min-height: 58px;
   padding: 7px;
-  border: 1px solid color-mix(in srgb,var(--mt-accent) 34%,var(--mt-border-strong));
+  border: 1px solid color-mix(in srgb,var(--mt-accent) 18%,var(--mt-border-strong));
   border-radius: 18px;
-  background: color-mix(in srgb,var(--mt-accent) 7%,var(--mt-surface-2));
+  background: color-mix(in srgb,var(--mt-accent) 5%,var(--mt-bg-soft));
   color: var(--mt-text);
   backdrop-filter: none;
-  box-shadow: 0 10px 28px rgba(0,0,0,.28);
+  box-shadow: 0 8px 22px rgba(0,0,0,.24);
   z-index: 2900!important;
 }
 
 body.mt-enabled #send_form:focus-within {
-  border-color: color-mix(in srgb,var(--mt-accent) 62%,var(--mt-border-strong));
-  background: color-mix(in srgb,var(--mt-accent) 9%,var(--mt-surface-2));
-  box-shadow: 0 10px 28px rgba(0,0,0,.28), 0 0 0 2px color-mix(in srgb,var(--mt-accent) 10%,transparent);
+  border-color: color-mix(in srgb,var(--mt-accent) 48%,var(--mt-border-strong));
+  background: color-mix(in srgb,var(--mt-accent) 8%,var(--mt-bg-soft));
+  box-shadow: 0 8px 22px rgba(0,0,0,.24), 0 0 0 1px color-mix(in srgb,var(--mt-accent) 12%,transparent);
 }
 
 body.mt-enabled #send_form #nonQRFormItems {
@@ -441,13 +441,24 @@ body.mt-enabled #send_form #leftSendForm > *,
 body.mt-enabled #send_form #rightSendForm > *,
 body.mt-enabled #send_form .menu_button,
 body.mt-enabled #send_form .interactable {
-  border: 1px solid color-mix(in srgb,var(--mt-accent) 18%,transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb,var(--mt-accent) 8%,transparent);
-  color: color-mix(in srgb,var(--mt-accent) 72%,var(--mt-text-2));
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mt-accent);
   box-shadow: none;
+  outline: 0;
   opacity: 1;
-  transition: color .15s ease, background .15s ease, border-color .15s ease;
+  transition: color .15s ease, background .15s ease;
+}
+
+body.mt-enabled #send_form #leftSendForm > * :is(i,span),
+body.mt-enabled #send_form #rightSendForm > * :is(i,span) {
+  color: inherit;
+}
+
+body.mt-enabled #send_form #leftSendForm > * svg,
+body.mt-enabled #send_form #rightSendForm > * svg {
+  color: inherit;
 }
 
 body.mt-enabled #send_form #leftSendForm > *:hover,
@@ -458,20 +469,26 @@ body.mt-enabled #send_form .menu_button:hover,
 body.mt-enabled #send_form .menu_button:focus-visible,
 body.mt-enabled #send_form .interactable:hover,
 body.mt-enabled #send_form .interactable:focus-visible {
-  border-color: color-mix(in srgb,var(--mt-accent) 38%,transparent);
-  background: color-mix(in srgb,var(--mt-accent) 14%,transparent);
+  border: 0;
+  background: color-mix(in srgb,var(--mt-accent) 10%,transparent);
   color: var(--mt-accent);
+  outline: none;
   filter: none;
 }
 
 body.mt-enabled #send_form :is(#send_but,#send_button) {
-  border-color: color-mix(in srgb,var(--mt-accent) 46%,transparent);
-  background: color-mix(in srgb,var(--mt-accent) 20%,transparent);
+  border: 0;
+  background: transparent;
   color: var(--mt-accent);
 }
 
+body.mt-enabled #send_form :is(#send_but,#send_button):hover,
+body.mt-enabled #send_form :is(#send_but,#send_button):focus-visible {
+  background: color-mix(in srgb,var(--mt-accent) 28%,transparent);
+}
+
 body.mt-enabled #send_form :is(#mes_stop,.stscript_stop) {
-  border-color: color-mix(in srgb,var(--mt-danger) 34%,transparent);
+  border: 0;
   background: color-mix(in srgb,var(--mt-danger) 12%,transparent);
   color: var(--mt-danger);
 }
@@ -1753,10 +1770,10 @@ body.mt-enabled #nt-variable-manager-button {
   min-height: 34px;
   margin: 0;
   padding: 7px;
-  border: 1px solid color-mix(in srgb,var(--mt-accent) 18%,transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb,var(--mt-accent) 8%,transparent);
-  color: color-mix(in srgb,var(--mt-accent) 72%,var(--mt-text-2));
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mt-text-2);
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -1766,8 +1783,8 @@ body.mt-enabled #nt-variable-manager-button {
 
 body.mt-enabled #nt-variable-manager-button:hover,
 body.mt-enabled.nt-variables-open #nt-variable-manager-button {
-  border-color: color-mix(in srgb,var(--mt-accent) 38%,transparent);
-  background: color-mix(in srgb,var(--mt-accent) 14%,transparent);
+  border: 0;
+  background: color-mix(in srgb,var(--mt-accent) 10%,transparent);
   color: var(--mt-accent);
 }
 
