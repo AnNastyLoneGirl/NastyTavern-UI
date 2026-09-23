@@ -116,6 +116,9 @@ export class NastyTavern {
         this.observer = null;
         this.nativeSidePanelObserver = null;
         this.nativeSidePanelResizeObserver = null;
+        this.mobileComposerResizeObserver = null;
+        this.mobileComposerResizeTarget = null;
+        this.mobileComposerInset = 0;
         this.nativeSidePanels = new Set();
         this.interval = null;
         this.boundKeydown = e => this.onKeyDown(e);
@@ -129,7 +132,7 @@ export class NastyTavern {
         this.worldInfoGalleryRefreshTimers = [];
         this.mobileNavMedia = window.matchMedia?.('(max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px)') || null;
         this.openAiModulePromise = null;
-        this.boundResponsiveNavChange = () => { this.syncResponsiveNavMode(); this.syncMobileChatMessageBlocks(); };
+        this.boundResponsiveNavChange = () => { this.syncResponsiveNavMode(); this.syncMobileChatMessageBlocks(); this.setupMobileComposerInset(); };
         this.chatCharacterContextTranslation = { source: '', expanded: '', translationSource: '', translationKey: '', translated: '', shown: false, translating: false, manualOriginal: false };
         this.characterWorkspaceRoot = null;
         this.characterWorkspaceState = null;
@@ -272,6 +275,10 @@ export class NastyTavern {
         this.observer?.disconnect(); this.observer = null;
         this.nativeSidePanelObserver?.disconnect(); this.nativeSidePanelObserver = null;
         this.nativeSidePanelResizeObserver?.disconnect(); this.nativeSidePanelResizeObserver = null;
+        this.mobileComposerResizeObserver?.disconnect(); this.mobileComposerResizeObserver = null;
+        this.mobileComposerResizeTarget = null;
+        this.mobileComposerInset = 0;
+        document.documentElement.style.removeProperty('--nt-mobile-composer-inset');
         this.nativeSidePanels.forEach(panel => {
             panel?.classList?.remove('nt-native-side-panel', 'nt-authors-note-panel', 'nt-cfg-scale-panel', 'nt-token-probability-panel', 'nt-moonlit-echoes-panel', 'nt-third-party-side-panel');
             panel?.querySelector?.('.nt-native-side-panel-header')?.classList?.remove('nt-native-side-panel-header');
@@ -458,17 +465,138 @@ export class NastyTavern {
         if (chat) chat.classList.add('mt-chat-surface');
         const form = this.dom.first('sendForm');
         if (form) form.classList.add('mt-composer');
+        this.setupMobileComposerInset(form);
         document.querySelectorAll('#chat .mes').forEach(mes => mes.classList.add('mt-message'));
         this.syncMobileChatMessageBlocks();
         this.syncChatCharacterContext();
     }
 
+    setupMobileComposerInset(form = this.dom.first('sendForm')) {
+        const root = document.documentElement;
+        const useMobileComposerLayout = Boolean(this.mobileNavMedia?.matches);
+
+        if (!useMobileComposerLayout || !(form instanceof HTMLElement)) {
+            this.mobileComposerResizeObserver?.disconnect();
+            this.mobileComposerResizeTarget = null;
+            this.mobileComposerInset = 0;
+            root.style.removeProperty('--nt-mobile-composer-inset');
+            return;
+        }
+
+        if (typeof ResizeObserver !== 'function') {
+            this.syncMobileComposerInset(form);
+            return;
+        }
+
+        if (!this.mobileComposerResizeObserver) {
+            this.mobileComposerResizeObserver = new ResizeObserver(entries => {
+                const target = entries.find(entry => entry.target === this.mobileComposerResizeTarget)?.target || this.mobileComposerResizeTarget;
+                if (target instanceof HTMLElement) this.syncMobileComposerInset(target);
+            });
+        }
+
+        if (this.mobileComposerResizeTarget !== form) {
+            this.mobileComposerResizeObserver.disconnect();
+            this.mobileComposerResizeTarget = form;
+            this.mobileComposerResizeObserver.observe(form);
+        }
+
+        this.syncMobileComposerInset(form);
+    }
+
+    syncMobileComposerInset(form = this.mobileComposerResizeTarget) {
+        if (!this.mobileNavMedia?.matches || !(form instanceof HTMLElement) || !form.isConnected) return;
+
+        const chat = this.dom.first('chat');
+        const previousInset = this.mobileComposerInset || 0;
+        const viewportHeight = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0;
+        const rect = form.getBoundingClientRect();
+        const bottomGap = Math.max(0, viewportHeight - rect.bottom);
+        const nextInset = Math.ceil(rect.height + bottomGap + 12);
+        if (!Number.isFinite(nextInset) || nextInset <= 0 || Math.abs(nextInset - previousInset) < 1) return;
+
+        const wasNearBottom = chat instanceof HTMLElement
+            ? (chat.scrollHeight - chat.clientHeight - chat.scrollTop) <= Math.max(56, previousInset + 24)
+            : false;
+
+        this.mobileComposerInset = nextInset;
+        document.documentElement.style.setProperty('--nt-mobile-composer-inset', `${nextInset}px`);
+
+        if (wasNearBottom && chat instanceof HTMLElement && nextInset > previousInset) {
+            requestAnimationFrame(() => {
+                if (!chat.isConnected) return;
+                chat.scrollTop = chat.scrollHeight;
+            });
+        }
+    }
+
     syncMobileChatMessageBlocks() {
         const useStructuredMobileLayout = Boolean(this.mobileNavMedia?.matches);
         document.querySelectorAll('#chat .mes:not(.smallSysMes)').forEach(message => {
+            const isEditingMessage = Boolean(message.querySelector('.edit_textarea'));
+
+            if (useStructuredMobileLayout && isEditingMessage) {
+                this.prepareMobileMessageEditor(message);
+                return;
+            }
+
+            this.cleanupMobileMessageEditor(message);
             if (useStructuredMobileLayout) this.ensureMobileChatMessageBlocks(message);
             else this.restoreMobileChatMessageBlocks(message);
         });
+    }
+
+    prepareMobileMessageEditor(message) {
+        if (!(message instanceof HTMLElement)) return;
+
+        // SillyTavern's editor searches inside .mes_block for both the normal
+        // message actions and .mes_edit_buttons. The regular NastyTavern phone
+        // layout moves .ch_name (which owns those actions) into a sibling header.
+        // Restore that native contract first, then give the *native* edit buttons
+        // a dedicated in-flow toolbar inside .mes_block. Moving the original
+        // buttons keeps SillyTavern's own handlers and state as the source of truth.
+        this.restoreMobileChatMessageBlocks(message);
+        const block = message.querySelector(':scope > .mes_block');
+        if (!(block instanceof HTMLElement)) return;
+
+        const editButtons = message.querySelector('.mes_edit_buttons');
+        const messageButtons = message.querySelector('.mes_buttons');
+        if (!(editButtons instanceof HTMLElement)) return;
+
+        let toolbar = block.querySelector(':scope > .nt-mobile-message-edit-toolbar');
+        if (!(toolbar instanceof HTMLElement)) {
+            toolbar = document.createElement('div');
+            toolbar.className = 'nt-mobile-message-edit-toolbar';
+            toolbar.dataset.ntMobileMessageBlock = 'edit-toolbar';
+            const anchor = block.querySelector(':scope > .mes_reasoning_details, :scope > .mes_text');
+            block.insertBefore(toolbar, anchor || null);
+        }
+        if (editButtons.parentElement !== toolbar) toolbar.append(editButtons);
+
+        message.classList.add('nt-mobile-message-editing');
+        editButtons.style.display = 'inline-flex';
+        if (messageButtons instanceof HTMLElement) messageButtons.style.display = 'none';
+    }
+
+    cleanupMobileMessageEditor(message) {
+        if (!(message instanceof HTMLElement)) return;
+        const toolbar = message.querySelector(':scope > .mes_block > .nt-mobile-message-edit-toolbar');
+        if (!(toolbar instanceof HTMLElement) && !message.classList.contains('nt-mobile-message-editing')) return;
+
+        const block = message.querySelector(':scope > .mes_block');
+        const nativeHeader = block?.querySelector(':scope > .ch_name') || message.querySelector('.ch_name');
+        const editButtons = toolbar?.querySelector(':scope > .mes_edit_buttons') || message.querySelector('.mes_edit_buttons');
+        const messageButtons = message.querySelector('.mes_buttons');
+
+        if (nativeHeader instanceof HTMLElement && editButtons instanceof HTMLElement && editButtons.parentElement !== nativeHeader) {
+            if (messageButtons instanceof HTMLElement && messageButtons.parentElement === nativeHeader) messageButtons.after(editButtons);
+            else nativeHeader.append(editButtons);
+        }
+
+        if (editButtons instanceof HTMLElement) editButtons.style.removeProperty('display');
+        if (messageButtons instanceof HTMLElement) messageButtons.style.removeProperty('display');
+        toolbar?.remove();
+        message.classList.remove('nt-mobile-message-editing');
     }
 
     ensureMobileChatMessageBlocks(message) {
@@ -1303,6 +1431,25 @@ export class NastyTavern {
 
     onDocumentClick(event) {
         const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+
+        // Prepare the native SillyTavern editor before its delegated click
+        // handler runs. On phones the normal NastyTavern layout reparents .ch_name;
+        // the editor instead needs its native actions inside .mes_block.
+        if (this.mobileNavMedia?.matches) {
+            const editTrigger = target?.closest?.('#chat .mes_edit');
+            const message = editTrigger?.closest?.('.mes');
+            if (message instanceof HTMLElement) {
+                this.prepareMobileMessageEditor(message);
+                queueMicrotask(() => {
+                    if (message.querySelector('.edit_textarea')) this.prepareMobileMessageEditor(message);
+                    else {
+                        this.cleanupMobileMessageEditor(message);
+                        this.ensureMobileChatMessageBlocks(message);
+                    }
+                });
+            }
+        }
+
         if (performance.now() < this.worldInfoTouchSuppressClickUntil && this.worldInfoGalleryTouchSurface(target)) {
             event.preventDefault();
             event.stopImmediatePropagation();

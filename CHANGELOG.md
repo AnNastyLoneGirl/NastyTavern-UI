@@ -17,11 +17,15 @@ Update focused on global and per-character Chat Appearance, plus mobile Lorebook
 
 ### Changed
 
+- Message edit **Confirm** and **Delete** actions now use semantic success (green) and danger (red) colors consistently across desktop, tablet, and mobile layouts.
+- Restyled the entire chat input composer with NastyTavern surfaces and dynamic accent colors, including the textarea plus all left/right native or extension-injected controls.
 - Chat Appearance now follows native SillyTavern styling whenever no explicit NastyTavern override is set.
 - Improved Chat Appearance responsiveness, control performance, and scroll preservation across desktop, tablet, split-screen, and mobile layouts.
 
 ### Fixed
 
+- Fixed the mobile chat composer so multiline input dynamically reserves its actual height in the chat scroll area, keeping the latest message lines visible as the composer expands.
+- Fixed mobile message editing so SillyTavern's native confirm, cancel, copy, delete, and move controls stay visible and functional in a compact in-flow toolbar that no longer overlaps the avatar.
 - Fixed the NastyTavern **Settings → Prompt** workspace so SillyTavern drawer width rules can no longer collapse its content into a narrow column.
 - Fixed side-avatar and long-message layout issues that could cause text overlap with Nasty Veil, Nasty Edge, or Nasty Banner presentation modes.
 - Fixed **World Info Gallery / Lorebooks** on mobile so the workspace keeps the NastyTavern navigation visible, initializes correctly in portrait, and supports vertical touch scrolling without requiring an orientation change.

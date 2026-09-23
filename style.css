@@ -393,12 +393,24 @@ body.mt-enabled #send_form {
   bottom: 18px;
   min-height: 58px;
   padding: 7px;
-  border: 1px solid var(--mt-border-strong);
+  border: 1px solid color-mix(in srgb,var(--mt-accent) 34%,var(--mt-border-strong));
   border-radius: 18px;
-  background: rgba(20,23,31,.94);
+  background: color-mix(in srgb,var(--mt-accent) 7%,var(--mt-surface-2));
+  color: var(--mt-text);
   backdrop-filter: none;
   box-shadow: 0 10px 28px rgba(0,0,0,.28);
   z-index: 2900!important;
+}
+
+body.mt-enabled #send_form:focus-within {
+  border-color: color-mix(in srgb,var(--mt-accent) 62%,var(--mt-border-strong));
+  background: color-mix(in srgb,var(--mt-accent) 9%,var(--mt-surface-2));
+  box-shadow: 0 10px 28px rgba(0,0,0,.28), 0 0 0 2px color-mix(in srgb,var(--mt-accent) 10%,transparent);
+}
+
+body.mt-enabled #send_form #nonQRFormItems {
+  background: transparent;
+  color: var(--mt-text);
 }
 
 body.mt-enabled #send_textarea {
@@ -409,6 +421,7 @@ body.mt-enabled #send_textarea {
   box-shadow: none;
   padding: 10px 10px;
   color: var(--mt-text);
+  caret-color: var(--mt-accent);
   resize: none!important;
 }
 
@@ -416,8 +429,51 @@ body.mt-enabled #send_textarea:focus {
   outline: none;
 }
 
-body.mt-enabled #send_form .menu_button, body.mt-enabled #send_form .interactable {
+body.mt-enabled #send_textarea::placeholder {
+  color: var(--mt-text-3);
+  opacity: 1;
+}
+
+/* SillyTavern and extensions can inject controls directly into left/right
+   composer slots without .menu_button/.interactable. Style the slots rather
+   than a small class subset so every visible composer action follows NTUI. */
+body.mt-enabled #send_form #leftSendForm > *,
+body.mt-enabled #send_form #rightSendForm > *,
+body.mt-enabled #send_form .menu_button,
+body.mt-enabled #send_form .interactable {
+  border: 1px solid color-mix(in srgb,var(--mt-accent) 18%,transparent);
   border-radius: 10px;
+  background: color-mix(in srgb,var(--mt-accent) 8%,transparent);
+  color: color-mix(in srgb,var(--mt-accent) 72%,var(--mt-text-2));
+  box-shadow: none;
+  opacity: 1;
+  transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+
+body.mt-enabled #send_form #leftSendForm > *:hover,
+body.mt-enabled #send_form #leftSendForm > *:focus-visible,
+body.mt-enabled #send_form #rightSendForm > *:hover,
+body.mt-enabled #send_form #rightSendForm > *:focus-visible,
+body.mt-enabled #send_form .menu_button:hover,
+body.mt-enabled #send_form .menu_button:focus-visible,
+body.mt-enabled #send_form .interactable:hover,
+body.mt-enabled #send_form .interactable:focus-visible {
+  border-color: color-mix(in srgb,var(--mt-accent) 38%,transparent);
+  background: color-mix(in srgb,var(--mt-accent) 14%,transparent);
+  color: var(--mt-accent);
+  filter: none;
+}
+
+body.mt-enabled #send_form :is(#send_but,#send_button) {
+  border-color: color-mix(in srgb,var(--mt-accent) 46%,transparent);
+  background: color-mix(in srgb,var(--mt-accent) 20%,transparent);
+  color: var(--mt-accent);
+}
+
+body.mt-enabled #send_form :is(#mes_stop,.stscript_stop) {
+  border-color: color-mix(in srgb,var(--mt-danger) 34%,transparent);
+  background: color-mix(in srgb,var(--mt-danger) 12%,transparent);
+  color: var(--mt-danger);
 }
 
 body.mt-enabled #chat .mes {
@@ -703,6 +759,34 @@ body.mt-enabled .menu_button:hover{
 
 body.mt-enabled .menu_button:active {
   transform: translateY(1px);
+}
+
+/* Message edit actions use semantic colors consistently at every viewport size.
+   Success/danger remain independent from the user-selected NastyTavern accent. */
+body.mt-enabled #chat .mes_edit_buttons > .mes_edit_done.menu_button {
+  color: color-mix(in srgb, var(--mt-success) 88%, var(--mt-text));
+  border-color: color-mix(in srgb, var(--mt-success) 38%, var(--mt-border));
+  background: color-mix(in srgb, var(--mt-success) 14%, var(--mt-surface-2));
+}
+
+body.mt-enabled #chat .mes_edit_buttons > .mes_edit_done.menu_button:hover,
+body.mt-enabled #chat .mes_edit_buttons > .mes_edit_done.menu_button:focus-visible {
+  color: color-mix(in srgb, var(--mt-success) 94%, white);
+  border-color: color-mix(in srgb, var(--mt-success) 58%, var(--mt-border));
+  background: color-mix(in srgb, var(--mt-success) 22%, var(--mt-surface-2));
+}
+
+body.mt-enabled #chat .mes_edit_buttons > .mes_edit_delete.menu_button {
+  color: color-mix(in srgb, var(--mt-danger) 88%, var(--mt-text));
+  border-color: color-mix(in srgb, var(--mt-danger) 38%, var(--mt-border));
+  background: color-mix(in srgb, var(--mt-danger) 14%, var(--mt-surface-2));
+}
+
+body.mt-enabled #chat .mes_edit_buttons > .mes_edit_delete.menu_button:hover,
+body.mt-enabled #chat .mes_edit_buttons > .mes_edit_delete.menu_button:focus-visible {
+  color: color-mix(in srgb, var(--mt-danger) 94%, white);
+  border-color: color-mix(in srgb, var(--mt-danger) 58%, var(--mt-border));
+  background: color-mix(in srgb, var(--mt-danger) 22%, var(--mt-surface-2));
 }
 
 body.mt-enabled .inline-drawer.mt-inline-card {
@@ -1669,10 +1753,10 @@ body.mt-enabled #nt-variable-manager-button {
   min-height: 34px;
   margin: 0;
   padding: 7px;
-  border: 0;
+  border: 1px solid color-mix(in srgb,var(--mt-accent) 18%,transparent);
   border-radius: 10px;
-  background: transparent;
-  color: var(--mt-text-2);
+  background: color-mix(in srgb,var(--mt-accent) 8%,transparent);
+  color: color-mix(in srgb,var(--mt-accent) 72%,var(--mt-text-2));
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -1682,8 +1766,9 @@ body.mt-enabled #nt-variable-manager-button {
 
 body.mt-enabled #nt-variable-manager-button:hover,
 body.mt-enabled.nt-variables-open #nt-variable-manager-button {
-  background: color-mix(in srgb,var(--mt-accent) 14%,rgba(255,255,255,.04));
-  color: var(--mt-text);
+  border-color: color-mix(in srgb,var(--mt-accent) 38%,transparent);
+  background: color-mix(in srgb,var(--mt-accent) 14%,transparent);
+  color: var(--mt-accent);
 }
 
 body.mt-enabled #nt-variable-manager-button svg {
@@ -7271,8 +7356,8 @@ body.mt-enabled .nt-calendar-primary:focus-visible {
     width: 100%!important;
     max-width: none!important;
     margin: 0;
-    padding: 136px 7px 88px;
-    scroll-padding-bottom: 82px;
+    padding: 136px 7px max(88px,var(--nt-mobile-composer-inset,88px));
+    scroll-padding-bottom: max(82px,var(--nt-mobile-composer-inset,82px));
     scrollbar-gutter: auto;
   }
 
@@ -8024,8 +8109,8 @@ body.mt-focus-mode.mt-dock-panels .mt-native-panel {
     width: 100%!important;
     max-width: none!important;
     margin: 0;
-    padding: 84px 7px 68px;
-    scroll-padding-bottom: 64px;
+    padding: 84px 7px max(68px,var(--nt-mobile-composer-inset,68px));
+    scroll-padding-bottom: max(64px,var(--nt-mobile-composer-inset,64px));
     scrollbar-gutter: auto;
   }
 
@@ -31663,5 +31748,83 @@ body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-alpha-
 @media (max-width: 900px) {
   body.mt-enabled #nt-chat-appearance-modal .nt-chat-appearance-position-toggle {
     display: none;
+  }
+}
+
+/* Mobile message editing keeps SillyTavern's native controls and handlers,
+   but gives the edit actions their own in-flow row so they cannot disappear
+   when the normal phone header is reparented for the NastyTavern card layout. */
+@media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 1024px) {
+  body.mt-enabled #chat .mes.nt-mobile-message-editing > .mes_block {
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-editing > .mes_block > .ch_name {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-editing .mes_buttons {
+    display: none;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-editing .nt-mobile-message-edit-toolbar {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-end;
+    margin: 2px 0 7px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-editing .nt-mobile-message-edit-toolbar::-webkit-scrollbar,
+  body.mt-enabled #chat .mes.nt-mobile-message-editing .mes_edit_buttons::-webkit-scrollbar {
+    display: none;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-editing .nt-mobile-message-edit-toolbar > .mes_edit_buttons {
+    float: none;
+    display: inline-flex;
+    width: max-content;
+    min-width: max-content;
+    max-width: 100%;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 3px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  /* Keep the native edit actions compact enough to stay inside the message
+     content column beside the avatar. The original SillyTavern controls are
+     preserved; only their phone geometry is tightened. */
+  body.mt-enabled #chat .mes.nt-mobile-message-editing .nt-mobile-message-edit-toolbar > .mes_edit_buttons > .menu_button {
+    display: grid;
+    place-items: center;
+    flex: 0 0 28px;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    margin: 0;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  body.mt-enabled #chat .mes.nt-mobile-message-editing .edit_textarea {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 }
