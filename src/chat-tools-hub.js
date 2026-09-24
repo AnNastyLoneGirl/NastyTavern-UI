@@ -109,7 +109,21 @@ export class ChatToolsHub {
             }
             const header = toolRoot.querySelector(':scope > .nt-modal-shell > .nt-modal-header');
             const headerActions = header?.querySelector('.nt-modal-header-actions');
-            const actions = headerActions ? [...headerActions.querySelectorAll(':scope > :not(.nt-modal-close)')] : [];
+
+            // The hub owns the single top-level modal shell (including opacity).
+            // Embedded tools keep only their feature-specific header actions; carrying
+            // each child's shell-level opacity control into the stage duplicates the
+            // same control once per tool and makes it look like part of the tool UI.
+            const embeddedOpacityControl = headerActions?.querySelector(':scope > .nt-modal-opacity-control');
+            if (embeddedOpacityControl) {
+                embeddedOpacityControl.remove();
+                toolRoot._ntModalOpacityControl = null;
+                toolRoot.style.removeProperty('--nt-modal-window-opacity');
+                toolRoot.style.removeProperty('--nt-modal-backdrop-opacity');
+                delete toolRoot.dataset.ntModalOpacity;
+            }
+
+            const actions = headerActions ? [...headerActions.querySelectorAll(':scope > :not(.nt-modal-close):not(.nt-modal-opacity-control)')] : [];
             if (actions.length) {
                 const actionBar = document.createElement('div');
                 actionBar.className = 'nt-chat-tools-hub-pane-actions';

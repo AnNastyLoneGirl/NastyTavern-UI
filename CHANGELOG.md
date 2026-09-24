@@ -17,12 +17,16 @@ Update focused on global and per-character Chat Appearance, plus mobile Lorebook
 
 ### Changed
 
+- Unified all visible scrollbars under one NastyTavern primitive: consistent geometry, surface track, and dynamic accent-tinted thumb/hover states across native SillyTavern and NastyTavern workspaces, while preserving intentionally hidden compact tab-strip scrollbars.
+- Unified shared UI primitives across NastyTavern: equivalent checkboxes, radios, sliders, fields, selects, color/file inputs, focus/disabled states, Select2 controls, and other micro-controls now use one canonical design instead of feature-specific variants (including Calendar and Settings), while preserving SillyTavern behavior.
 - Message edit **Confirm** and **Delete** actions now use semantic success (green) and danger (red) colors consistently across desktop, tablet, and mobile layouts.
 - Restyled the entire chat input composer with a cooler NastyTavern surface, frameless action buttons, and consistent dynamic accent coloring across native and extension controls.
 - Chat Appearance now follows native SillyTavern styling whenever no explicit NastyTavern override is set.
 - Improved Chat Appearance responsiveness, control performance, and scroll preservation across desktop, tablet, split-screen, and mobile layouts.
 
 ### Fixed
+- Fixed shared checkbox and radio indicators so their checked marks are geometrically centered across all NastyTavern surfaces.
+- Fixed duplicate modal opacity controls appearing inside each embedded Chat Tools view; opacity now belongs only to the Chat Tools header.
 
 - Fixed mobile **Delete messages** mode so SillyTavern's native Delete/Cancel controls stay visible and selection checkboxes no longer disrupt the phone message layout.
 - Fixed the mobile chat composer so multiline input dynamically reserves its actual height in the chat scroll area, keeping the latest message lines visible as the composer expands.
