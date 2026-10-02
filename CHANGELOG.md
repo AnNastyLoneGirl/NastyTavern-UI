@@ -4,6 +4,21 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
+## v0.1.10
+
+Update focused on reducing Supabase egress and tightening Community network behavior without changing the Community feature set.
+
+### Performance
+
+- Reduced Supabase egress for shared Character Cards by generating compact local previews for new Community shares instead of loading the original multi-megabyte PNG as a thumbnail. Legacy shares without a preview keep a lightweight fallback until the user explicitly opens, imports, or downloads the resource.
+- Community Home requests are now coalesced and cached for 60 seconds instead of being repeatedly refreshed by broad background activity.
+- Community Realtime now follows the active UI lifecycle: channel subscriptions close with the Community panel, new messages and reactions update the active view incrementally, and typing broadcasts are sent only when typing state changes.
+- Nasty Catalogue now authorizes access through Supabase but fetches large binary files directly from Cloudflare R2 through short-lived signed URLs; Character Card tracking metadata is reconstructed locally in the browser. The older Supabase binary proxy remains only as a compatibility fallback.
+- Profile avatars are resized and compressed to WebP when supported before upload, reducing repeated Storage transfer while preserving animated GIFs.
+- Community Storage cleanup is queue-driven and scheduled hourly, avoiding unnecessary object scans when there is nothing to remove.
+
+---
+
 ## v0.1.9
 
 Update focused on global and per-character Chat Appearance, plus mobile Lorebook compatibility improvements.
@@ -22,15 +37,6 @@ Update focused on global and per-character Chat Appearance, plus mobile Lorebook
 - Restyled the entire chat input composer with a cooler NastyTavern surface, frameless action buttons, and consistent dynamic accent coloring across native and extension controls.
 - Chat Appearance now follows native SillyTavern styling whenever no explicit NastyTavern override is set.
 - Improved Chat Appearance responsiveness, control performance, and scroll preservation across desktop, tablet, split-screen, and mobile layouts.
-
-### Performance
-
-- Reduced Supabase egress for Community shared Character Cards by generating compact local image previews for new shares instead of loading the original multi-megabyte PNG as a thumbnail. Legacy shares without a preview now keep a lightweight fallback until the user explicitly opens/imports/downloads the resource.
-- Community Home data is now coalesced and cached with a short TTL instead of being refreshed repeatedly by broad background activity subscriptions.
-- Community Realtime is now scoped to active UI needs: channel subscriptions close with the Community panel, new messages and reactions update the active view incrementally, and typing broadcasts are sent only when typing state changes.
-- Nasty Catalogue imports/downloads now authorize through Supabase but fetch large binary files directly from Cloudflare R2, with Character Card tracking metadata injected locally in the browser. The older Supabase binary proxy remains only as a compatibility fallback.
-- Profile avatars are resized/compressed to WebP when supported before upload, reducing repeated Storage egress while preserving animated GIFs.
-- Community Storage cleanup is now queue-only and scheduled hourly, avoiding unnecessary object scans when there is nothing to remove.
 
 ### Fixed
 - Fixed shared checkbox and radio indicators so their checked marks are geometrically centered across all NastyTavern surfaces.
