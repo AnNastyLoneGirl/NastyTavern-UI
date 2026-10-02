@@ -4,6 +4,31 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
+## v0.1.11
+
+Update focused on completing the Community self-host migration and restoring previews for legacy shared Character Cards.
+
+### Fixed
+
+- Restored Character Card previews on **Home → Shared Cards** and inside **Community → Character Cards** for legacy shares owned by the signed-in user. Older shares without `preview_path` now self-repair once in the background: NastyTavern downloads the original PNG a single time, generates the same compact preview used by new shares, uploads it beside the resource, and persists the preview path in the message metadata. Subsequent Home/Community renders use only the compact preview.
+- Kept the lightweight fallback for legacy shares owned by other users, avoiding a return to repeated multi-megabyte thumbnail downloads when the current user cannot persist a repaired preview.
+
+### Infrastructure
+
+- Migrated the Community backend from the previous hosted Supabase project to the new self-hosted Supabase deployment while preserving Auth, Data API, Realtime, Storage, Edge Functions, Community data, ratings, messages, memberships, and Catalogue integration.
+- Switched the extension Community client to the new public HTTPS backend and its publishable client key; privileged service-role credentials remain server-side only.
+- Reconfigured Google OAuth for the self-hosted Auth callback and validated the complete browser sign-in flow back into SillyTavern.
+- Migrated Community Storage objects and corrected stored avatar URLs so public profile images resolve through the new backend instead of localhost.
+- Kept the hourly Community Storage cleanup on the internal Docker API gateway route so maintenance does not depend on the public Internet path.
+- Public Auth and Realtime were validated through the HTTPS gateway while direct API gateway and Postgres/Supavisor host ports remain bound to localhost.
+
+### Security
+
+- Rotated the self-hosted backend authentication, database, dashboard, Storage/S3, internal service, and maintenance credentials during the migration; the browser extension continues to contain only the intended Supabase publishable key.
+- Preserved the existing Community privacy boundary: no Community/Supabase connection before explicit network consent, with Presence/typing remaining a separate opt-in.
+
+---
+
 ## v0.1.10
 
 Update focused on reducing Supabase egress and tightening Community network behavior without changing the Community feature set.

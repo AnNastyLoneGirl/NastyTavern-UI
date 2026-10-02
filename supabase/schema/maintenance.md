@@ -1,4 +1,4 @@
-# Server-side maintenance — v0.1.10
+# Server-side maintenance — v0.1.11
 
 `community-storage-cleanup` is not invoked by NastyTavern browser clients.
 

@@ -1,4 +1,4 @@
-# Data-flow summary — v0.1.10
+# Data-flow summary — v0.1.11
 
 ## Before consent
 
@@ -15,7 +15,7 @@ Opening SillyTavern/NastyTavern does not load the Supabase JavaScript client and
 
 ## Community image egress
 
-Community shared resource binaries remain in Supabase Storage. New Character Card shares create a small resized PNG preview client-side and store its `preview_path` beside the message metadata. Home and Community card thumbnails request only this preview. The original PNG is fetched only after an explicit details/import/download action. Older shares without `preview_path` intentionally render a lightweight fallback instead of automatically downloading the original multi-megabyte file.
+Community shared resource binaries remain in Supabase Storage. New Character Card shares create a small resized PNG preview client-side and store its `preview_path` beside the message metadata. Home and Community card thumbnails request only this preview. The original PNG is fetched only after an explicit details/import/download action. Older shares without `preview_path` keep a lightweight fallback for viewers who cannot persist a repair. When the signed-in user owns the legacy share, the client performs a one-time background migration: it downloads the original PNG once, generates/uploads the compact preview, and writes `preview_path` back to that message so future renders stay on the lightweight path.
 
 Profile avatars are resized/compressed to WebP client-side when the browser supports it (animated GIFs remain unchanged), with long cache-control metadata to reduce repeat transfers.
 

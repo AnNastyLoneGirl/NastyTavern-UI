@@ -339,7 +339,6 @@ export class CommunityChat {
         this.reportMessages = new Map();
         this.reportProfiles = new Map();
         this.attachmentUrls = new Map();
-        this.legacyPreviewRepairs = new Map();
         this.resourceDetailsMessage = null;
         this.resourceDetailsObjectUrl = '';
         this.homeSnapshot = { ready: false, signedIn: false, online: 0, messages: [], characterCards: [], lorebooks: [], mentions: 0 };
@@ -399,7 +398,6 @@ export class CommunityChat {
         this.typingTimers.clear();
         this.typingUsers.clear();
         this.reactionPending.clear();
-        this.legacyPreviewRepairs.clear();
         this.closeResourceDetails();
         this.root?.remove();
         this.root = null;
@@ -940,7 +938,6 @@ export class CommunityChat {
                 const decorateResources = async (rows, expectedKind) => {
                     const filtered = (rows || []).filter(row => !row.metadata?.kind || row.metadata.kind === expectedKind).slice(0, 11);
                     return Promise.all(filtered.map(async row => {
-                        if (!row.metadata?.preview_path) void this.ensureLegacyCharacterPreview(row);
                         let preview_url = '';
                         const previewPath = row.metadata?.preview_path;
                         if (previewPath) {
@@ -1641,76 +1638,6 @@ export class CommunityChat {
     }
 
 
-    async ensureLegacyCharacterPreview(message) {
-        const meta = message?.metadata || {};
-        const path = String(meta.path || '');
-        const kind = meta.kind === 'lorebook' ? 'lorebook' : 'character';
-        const isPng = meta.mime === 'image/png' || /\.png$/i.test(meta.name || '') || /\.png$/i.test(path);
-        if (!this.client || !this.user || !message?.id || !path || meta.preview_path || kind !== 'character' || !isPng) return '';
-        if (String(message.user_id || '') !== String(this.user.id || '')) return '';
-
-        const repairKey = String(message.id);
-        if (this.legacyPreviewRepairs.has(repairKey)) return this.legacyPreviewRepairs.get(repairKey);
-
-        const task = (async () => {
-            try {
-                const { data: original, error: downloadError } = await this.client.storage.from('community-files').download(path);
-                if (downloadError || !original) return '';
-
-                const previewBlob = await createOptimizedImageBlob(original, { maxWidth: 360, maxHeight: 540, type: 'image/png' });
-                if (!previewBlob) return '';
-
-                const previewPath = `${path}.preview.png`;
-                let signedUrl = '';
-                const { error: uploadError } = await this.client.storage.from('community-files').upload(previewPath, previewBlob, {
-                    upsert: false,
-                    contentType: 'image/png',
-                    cacheControl: '31536000',
-                });
-
-                if (uploadError) {
-                    // A previous interrupted repair may already have created the preview object.
-                    // Verify that it exists before reusing it instead of overwriting user storage.
-                    const { data: existing } = await this.client.storage.from('community-files').createSignedUrl(previewPath, 3600);
-                    signedUrl = existing?.signedUrl || '';
-                    if (!signedUrl) return '';
-                }
-
-                const nextMetadata = { ...meta, preview_path: previewPath, preview_mime: 'image/png' };
-                const { error: updateError } = await this.client.from('nt_messages')
-                    .update({ metadata: nextMetadata })
-                    .eq('id', message.id)
-                    .eq('user_id', this.user.id);
-                if (updateError) return '';
-
-                message.metadata = nextMetadata;
-                const activeMessage = this.messages.find(item => String(item.id) === String(message.id));
-                if (activeMessage) activeMessage.metadata = nextMetadata;
-
-                if (!signedUrl) {
-                    const { data } = await this.client.storage.from('community-files').createSignedUrl(previewPath, 3600);
-                    signedUrl = data?.signedUrl || '';
-                }
-                if (signedUrl) this.attachmentUrls.set(previewPath, signedUrl);
-
-                if (String(message.channel_id || '') === String(this.activeChannelId || '') && this.root && !this.root.hidden) {
-                    this.updateDynamicAreas({ scrollMessagesToBottom: false });
-                }
-                this.scheduleHomeRefresh(200, { force: true });
-                return signedUrl;
-            } catch (_) {
-                return '';
-            }
-        })();
-
-        this.legacyPreviewRepairs.set(repairKey, task);
-        try {
-            return await task;
-        } finally {
-            if (this.legacyPreviewRepairs.get(repairKey) === task) this.legacyPreviewRepairs.delete(repairKey);
-        }
-    }
-
     async hydrateAttachmentUrls() {
         const paths = [...new Set(this.messages
             .filter(message => message.message_type === 'attachment')
@@ -1720,13 +1647,6 @@ export class CommunityChat {
             if (this.attachmentUrls.has(path)) continue;
             const { data } = await this.client.storage.from('community-files').createSignedUrl(path, 3600);
             if (data?.signedUrl) this.attachmentUrls.set(path, data.signedUrl);
-        }
-
-        // v0.1.10 stopped loading full legacy PNGs as thumbnails. Repair the current user's
-        // older shares once in the background so they permanently gain the compact preview path.
-        for (const message of this.messages) {
-            if (message.message_type !== 'attachment' || message.metadata?.preview_path) continue;
-            void this.ensureLegacyCharacterPreview(message);
         }
     }
 
