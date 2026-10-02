@@ -76,6 +76,22 @@ Deno.serve(async (req:Request)=>{
       const family=await admin.from("nt_catalog_items").select("id,nt_uuid,version_uuid,owner_id,nt_creator,publisher_name,variant_role,title,description,file_name,file_extension,file_size,downloads,rating_average,rating_count,content_rating,moderation_status,created_at,updated_at").eq("nt_uuid",current.data.nt_uuid).eq("published",true).order("created_at",{ascending:true});
       if(family.error)return json({error:family.error.message},400); return json({nt_uuid:current.data.nt_uuid,versions:(family.data||[]).filter(canView)});
     }
+    if(action==="direct_file"){
+      const itemId=String(body?.item_id||"");
+      const q=await admin.from("nt_catalog_items").select("id,nt_uuid,nt_creator,kind,object_key,file_name,file_extension,mime_type,published,owner_id,moderation_status").eq("id",itemId).maybeSingle();
+      if(q.error||!q.data?.published||!canView(q.data))return json({error:"Catalogue item not found."},404);
+      const row=q.data;
+      const {c,aws}=r2Client();
+      const url=await signedGet(aws,c.accountId,c.bucket,row.object_key);
+      return json({
+        url,
+        file_name:row.file_name||"resource",
+        mime_type:row.mime_type||"application/octet-stream",
+        kind:row.kind,
+        nt_uuid:row.nt_uuid,
+        nt_creator:row.nt_creator||"unknown"
+      });
+    }
     if(action==="file"){
       const itemId=String(body?.item_id||""); const purpose=["inspect","preview","download","import"].includes(String(body?.purpose||""))?String(body.purpose):"inspect";
       const q=await admin.from("nt_catalog_items").select("id,nt_uuid,nt_creator,kind,object_key,file_name,file_extension,mime_type,published,resource_payload,owner_id,moderation_status").eq("id",itemId).maybeSingle();

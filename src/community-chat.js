@@ -118,6 +118,44 @@ const stripResourceExtension = value => String(value || '').replace(/\.(?:png|js
 const resourceDownloadName = (name, kind, extension = kind === 'character' ? 'png' : 'json') => `${safeResourceName(name)}.${String(extension || (kind === 'character' ? 'png' : 'json')).replace(/^\./, '').toLowerCase()}`;
 const canShareInChannel = slug => slug === 'character-cards' || slug === 'lorebooks';
 const COMMUNITY_FILE_LIMIT_BYTES = 5767168; // 5.5 MiB
+const COMMUNITY_HOME_REFRESH_TTL_MS = 60_000;
+
+const createOptimizedImageBlob = async (fileOrBlob, {
+    maxWidth = 360,
+    maxHeight = 540,
+    type = 'image/webp',
+    quality = 0.76,
+} = {}) => {
+    if (!fileOrBlob || typeof createImageBitmap !== 'function') return null;
+    try {
+        const bitmap = await createImageBitmap(fileOrBlob);
+        const sourceWidth = Number(bitmap.width || 0);
+        const sourceHeight = Number(bitmap.height || 0);
+        if (!sourceWidth || !sourceHeight) {
+            bitmap.close?.();
+            return null;
+        }
+        const scale = Math.min(1, maxWidth / sourceWidth, maxHeight / sourceHeight);
+        const width = Math.max(1, Math.round(sourceWidth * scale));
+        const height = Math.max(1, Math.round(sourceHeight * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d', { alpha: true });
+        if (!ctx) {
+            bitmap.close?.();
+            return null;
+        }
+        ctx.drawImage(bitmap, 0, 0, width, height);
+        bitmap.close?.();
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, type, quality));
+        canvas.width = 1;
+        canvas.height = 1;
+        return blob instanceof Blob && blob.size && blob.type === type ? blob : null;
+    } catch (_) {
+        return null;
+    }
+};
 
 const decodeBase64Utf8 = value => {
     try {
@@ -284,9 +322,13 @@ export class CommunityChat {
         this.notificationSubscription = null;
         this.reportSyncTimer = null;
         this.activitySubscription = null;
+        this.homeRefreshTimer = null;
+        this.homeRefreshPromise = null;
+        this.homeRefreshLastAt = 0;
         this.typingUsers = new Map();
         this.typingTimers = new Map();
         this.typingStopTimer = null;
+        this.typingBroadcastActive = false;
         this.searchOpen = false;
         this.searchQuery = '';
         this.searchResults = [];
@@ -346,8 +388,12 @@ export class CommunityChat {
         try { this.client?.auth?.stopAutoRefresh?.(); } catch (_) {}
         clearTimeout(this.refreshTimer);
         this.refreshTimer = null;
+        clearTimeout(this.homeRefreshTimer);
+        this.homeRefreshTimer = null;
+        this.homeRefreshPromise = null;
         clearTimeout(this.typingStopTimer);
         this.typingStopTimer = null;
+        this.typingBroadcastActive = false;
         this.typingTimers.forEach(timer => clearTimeout(timer));
         this.typingTimers.clear();
         this.typingUsers.clear();
@@ -424,6 +470,8 @@ export class CommunityChat {
     close() {
         if (!this.root || this.root.hidden) return;
         this.sendTyping(false);
+        this.unsubscribeChannel();
+        this.unsubscribeActivity();
         hideModalShell(this.root, { immediate: false });
     }
 
@@ -618,6 +666,11 @@ export class CommunityChat {
         this.configFingerprint = '';
         this.backgroundInitPromise = null;
         this.workspaceLoadPromise = null;
+        clearTimeout(this.homeRefreshTimer);
+        this.homeRefreshTimer = null;
+        this.homeRefreshPromise = null;
+        this.homeRefreshLastAt = 0;
+        this.typingBroadcastActive = false;
         this.user = null;
         this.profile = null;
         this.needsProfileOnboarding = false;
@@ -656,7 +709,12 @@ export class CommunityChat {
         };
     }
 
-    getHomeSnapshot() { return structuredClone(this.homeSnapshot); }
+    getHomeSnapshot() {
+        if (this.communityEnabled() && this.client && this.user && Date.now() - this.homeRefreshLastAt >= COMMUNITY_HOME_REFRESH_TTL_MS) {
+            this.scheduleHomeRefresh(0);
+        }
+        return structuredClone(this.homeSnapshot);
+    }
 
     async setPresenceEnabled(enabled) {
         if (!this.communityEnabled()) {
@@ -732,15 +790,8 @@ export class CommunityChat {
         }
         channel.subscribe();
         this.notificationSubscription = channel;
-        if (roleRank(this.profile?.role) >= 1 && !this.reportSyncTimer) {
-            // Realtime remains the primary path. This narrow fallback covers deployments where
-            // nt_reports is not included in the Realtime publication or a transient event is missed.
-            this.reportSyncTimer = window.setInterval(async () => {
-                const before = this.openReportCount;
-                await this.loadOpenReportCount();
-                if (before !== this.openReportCount) this.syncModerationIndicator();
-            }, 5000);
-        }
+        // Moderation counts are event-driven. Avoid a permanent polling loop:
+        // it multiplied Data API traffic for moderators even while Community was idle.
     }
 
     unsubscribeNotifications() {
@@ -772,14 +823,13 @@ export class CommunityChat {
             this.subscribeGlobalPresence();
         }
         if (this.root && !this.root.hidden) this.renderWorkspace();
-        void this.refreshHomeSnapshot();
+        this.scheduleHomeRefresh(250, { force: true });
     }
 
     subscribeActivity() {
-        if (!this.client || !this.user || this.activitySubscription) return;
+        if (!this.client || !this.user || this.activitySubscription || !this.root || this.root.hidden) return;
         const channel = this.client.channel('nt-community:activity')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'nt_messages' }, payload => this.handleBackgroundMessage(payload.new || {}))
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_resource_stats_live' }, payload => this.handleResourceStatsRealtime(payload))
             .subscribe();
         this.activitySubscription = channel;
     }
@@ -839,82 +889,109 @@ export class CommunityChat {
         });
     }
 
-    async refreshHomeSnapshot() {
+    scheduleHomeRefresh(delay = 400, { force = false } = {}) {
+        if (!this.client || !this.user) return;
+        if (this.homeRefreshTimer) window.clearTimeout(this.homeRefreshTimer);
+        const remaining = force ? 0 : Math.max(0, COMMUNITY_HOME_REFRESH_TTL_MS - (Date.now() - this.homeRefreshLastAt));
+        const wait = Math.max(Number(delay || 0), remaining);
+        this.homeRefreshTimer = window.setTimeout(() => {
+            this.homeRefreshTimer = null;
+            void this.refreshHomeSnapshot();
+        }, wait);
+    }
+
+    async refreshHomeSnapshot({ force = false } = {}) {
         if (!this.client || !this.user) {
             this.homeSnapshot = { ready: true, signedIn: false, online: 0, messages: [], characterCards: [], lorebooks: [], mentions: 0 };
+            this.homeRefreshLastAt = Date.now();
             return this.emitHomeChanged();
         }
-        try {
-            const { data: channels } = await this.client.from('nt_channels')
-                .select('id,slug,name')
-                .in('slug', ['general','nastytavern','character-cards','lorebooks']);
-            const channelMap = new Map((channels || []).map(channel => [channel.slug, channel]));
-            const feedIds = ['general','nastytavern'].map(slug => channelMap.get(slug)?.id).filter(Boolean);
-            const cardsId = channelMap.get('character-cards')?.id;
-            const lorebooksId = channelMap.get('lorebooks')?.id;
-            const select = 'id,channel_id,user_id,content,created_at,message_type,metadata,profile:nt_profiles!nt_messages_user_id_fkey(id,username,avatar_url,bio,role,created_at)';
+        if (!force && this.homeSnapshot.ready && Date.now() - this.homeRefreshLastAt < COMMUNITY_HOME_REFRESH_TTL_MS) return this.homeSnapshot;
+        if (this.homeRefreshPromise) return this.homeRefreshPromise;
 
-            const [feedResult, cardResult, loreResult] = await Promise.all([
-                feedIds.length
-                    ? this.client.from('nt_messages').select(select).in('channel_id', feedIds).order('created_at', { ascending: false }).limit(5)
-                    : Promise.resolve({ data: [] }),
-                cardsId
-                    ? this.client.from('nt_messages').select(select).eq('channel_id', cardsId).in('message_type', ['attachment','character_card']).order('created_at', { ascending: false }).limit(11)
-                    : Promise.resolve({ data: [] }),
-                lorebooksId
-                    ? this.client.from('nt_messages').select(select).eq('channel_id', lorebooksId).in('message_type', ['attachment','lorebook']).order('created_at', { ascending: false }).limit(11)
-                    : Promise.resolve({ data: [] }),
-            ]);
+        const task = (async () => {
+            try {
+                const { data: channels } = await this.client.from('nt_channels')
+                    .select('id,slug,name')
+                    .in('slug', ['general','nastytavern','character-cards','lorebooks']);
+                const channelMap = new Map((channels || []).map(channel => [channel.slug, channel]));
+                const feedIds = ['general','nastytavern'].map(slug => channelMap.get(slug)?.id).filter(Boolean);
+                const cardsId = channelMap.get('character-cards')?.id;
+                const lorebooksId = channelMap.get('lorebooks')?.id;
+                const select = 'id,channel_id,user_id,content,created_at,message_type,metadata,profile:nt_profiles!nt_messages_user_id_fkey(id,username,avatar_url,bio,role,created_at)';
 
-            const resourceRows = [...(cardResult.data || []), ...(loreResult.data || [])];
-            await this.loadResourceStats(resourceRows.map(row => row.id));
+                const [feedResult, cardResult, loreResult] = await Promise.all([
+                    feedIds.length
+                        ? this.client.from('nt_messages').select(select).in('channel_id', feedIds).order('created_at', { ascending: false }).limit(5)
+                        : Promise.resolve({ data: [] }),
+                    cardsId
+                        ? this.client.from('nt_messages').select(select).eq('channel_id', cardsId).in('message_type', ['attachment','character_card']).order('created_at', { ascending: false }).limit(11)
+                        : Promise.resolve({ data: [] }),
+                    lorebooksId
+                        ? this.client.from('nt_messages').select(select).eq('channel_id', lorebooksId).in('message_type', ['attachment','lorebook']).order('created_at', { ascending: false }).limit(11)
+                        : Promise.resolve({ data: [] }),
+                ]);
 
-            const decorateResources = async (rows, expectedKind) => {
-                const filtered = (rows || []).filter(row => !row.metadata?.kind || row.metadata.kind === expectedKind).slice(0, 11);
-                return Promise.all(filtered.map(async row => {
-                    let preview_url = '';
-                    const path = row.metadata?.path;
-                    const name = String(row.metadata?.name || '');
-                    if (path && (row.metadata?.mime === 'image/png' || /\.png$/i.test(name))) {
-                        preview_url = this.attachmentUrls.get(path) || '';
-                        if (!preview_url) {
-                            try {
-                                const { data } = await this.client.storage.from('community-files').createSignedUrl(path, 3600);
-                                preview_url = data?.signedUrl || '';
-                                if (preview_url) this.attachmentUrls.set(path, preview_url);
-                            } catch (_) {}
+                const resourceRows = [...(cardResult.data || []), ...(loreResult.data || [])];
+                await this.loadResourceStats(resourceRows.map(row => row.id));
+
+                const decorateResources = async (rows, expectedKind) => {
+                    const filtered = (rows || []).filter(row => !row.metadata?.kind || row.metadata.kind === expectedKind).slice(0, 11);
+                    return Promise.all(filtered.map(async row => {
+                        let preview_url = '';
+                        const previewPath = row.metadata?.preview_path;
+                        if (previewPath) {
+                            preview_url = this.attachmentUrls.get(previewPath) || '';
+                            if (!preview_url) {
+                                try {
+                                    const { data } = await this.client.storage.from('community-files').createSignedUrl(previewPath, 3600);
+                                    preview_url = data?.signedUrl || '';
+                                    if (preview_url) this.attachmentUrls.set(previewPath, preview_url);
+                                } catch (_) {}
+                            }
                         }
-                    }
-                    const stats = this.resourceStatsFor(row.id);
-                    return {
-                        ...row,
-                        preview_url,
-                        rating: stats.rating_average,
-                        rating_count: stats.rating_count,
-                        download_count: stats.acquisition_count,
-                        acquisition_count: stats.acquisition_count,
-                        my_rating: stats.my_rating,
-                    };
-                }));
-            };
+                        const stats = this.resourceStatsFor(row.id);
+                        return {
+                            ...row,
+                            preview_url,
+                            rating: stats.rating_average,
+                            rating_count: stats.rating_count,
+                            download_count: stats.acquisition_count,
+                            acquisition_count: stats.acquisition_count,
+                            my_rating: stats.my_rating,
+                        };
+                    }));
+                };
 
-            const [characterCards, lorebooks] = await Promise.all([
-                decorateResources(cardResult.data || [], 'character'),
-                decorateResources(loreResult.data || [], 'lorebook'),
-            ]);
-            const idToSlug = new Map((channels || []).map(channel => [channel.id, channel.slug]));
-            const mentions = [...this.mentionCounts.values()].reduce((total, count) => total + Number(count || 0), 0);
-            this.homeSnapshot = {
-                ready: true,
-                signedIn: true,
-                online: this.globalPresence.size,
-                mentions,
-                messages: (feedResult.data || []).map(row => ({ ...row, channel_slug: idToSlug.get(row.channel_id) || 'general' })).reverse(),
-                characterCards,
-                lorebooks,
-            };
-            this.emitHomeChanged();
-        } catch (error) {}
+                const [characterCards, lorebooks] = await Promise.all([
+                    decorateResources(cardResult.data || [], 'character'),
+                    decorateResources(loreResult.data || [], 'lorebook'),
+                ]);
+                const idToSlug = new Map((channels || []).map(channel => [channel.id, channel.slug]));
+                const mentions = [...this.mentionCounts.values()].reduce((total, count) => total + Number(count || 0), 0);
+                this.homeSnapshot = {
+                    ready: true,
+                    signedIn: true,
+                    online: this.globalPresence.size,
+                    mentions,
+                    messages: (feedResult.data || []).map(row => ({ ...row, channel_slug: idToSlug.get(row.channel_id) || 'general' })).reverse(),
+                    characterCards,
+                    lorebooks,
+                };
+                this.homeRefreshLastAt = Date.now();
+                this.emitHomeChanged();
+                return this.homeSnapshot;
+            } catch (error) {
+                return this.homeSnapshot;
+            }
+        })();
+
+        this.homeRefreshPromise = task;
+        try {
+            return await task;
+        } finally {
+            if (this.homeRefreshPromise === task) this.homeRefreshPromise = null;
+        }
     }
 
     setShellMode(mode = 'workspace') {
@@ -1266,8 +1343,8 @@ export class CommunityChat {
 
     renderAttachment(message) {
         const meta = message.metadata || {};
-        const path = String(meta.path || '');
-        const url = this.attachmentUrls.get(path) || '';
+        const previewPath = String(meta.preview_path || '');
+        const url = previewPath ? (this.attachmentUrls.get(previewPath) || '') : '';
         const kind = meta.kind === 'lorebook' ? 'lorebook' : 'character';
         const legacyTitle = stripResourceExtension(String(message.content || '').replace(/^\s*(?:Character Card|Lorebook)\s*:\s*/i, ''));
         const title = meta.display_name || stripResourceExtension(meta.name) || legacyTitle || (kind === 'character' ? t('Character Card') : t('Lorebook'));
@@ -1539,7 +1616,7 @@ export class CommunityChat {
         }
         await this.loadResourceStats([id]);
         this.updateDynamicAreas({ scrollMessagesToBottom: false });
-        void this.refreshHomeSnapshot();
+        this.scheduleHomeRefresh(250, { force: true });
     }
 
     async recordResourceAcquisition(message, action) {
@@ -1551,7 +1628,7 @@ export class CommunityChat {
         }
         await this.loadResourceStats([id]);
         this.updateDynamicAreas({ scrollMessagesToBottom: false });
-        void this.refreshHomeSnapshot();
+        this.scheduleHomeRefresh(250, { force: true });
     }
 
     async loadReactions() {
@@ -1562,7 +1639,10 @@ export class CommunityChat {
 
 
     async hydrateAttachmentUrls() {
-        const paths = [...new Set(this.messages.filter(m => m.message_type === 'attachment').map(m => m.metadata?.path).filter(Boolean))];
+        const paths = [...new Set(this.messages
+            .filter(message => message.message_type === 'attachment')
+            .map(message => message.metadata?.preview_path)
+            .filter(Boolean))];
         for (const path of paths) {
             if (this.attachmentUrls.has(path)) continue;
             const { data } = await this.client.storage.from('community-files').createSignedUrl(path, 3600);
@@ -1610,12 +1690,32 @@ export class CommunityChat {
         try { await this.client.rpc('nt_join_channel', { p_channel: channel.id }); } catch (_) {}
         this.sessionJoinedChannels.add(channel.id);
 
-        const { error: uploadError } = await this.client.storage.from('community-files').upload(path, uploadFile, { upsert: false, contentType });
+        const { error: uploadError } = await this.client.storage.from('community-files').upload(path, uploadFile, {
+            upsert: false,
+            contentType,
+            cacheControl: '86400',
+        });
         if (uploadError) throw uploadError;
+
+        let previewPath = '';
+        if (kind === 'character' && normalizedExt === 'png') {
+            const previewBlob = await createOptimizedImageBlob(uploadFile, { maxWidth: 360, maxHeight: 540, type: 'image/png' });
+            if (previewBlob) {
+                const candidate = `${path}.preview.png`;
+                const { error: previewError } = await this.client.storage.from('community-files').upload(candidate, previewBlob, {
+                    upsert: false,
+                    contentType: 'image/png',
+                    cacheControl: '31536000',
+                });
+                if (!previewError) previewPath = candidate;
+            }
+        }
+
         const metadata = {
             kind,
             bucket: 'community-files',
             path,
+            ...(previewPath ? { preview_path: previewPath, preview_mime: 'image/png' } : {}),
             display_name: logicalName,
             name: downloadName,
             size: uploadFile.size,
@@ -1625,10 +1725,11 @@ export class CommunityChat {
         const content = `${kind === 'character' ? 'Character Card' : 'Lorebook'}: ${logicalName}`;
         const { error } = await this.client.from('nt_messages').insert({ channel_id: channel.id, user_id: this.user.id, content, message_type: 'attachment', metadata });
         if (error) {
-            await this.client.storage.from('community-files').remove([path]).catch(() => {});
+            const cleanupPaths = [path, previewPath].filter(Boolean);
+            if (cleanupPaths.length) await this.client.storage.from('community-files').remove(cleanupPaths).catch(() => {});
             throw error;
         }
-        void this.refreshHomeSnapshot();
+        this.scheduleHomeRefresh(250, { force: true });
         if (this.activeChannelId === channel.id) {
             await this.loadMessages();
             this.updateDynamicAreas();
@@ -1755,10 +1856,29 @@ export class CommunityChat {
 
     async uploadProfileAvatar(file) {
         if (!file) return;
-        if (!/^image\/(png|jpeg|webp|gif)$/i.test(file.type) || file.size > 2 * 1024 * 1024) return this.toast?.(t('Avatar must be a PNG, JPG, WEBP or GIF under 2 MB.'));
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+        if (!/^image\/(png|jpeg|webp|gif)$/i.test(file.type) || file.size > 2 * 1024 * 1024) {
+            return this.toast?.(t('Avatar must be a PNG, JPG, WEBP or GIF under 2 MB.'));
+        }
+
+        let uploadFile = file;
+        let contentType = file.type;
+        let ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+        if (!/^image\/gif$/i.test(file.type)) {
+            const optimized = await createOptimizedImageBlob(file, { maxWidth: 512, maxHeight: 512, quality: 0.8 });
+            if (optimized) {
+                uploadFile = new File([optimized], 'avatar.webp', { type: 'image/webp' });
+                contentType = 'image/webp';
+                ext = 'webp';
+            }
+        }
+        if (uploadFile.size > 1024 * 1024) return this.toast?.(t('Avatar is still too large after optimization.'));
+
         const path = `${this.user.id}/avatar.${safeFileName(ext)}`;
-        const { error } = await this.client.storage.from('community-avatars').upload(path, file, { upsert: true, contentType: file.type });
+        const { error } = await this.client.storage.from('community-avatars').upload(path, uploadFile, {
+            upsert: true,
+            contentType,
+            cacheControl: '31536000',
+        });
         if (error) throw error;
         const { data } = this.client.storage.from('community-avatars').getPublicUrl(path);
         const avatar_url = `${data.publicUrl}?v=${Date.now()}`;
@@ -1803,9 +1923,18 @@ export class CommunityChat {
 
     sendTyping(isTyping = true) {
         if (!this.presenceEnabled() || !this.subscription || !this.activeChannelId || !this.user) return;
-        try { this.subscription.send({ type:'broadcast', event:'typing', payload:{ user_id:this.user.id, username:this.profile?.username || '', typing:!!isTyping } }); } catch (_) {}
+        const next = Boolean(isTyping);
         clearTimeout(this.typingStopTimer);
-        if (isTyping) this.typingStopTimer = setTimeout(() => this.sendTyping(false), 2200);
+        if (next) this.typingStopTimer = setTimeout(() => this.sendTyping(false), 2200);
+        if (this.typingBroadcastActive === next) return;
+        this.typingBroadcastActive = next;
+        try {
+            this.subscription.send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: { user_id: this.user.id, username: this.profile?.username || '', typing: next },
+            });
+        } catch (_) {}
     }
 
     receiveTyping(payload) {
@@ -1905,13 +2034,13 @@ export class CommunityChat {
         const id = this.activeChannelId;
         const config = this.presenceEnabled() ? { config: { presence: { key: this.user.id } } } : undefined;
         const channel = this.client.channel(`nt-community:${id}`, config);
-        const schedule = () => this.scheduleRefresh();
+        const scheduleMembers = () => this.scheduleRefresh({ messages: false, members: true });
         channel
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'nt_messages', filter: `channel_id=eq.${id}` }, schedule)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'nt_messages', filter: `channel_id=eq.${id}` }, schedule)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'nt_messages', filter: `channel_id=eq.${id}` }, payload => this.handleRealtimeMessageChange(payload))
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'nt_messages', filter: `channel_id=eq.${id}` }, payload => this.handleRealtimeMessageChange(payload))
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'nt_messages' }, payload => this.handleRealtimeMessageDelete(payload))
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_message_reactions' }, schedule)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_channel_members', filter: `channel_id=eq.${id}` }, schedule);
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_message_reactions' }, payload => this.handleRealtimeReactionChange(payload))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_channel_members', filter: `channel_id=eq.${id}` }, scheduleMembers);
         if (this.presenceEnabled()) {
             channel
                 .on('broadcast', { event: 'typing' }, payload => this.receiveTyping(payload))
@@ -1925,6 +2054,53 @@ export class CommunityChat {
         this.subscription = channel;
     }
 
+    async handleRealtimeMessageChange(payload) {
+        const row = payload?.new || {};
+        if (!row?.id || String(row.channel_id || '') !== String(this.activeChannelId || '')) return;
+
+        const existing = this.messages.find(message => String(message.id) === String(row.id));
+        const member = (this.channelMembers.get(this.activeChannelId) || []).find(entry => String(entry.user_id) === String(row.user_id));
+        const profile = existing?.profile || member?.profile || null;
+        const next = { ...(existing || {}), ...row, ...(profile ? { profile } : {}) };
+
+        const index = this.messages.findIndex(message => String(message.id) === String(row.id));
+        if (index >= 0) this.messages.splice(index, 1, next);
+        else this.messages.push(next);
+        this.messages.sort((a, b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
+
+        if (row.message_type === 'attachment') {
+            const previewPath = row.metadata?.preview_path;
+            if (previewPath && !this.attachmentUrls.has(previewPath)) {
+                try {
+                    const { data } = await this.client.storage.from('community-files').createSignedUrl(previewPath, 3600);
+                    if (data?.signedUrl) this.attachmentUrls.set(previewPath, data.signedUrl);
+                } catch (_) {}
+            }
+            await this.loadResourceStats([row.id]);
+        }
+
+        this.updateDynamicAreas({ scrollMessagesToBottom: payload?.eventType === 'INSERT' });
+        this.scheduleHomeRefresh(350, { force: true });
+    }
+
+    handleRealtimeReactionChange(payload) {
+        const row = payload?.new || payload?.old || {};
+        if (!row?.message_id || !this.messages.some(message => String(message.id) === String(row.message_id))) return;
+
+        const same = entry => String(entry.message_id) === String(row.message_id)
+            && String(entry.user_id) === String(row.user_id)
+            && String(entry.emoji) === String(row.emoji);
+
+        if (payload?.eventType === 'DELETE') {
+            this.reactions = this.reactions.filter(entry => !same(entry));
+        } else {
+            const index = this.reactions.findIndex(same);
+            if (index >= 0) this.reactions.splice(index, 1, { ...this.reactions[index], ...row });
+            else this.reactions.push(row);
+        }
+        this.updateDynamicAreas({ scrollMessagesToBottom: false });
+    }
+
     handleRealtimeMessageDelete(payload) {
         const old = payload?.old || {};
         const deletedId = old.id;
@@ -1935,7 +2111,7 @@ export class CommunityChat {
             if (this.replyTo && String(this.replyTo) === String(deletedId)) this.replyTo = null;
             if (this.messages.length !== before) this.updateDynamicAreas();
         }
-        this.scheduleRefresh();
+        this.scheduleHomeRefresh(350, { force: true });
     }
 
     unsubscribeChannel() {
@@ -1945,6 +2121,7 @@ export class CommunityChat {
         this.subscription = null;
         this.presence.clear();
         this.typingUsers.clear();
+        this.typingBroadcastActive = false;
         this.updateTypingArea();
     }
 
@@ -1958,14 +2135,18 @@ export class CommunityChat {
         this.updateRoomMeta();
     }
 
-    scheduleRefresh() {
+    scheduleRefresh({ messages = true, members = false } = {}) {
         clearTimeout(this.refreshTimer);
         this.refreshTimer = setTimeout(async () => {
             try {
-                await Promise.all([this.loadMessages(), this.loadChannelMembersIndex()]);
-                this.updateDynamicAreas();
+                const tasks = [];
+                if (messages) tasks.push(this.loadMessages());
+                if (members) tasks.push(this.loadChannelMembersIndex());
+                if (tasks.length) await Promise.all(tasks);
+                this.updateDynamicAreas({ scrollMessagesToBottom: messages });
+                if (messages) this.scheduleHomeRefresh(1000);
             } catch (error) {}
-        }, 120);
+        }, 220);
     }
 
     async sendMessage(content) {
@@ -1974,7 +2155,7 @@ export class CommunityChat {
         const { error } = await this.client.from('nt_messages').insert({ channel_id: this.activeChannelId, user_id: this.user.id, content: text, reply_to: this.replyTo || null });
         if (error) throw error;
         this.replyTo = null;
-        void this.refreshHomeSnapshot();
+        this.scheduleHomeRefresh(350, { force: true });
     }
 
     async onSubmit(event) {
@@ -2140,7 +2321,7 @@ export class CommunityChat {
         const ban = event.target.closest('[data-nt-mod-ban]');
         if (ban) { const p=this.profileView; if(!p)return; const rpc=p.banned_at?'nt_unban_user':'nt_ban_user'; const args=p.banned_at?{p_user:p.id}:{p_user:p.id,p_reason:window.prompt(t('Ban reason'), '')||''}; const {error}=await this.client.rpc(rpc,args); if(error)this.toast?.(error.message); else await this.openProfile(p.id); return; }
         const modDelete = event.target.closest('[data-nt-mod-delete-message]');
-        if(modDelete){const {error}=await this.client.rpc('nt_moderate_delete_message',{p_message:Number(modDelete.dataset.ntModDeleteMessage)});if(error)this.toast?.(error.message);else{void this.refreshHomeSnapshot();await this.loadReports();this.renderWorkspace();}return;}
+        if(modDelete){const {error}=await this.client.rpc('nt_moderate_delete_message',{p_message:Number(modDelete.dataset.ntModDeleteMessage)});if(error)this.toast?.(error.message);else{this.scheduleHomeRefresh(250,{force:true});await this.loadReports();this.renderWorkspace();}return;}
         const resolve = event.target.closest('[data-nt-report-resolve]');
         if(resolve){const {error}=await this.client.rpc('nt_resolve_report',{p_report:Number(resolve.dataset.ntReportResolve)});if(error)this.toast?.(error.message);else{await this.loadReports();this.renderWorkspace();}return;}
         const action = event.target.closest('[data-nt-message-action]');
@@ -2225,7 +2406,8 @@ export class CommunityChat {
                     || ['character', 'lorebook'].includes(message.metadata?.kind);
                 if (isSharedResource && resourcePath && resourceBucket === 'community-files') {
                     try {
-                        const { error: storageError } = await this.client.storage.from(resourceBucket).remove([resourcePath]);
+                        const storagePaths = [resourcePath, message.metadata?.preview_path].filter(Boolean);
+                        const { error: storageError } = await this.client.storage.from(resourceBucket).remove(storagePaths);
                         if (storageError) {}
                     } catch (storageError) {
                     }
@@ -2233,7 +2415,7 @@ export class CommunityChat {
                 const { error } = await this.client.from('nt_messages').delete().eq('id', message.id).eq('user_id', this.user.id);
                 if (error) return this.toast?.(error.message);
             } else return;
-                void this.refreshHomeSnapshot();
+                this.scheduleHomeRefresh(250, { force: true });
         }
         await this.loadMessages(); this.updateDynamicAreas();
     }

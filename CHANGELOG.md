@@ -13,7 +13,6 @@ Update focused on global and per-character Chat Appearance, plus mobile Lorebook
 - Added **Global Chat Appearance** in NastyTavern Settings, with complete User and Character customization for Avatar, Name, Message, and Rich Content, including presets, categorized editing, RGBA colors, reset/copy tools, full-screen editing, and responsive controls.
 - Added **Individual Chat Appearance** for Character Cards, inheriting the global appearance by default while allowing per-character overrides with **Inherit** and **Same as User** behavior.
 - Added a shared **modal opacity** control to NastyTavern modal headers.
-- Added README demonstrations for **Global Chat Appearance** and **Individual Chat Appearance** under `docs/screenshots/`.
 
 ### Changed
 
@@ -23,6 +22,15 @@ Update focused on global and per-character Chat Appearance, plus mobile Lorebook
 - Restyled the entire chat input composer with a cooler NastyTavern surface, frameless action buttons, and consistent dynamic accent coloring across native and extension controls.
 - Chat Appearance now follows native SillyTavern styling whenever no explicit NastyTavern override is set.
 - Improved Chat Appearance responsiveness, control performance, and scroll preservation across desktop, tablet, split-screen, and mobile layouts.
+
+### Performance
+
+- Reduced Supabase egress for Community shared Character Cards by generating compact local image previews for new shares instead of loading the original multi-megabyte PNG as a thumbnail. Legacy shares without a preview now keep a lightweight fallback until the user explicitly opens/imports/downloads the resource.
+- Community Home data is now coalesced and cached with a short TTL instead of being refreshed repeatedly by broad background activity subscriptions.
+- Community Realtime is now scoped to active UI needs: channel subscriptions close with the Community panel, new messages and reactions update the active view incrementally, and typing broadcasts are sent only when typing state changes.
+- Nasty Catalogue imports/downloads now authorize through Supabase but fetch large binary files directly from Cloudflare R2, with Character Card tracking metadata injected locally in the browser. The older Supabase binary proxy remains only as a compatibility fallback.
+- Profile avatars are resized/compressed to WebP when supported before upload, reducing repeated Storage egress while preserving animated GIFs.
+- Community Storage cleanup is now queue-only and scheduled hourly, avoiding unnecessary object scans when there is nothing to remove.
 
 ### Fixed
 - Fixed shared checkbox and radio indicators so their checked marks are geometrically centered across all NastyTavern surfaces.

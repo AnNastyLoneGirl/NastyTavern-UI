@@ -131,6 +131,82 @@ const readResourceData = async (fileOrBlob, fileName = '') => {
     return null;
 };
 
+const PNG_SIGNATURE = new Uint8Array([137,80,78,71,13,10,26,10]);
+const PNG_TRACKING_KEYS = new Set(['chara','ccv3']);
+const concatBytes = (...parts) => {
+    const size = parts.reduce((total, part) => total + part.length, 0);
+    const out = new Uint8Array(size);
+    let offset = 0;
+    for (const part of parts) {
+        out.set(part, offset);
+        offset += part.length;
+    }
+    return out;
+};
+const u32be = value => new Uint8Array([(value >>> 24) & 255, (value >>> 16) & 255, (value >>> 8) & 255, value & 255]);
+const crcTable = (() => {
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n += 1) {
+        let c = n;
+        for (let k = 0; k < 8; k += 1) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+        table[n] = c >>> 0;
+    }
+    return table;
+})();
+const crc32 = bytes => {
+    let c = 0xffffffff;
+    for (const byte of bytes) c = crcTable[(c ^ byte) & 255] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+};
+const makePngChunk = (type, data) => {
+    const typeBytes = new TextEncoder().encode(type);
+    return concatBytes(u32be(data.length), typeBytes, data, u32be(crc32(concatBytes(typeBytes, data))));
+};
+const pngChunkKeyword = (type, data) => {
+    if (!['tEXt','zTXt','iTXt'].includes(type)) return '';
+    const zero = data.indexOf(0);
+    return zero > 0 ? new TextDecoder('latin1').decode(data.slice(0, zero)) : '';
+};
+const pngChunkList = bytes => {
+    if (bytes.length < 12 || PNG_SIGNATURE.some((value, index) => bytes[index] !== value)) throw new Error('INVALID_PNG');
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const chunks = [];
+    let offset = 8;
+    while (offset + 12 <= bytes.length) {
+        const length = view.getUint32(offset, false);
+        const end = offset + 12 + length;
+        if (end > bytes.length) throw new Error('INVALID_PNG');
+        const type = String.fromCharCode(bytes[offset + 4], bytes[offset + 5], bytes[offset + 6], bytes[offset + 7]);
+        chunks.push({ type, data: bytes.slice(offset + 8, offset + 8 + length), raw: bytes.slice(offset, end) });
+        offset = end;
+        if (type === 'IEND') break;
+    }
+    return chunks;
+};
+const base64Utf8 = value => {
+    const bytes = new TextEncoder().encode(value);
+    let binary = '';
+    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+    }
+    return btoa(binary);
+};
+const injectCharacterPayloadIntoPng = async (blob, payload) => {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const chunks = pngChunkList(bytes).filter(chunk => !PNG_TRACKING_KEYS.has(pngChunkKeyword(chunk.type, chunk.data)));
+    const payloadBytes = concatBytes(
+        new TextEncoder().encode('chara'),
+        new Uint8Array([0]),
+        new TextEncoder().encode(base64Utf8(JSON.stringify(payload || {}))),
+    );
+    const out = [PNG_SIGNATURE];
+    for (const chunk of chunks) {
+        if (chunk.type === 'IEND') out.push(makePngChunk('tEXt', payloadBytes));
+        out.push(chunk.raw);
+    }
+    return new Blob([concatBytes(...out)], { type: 'image/png' });
+};
+
 const metadataFields = (resource, fallback = 'Untitled') => {
     const root = resource && typeof resource === 'object' ? resource : {};
     const data = root?.data && typeof root.data === 'object' ? root.data : root;
@@ -375,8 +451,7 @@ export class CatalogueModal {
         if (force) this.unsubscribeRealtime();
         let channel = client.channel(`nt-catalogue:live:${this.user.id}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_rejections', filter: `owner_id=eq.${this.user.id}` }, payload => this.handleRealtimeRejectionChange(payload))
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_collections' }, () => this.handleRealtimeCollectionChange())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_collection_items' }, () => this.handleRealtimeCollectionChange());
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'nt_catalog_collections', filter: `owner_id=eq.${this.user.id}` }, () => this.handleRealtimeCollectionChange());
 
         // Catalogue item/review/report/audit rows are intentionally not subscribed
         // through Realtime: those tables contain moderation-private columns. The UI
@@ -544,6 +619,15 @@ export class CatalogueModal {
         const bytes = await response.arrayBuffer();
         const mimeType = response.headers.get('content-type') || 'application/octet-stream';
         return new Blob([bytes], { type: mimeType });
+    }
+
+    async fetchDirectCatalogueFile(item) {
+        const access = await this.invoke({ action: 'direct_file', item_id: item.id });
+        const url = String(access?.url || '');
+        if (!url) throw new Error(t('Nasty Catalogue file URL is unavailable.'));
+        const response = await fetch(url, { method: 'GET', cache: 'no-store' });
+        if (!response.ok) throw new Error(`${t('Nasty Catalogue request failed.')} (${response.status})`);
+        return await response.blob();
     }
 
     async loadStatus() {
@@ -1609,27 +1693,56 @@ export class CatalogueModal {
 
     async fetchItemBlob(item, purpose = 'inspect') {
         if (!item?.id) throw new Error(t('Catalogue item not found.'));
-        const blob = await this.invokeBinary({ action: 'file', item_id: item.id, purpose });
-        const result = blob instanceof Blob ? blob : new Blob([blob]);
         const ext = String(item.file_extension || '').toLowerCase();
+        const client = this.client || await this.community?.makeClient?.();
+        if (!client) throw new Error(t('Community connection unavailable.'));
 
-        // Validate the exact bytes before handing them to Download or the
-        // native SillyTavern importer. This prevents an API error body or an
-        // accidentally decoded response from being saved as a .png/.json.
-        if (ext === 'png') {
-            const head = new Uint8Array(await result.slice(0, 8).arrayBuffer());
-            const png = [137, 80, 78, 71, 13, 10, 26, 10];
-            if (head.length !== 8 || png.some((value, index) => head[index] !== value)) {
-                throw new Error(t('Nasty Catalogue returned an invalid PNG.'));
+        try {
+            const { data: payload, error: payloadError } = await client.rpc('nt_catalog_item_payload', { p_item: item.id });
+            if (payloadError) throw payloadError;
+
+            if (ext === 'png') {
+                const source = await this.fetchDirectCatalogueFile(item);
+                const rebuilt = await injectCharacterPayloadIntoPng(source, payload || {});
+                const head = new Uint8Array(await rebuilt.slice(0, 8).arrayBuffer());
+                const png = [137, 80, 78, 71, 13, 10, 26, 10];
+                if (head.length !== 8 || png.some((value, index) => head[index] !== value)) {
+                    throw new Error(t('Nasty Catalogue returned an invalid PNG.'));
+                }
+                return rebuilt;
             }
-        } else if (ext === 'json' || ext === 'lorebook') {
-            try {
-                JSON.parse(await result.text());
-            } catch (_) {
-                throw new Error(t('Nasty Catalogue returned an invalid JSON resource.'));
+
+            if (ext === 'json' || ext === 'lorebook') {
+                const result = new Blob([JSON.stringify(payload || {}, null, 2)], { type: 'application/json' });
+                try {
+                    JSON.parse(await result.text());
+                } catch (_) {
+                    throw new Error(t('Nasty Catalogue returned an invalid JSON resource.'));
+                }
+                return result;
             }
+        } catch (error) {
+            // Compatibility fallback for older backend deployments. New deployments keep
+            // large binary bytes on Cloudflare R2 and only return small metadata via Supabase.
+            const blob = await this.invokeBinary({ action: 'file', item_id: item.id, purpose });
+            const result = blob instanceof Blob ? blob : new Blob([blob]);
+            if (ext === 'png') {
+                const head = new Uint8Array(await result.slice(0, 8).arrayBuffer());
+                const png = [137, 80, 78, 71, 13, 10, 26, 10];
+                if (head.length !== 8 || png.some((value, index) => head[index] !== value)) {
+                    throw error;
+                }
+            } else if (ext === 'json' || ext === 'lorebook') {
+                try {
+                    JSON.parse(await result.text());
+                } catch (_) {
+                    throw error;
+                }
+            }
+            return result;
         }
-        return result;
+
+        return this.fetchDirectCatalogueFile(item);
     }
 
     async fetchItemResourceData(item) {

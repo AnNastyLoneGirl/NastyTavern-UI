@@ -1231,5 +1231,6 @@
   "Select a preset to export.": "Select a preset to export.",
   "Imported preset": "Imported preset",
   "Chat Appearance preset imported.": "Chat Appearance preset imported.",
-  "Invalid Chat Appearance preset file.": "Invalid Chat Appearance preset file."
+  "Invalid Chat Appearance preset file.": "Invalid Chat Appearance preset file.",
+  "Avatar is still too large after optimization.": "Avatar is still too large after optimization."
 }

@@ -72,4 +72,4 @@ Nasty Catalogue uses `nt_catalog_acquisitions`, which associates an authenticate
 
 ## Backend transparency
 
-The v0.1.5 source includes the v0.1.4 privacy/security migration, the v0.1.5 maintenance hardening migration, RLS/Storage policy snapshots, the vendored Supabase browser bundle metadata, and the Edge Function sources used by Community/Nasty Catalogue. Secrets such as service-role keys and Cloudflare R2 credentials are intentionally not included.
+The packaged v0.1.9 audit source includes the current RLS/Storage policy snapshots, the vendored Supabase browser bundle metadata, and the Edge Function sources used by Community/Nasty Catalogue. One-shot production migrations are intentionally kept out of the extension build. Secrets such as service-role keys and Cloudflare R2 credentials are never included.

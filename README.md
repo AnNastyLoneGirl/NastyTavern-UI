@@ -12,42 +12,6 @@ On top of that, NastyTavern adds integrated tools, improved mobile support, Comm
 > **Current test version:** `0.1.9`
 > **Minimum SillyTavern version:** `1.18.0`
 
-## 📸 Screenshots
-
-### 🏠 Home
-
-![NastyTavern Home](docs/screenshots/home.png)
-
-### 🧑‍🎨 Character Editor
-
-![NastyTavern Character Editor](docs/screenshots/character-editor.png)
-
-### 📚 Nasty Catalogue
-
-![Nasty Catalogue](docs/screenshots/catalogue.png)
-
-### 🌐 Community
-
-![NastyTavern Community](docs/screenshots/community.png)
-
-### 🧰 Chat Tools & Story Timeline
-
-![NastyTavern Chat Tools](docs/screenshots/timeline.png)
-
-### 🎨 Global Chat Appearance
-
-Configure the default presentation used across your chats from **NastyTavern Settings → Chat appearance**. User and Character styling can be customized independently, with dedicated controls for avatars, names, message surfaces, typography, spacing, rich content, code, links, lists, media, and more.
-
-![Global Chat Appearance](docs/screenshots/global-chat-appearance.gif)
-
-### 🎭 Individual Chat Appearance
-
-Open **Chat appearance** from an active character chat to create presentation overrides for that character without changing the global defaults. Any setting left on **Inherit** continues to follow the global NastyTavern configuration, so only the properties you explicitly customize become character-specific.
-
-![Individual Chat Appearance](docs/screenshots/individual-chat-appearance.gif)
-
----
-
 ## ✨ Highlights
 
 - 🎨 **Modern interface** — cleaner navigation, redesigned panels, consistent styling, and easier access to SillyTavern's main features.
