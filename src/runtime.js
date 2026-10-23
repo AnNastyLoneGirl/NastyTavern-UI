@@ -22,6 +22,7 @@ import { ExtensionsModal } from './extensions-modal.js';
 import { CatalogueModal } from './catalogue-modal.js';
 import { PersonaManager } from './persona-manager.js';
 import { LorebookManager } from './lorebook-manager.js';
+import { LorebookVariableActivation, getVariableActivationMeta, validateVariableCondition } from './lorebook-variable-activation.js';
 import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
 import { emptyStateHtml } from './ui-templates.js';
 import { initI18n, startI18nObserver, stopI18nObserver, localizeOwnedUI, t, translateText } from './i18n.js';
@@ -171,6 +172,7 @@ export class NastyTavern {
         this.lorebookSettingsPopupState = null;
         this.lorebookSplitState = null;
         this.lorebookNativeIconState = new Map();
+        this.lorebookVariableActivation = new LorebookVariableActivation(message => this.toast(message));
         this.lorebookManager = new LorebookManager(this.settings, message => this.toast(message), {
             openBook: name => this.openLorebookGalleryBook(name),
             renameBook: (oldName, newName) => this.renameLorebookFromField(oldName, newName),
@@ -311,6 +313,7 @@ export class NastyTavern {
         this.communityChat.unmount();
         this.homeDashboard.unmount();
         this.variableManager.unmount();
+        this.lorebookVariableActivation.unmount();
         this.worldInfoInfo.unmount();
         this.personaManager.unmount();
         this.shell.unmount();
@@ -358,6 +361,7 @@ export class NastyTavern {
         this.decorateNativePanels();
         this.ensureCommunityShareButtons();
         this.variableManager.mount();
+        this.lorebookVariableActivation.mount();
         this.setView('chat');
         this.worldInfoInfo.mount();
         this.timelineManager.mount();
@@ -2956,6 +2960,12 @@ export class NastyTavern {
         observer.observe(entriesList, { childList: true });
 
         const onNativeInput = event => {
+            // NastyTavern-owned controls live inside the native World Info entry DOM,
+            // but must not be treated as native SillyTavern fields. In particular,
+            // syncing on the Variable condition's blur/change would re-read the last
+            // persisted metadata before the custom save handler runs and could replace
+            // the user's draft with the previous value.
+            if (event.target?.closest?.('[data-nt-lorebook-activation-editor]')) return;
             const entry = event.target?.closest?.('.world_entry');
             if (!entry) return;
             this.syncLorebookSplitEntryRow(entry);
@@ -3007,6 +3017,211 @@ export class NastyTavern {
         return String(entry.getAttribute('uid') || entry.dataset?.uid || '').trim();
     }
 
+    getLorebookVariableEntryData(entry) {
+        const uid = this.getLorebookEntryUid(entry);
+        return uid ? this.lorebookManager?.getEntryData?.(uid) || null : null;
+    }
+
+    isLorebookVariableEntry(entry) {
+        return Boolean(getVariableActivationMeta(this.getLorebookVariableEntryData(entry)));
+    }
+
+    currentLorebookNativeValue() {
+        const current = String(this.lorebookManager?.currentBook || '').trim();
+        const book = this.lorebookManager?.books?.find?.(item => String(item?.name || '').trim() === current);
+        return String(book?.nativeValue || current).trim();
+    }
+
+    updateLorebookVariableConditionStatus(entry, condition = null) {
+        const block = entry?.querySelector?.('[data-nt-lorebook-variable-condition]');
+        if (!block) return;
+        const input = block.querySelector('[data-nt-lorebook-variable-expression]');
+        const status = block.querySelector('[data-nt-lorebook-variable-status]');
+        if (!input || !status) return;
+        const expression = condition === null ? input.value : condition;
+        const result = validateVariableCondition(expression);
+        const state = result.valid ? 'valid' : 'error';
+        status.dataset.state = state;
+        status.textContent = result.valid ? t('Valid condition') : (result.error || t('Invalid condition'));
+        input.setAttribute('aria-invalid', result.valid ? 'false' : 'true');
+    }
+
+    ensureLorebookVariableConditionEditor(entry) {
+        if (!(entry instanceof Element)) return;
+        const uid = this.getLorebookEntryUid(entry);
+        const entryData = this.getLorebookVariableEntryData(entry);
+        const meta = getVariableActivationMeta(entryData);
+        const nativeState = entry.querySelector('select[name="entryStateSelector"]');
+
+        if (nativeState) {
+            let option = Array.from(nativeState.options).find(item => item.value === 'variable');
+            if (!option) {
+                option = document.createElement('option');
+                option.value = 'variable';
+                option.textContent = '🔣';
+                nativeState.append(option);
+            }
+            option.textContent = '🔣';
+            option.title = t('Variables');
+            if (meta && nativeState.value !== 'variable') nativeState.value = 'variable';
+
+            if (!nativeState.dataset.ntVariableActivationBound) {
+                nativeState.dataset.ntVariableActivationBound = 'true';
+                const intercept = event => {
+                    const currentlyVariable = this.isLorebookVariableEntry(entry) || entry.classList.contains('nt-lorebook-variable-entry');
+                    const next = nativeState.value;
+                    if (!currentlyVariable && next !== 'variable') return;
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    if (nativeState.dataset.ntVariableActivationBusy === 'true') return;
+                    nativeState.dataset.ntVariableActivationBusy = 'true';
+                    void this.setLorebookEntryActivationMode(entry, next).finally(() => {
+                        if (nativeState.isConnected) nativeState.dataset.ntVariableActivationBusy = 'false';
+                    });
+                };
+                nativeState.addEventListener('input', intercept, true);
+                nativeState.addEventListener('change', intercept, true);
+            }
+        }
+
+        entry.classList.toggle('nt-lorebook-variable-entry', Boolean(meta));
+
+        let editor = entry.querySelector('[data-nt-lorebook-activation-editor]');
+        if (!editor) {
+            editor = document.createElement('div');
+            editor.className = 'nt-lorebook-activation-editor';
+            editor.setAttribute('data-nt-lorebook-activation-editor', '');
+            editor.innerHTML = `
+                <div class="nt-lorebook-activation-field">
+                    <label for="nt-lorebook-activation-${CSS.escape(uid)}">${t('Activation')}</label>
+                    <select id="nt-lorebook-activation-${CSS.escape(uid)}" class="text_pole" data-nt-lorebook-activation-mode>
+                        <option value="constant">${t('Constant')}</option>
+                        <option value="normal">${t('Normal')}</option>
+                        <option value="vectorized">${t('Vectorized')}</option>
+                        <option value="variable">${t('Variables')}</option>
+                    </select>
+                </div>
+                <div class="nt-lorebook-variable-condition" data-nt-lorebook-variable-condition hidden>
+                    <div class="nt-lorebook-variable-condition-head">
+                        <label for="nt-lorebook-variable-${CSS.escape(uid)}">${t('Variable condition')}</label>
+                        <span data-nt-lorebook-variable-status data-state="false"></span>
+                    </div>
+                    <input id="nt-lorebook-variable-${CSS.escape(uid)}" type="text" class="text_pole" data-nt-lorebook-variable-expression autocomplete="off" spellcheck="false" placeholder=".affection >= 50">
+                    <small>${t('Evaluated only during generation. Local variables are checked first. Use .local.name or .global.name to choose a scope explicitly.')}</small>
+                </div>`;
+
+            const edit = entry.querySelector('.world_entry_edit');
+            if (edit) edit.insertBefore(editor, edit.firstChild);
+
+            const modeSelect = editor.querySelector('[data-nt-lorebook-activation-mode]');
+            modeSelect?.addEventListener('change', async event => {
+                event.stopPropagation();
+                const next = String(modeSelect.value || 'normal');
+                const currentVariable = this.isLorebookVariableEntry(entry) || entry.classList.contains('nt-lorebook-variable-entry');
+                if (modeSelect.dataset.ntActivationBusy === 'true') return;
+
+                if (next === 'variable' || currentVariable) {
+                    modeSelect.dataset.ntActivationBusy = 'true';
+                    modeSelect.disabled = true;
+                    try {
+                        await this.setLorebookEntryActivationMode(entry, next);
+                    } finally {
+                        if (modeSelect.isConnected) {
+                            modeSelect.disabled = false;
+                            modeSelect.dataset.ntActivationBusy = 'false';
+                        }
+                    }
+                    return;
+                }
+
+                if (!nativeState) return;
+                nativeState.value = next;
+                nativeState.dispatchEvent(new Event('input', { bubbles: true }));
+                requestAnimationFrame(() => this.syncLorebookSplitEntryRow(entry));
+            });
+
+            const input = editor.querySelector('[data-nt-lorebook-variable-expression]');
+            input?.addEventListener('input', event => {
+                // Keep the draft independent from the currently persisted Lorebook data.
+                // The native editor can refresh while this custom field is being edited.
+                input.dataset.ntVariableDraft = input.value;
+                this.updateLorebookVariableConditionStatus(entry);
+                event.stopPropagation();
+            });
+            input?.addEventListener('change', async event => {
+                event.stopPropagation();
+                const book = String(this.lorebookManager?.currentBook || '').trim();
+                const currentUid = this.getLorebookEntryUid(entry);
+                if (!book || !currentUid || !this.isLorebookVariableEntry(entry)) return;
+
+                // Snapshot before any async work. A blur/change must save exactly what the
+                // user typed, even if the surrounding native World Info DOM refreshes.
+                const condition = input.dataset.ntVariableDraft ?? input.value;
+                input.dataset.ntVariableSaving = 'true';
+                input.disabled = true;
+                try {
+                    const updated = await this.lorebookVariableActivation.setCondition(book, currentUid, condition);
+                    if (!updated) throw new Error('save');
+                    this.lorebookManager.currentBookData = updated.data;
+                    input.value = condition;
+                    delete input.dataset.ntVariableDraft;
+                    this.updateLorebookVariableConditionStatus(entry, condition);
+                } catch (_) {
+                    // Preserve the user's draft on failure instead of replacing it with
+                    // stale persisted metadata. They can retry by editing/blurring again.
+                    input.value = condition;
+                    input.dataset.ntVariableDraft = condition;
+                    this.updateLorebookVariableConditionStatus(entry, condition);
+                    this.toast(t('Could not save the variable condition.'));
+                } finally {
+                    delete input.dataset.ntVariableSaving;
+                    input.disabled = false;
+                }
+            });
+        }
+
+        const modeSelect = editor.querySelector('[data-nt-lorebook-activation-mode]');
+        const desiredMode = meta ? 'variable' : String(nativeState?.value || 'normal');
+        if (modeSelect && document.activeElement !== modeSelect && modeSelect.value !== desiredMode) modeSelect.value = desiredMode;
+
+        const block = editor.querySelector('[data-nt-lorebook-variable-condition]');
+        if (block) block.hidden = !meta;
+        if (!meta) return;
+
+        const input = block?.querySelector('[data-nt-lorebook-variable-expression]');
+        const hasDraft = Boolean(input && Object.prototype.hasOwnProperty.call(input.dataset, 'ntVariableDraft'));
+        const isSaving = input?.dataset.ntVariableSaving === 'true';
+        if (input && document.activeElement !== input && !hasDraft && !isSaving && input.value !== String(meta.condition || '')) {
+            input.value = String(meta.condition || '');
+        }
+        this.updateLorebookVariableConditionStatus(entry, hasDraft ? input.dataset.ntVariableDraft : String(meta.condition || ''));
+    }
+
+    async setLorebookEntryActivationMode(entry, mode) {
+        if (!(entry instanceof Element)) return false;
+        const uid = this.getLorebookEntryUid(entry);
+        const book = String(this.lorebookManager?.currentBook || '').trim();
+        if (!uid || !book) return false;
+
+        try {
+            const updated = await this.lorebookVariableActivation.setMode(book, uid, mode);
+            if (!updated) throw new Error('save');
+            this.lorebookManager.currentBookData = updated.data;
+
+            const nativeValue = this.currentLorebookNativeValue();
+            if (nativeValue) await this.openLorebookGalleryBook(nativeValue);
+            await this.lorebookManager?.loadCurrentBookData?.();
+            this.syncLorebookSplitEntries();
+            this.selectLorebookSplitEntry(uid, { preserveScroll: true });
+            return true;
+        } catch (error) {
+            console.warn('[NastyTavern] Could not change Lorebook activation mode.', error);
+            this.toast(t('Could not change this Lorebook entry type.'));
+            this.syncLorebookSplitEntryRow(entry);
+            return false;
+        }
+    }
+
     syncLorebookSplitEntryRow(entry) {
         const state = this.lorebookSplitState;
         if (!state || !(entry instanceof Element)) return;
@@ -3030,7 +3245,7 @@ export class NastyTavern {
 
         const nativeState = entry.querySelector('select[name="entryStateSelector"]');
         if (nativeState) {
-            const typeIcons = { constant: '🔵', normal: '🟢', vectorized: '🔗' };
+            const typeIcons = { constant: '🔵', normal: '🟢', vectorized: '🔗', variable: '🔣' };
             for (const option of nativeState.options) {
                 const icon = typeIcons[option.value];
                 if (icon && option.textContent !== icon) option.textContent = icon;
@@ -3038,8 +3253,10 @@ export class NastyTavern {
             nativeState.title = t('Entry type');
             nativeState.setAttribute('aria-label', t('Entry type'));
         }
+        this.ensureLorebookVariableConditionEditor(entry);
         const rowState = row.querySelector('.nt-lorebook-entry-state');
-        if (rowState && nativeState && rowState.value !== nativeState.value) rowState.value = nativeState.value;
+        const desiredState = this.isLorebookVariableEntry(entry) ? 'variable' : nativeState?.value;
+        if (rowState && desiredState && rowState.value !== desiredState) rowState.value = desiredState;
 
         const disabled = entry.classList.contains('disabledWIEntry')
             || entry.querySelector('[name="entryKillSwitch"]')?.classList.contains('fa-toggle-off');
@@ -3097,6 +3314,7 @@ export class NastyTavern {
                 ['constant', '🔵'],
                 ['normal', '🟢'],
                 ['vectorized', '🔗'],
+                ['variable', '🔣'],
             ];
             for (const [value, label] of typeOptions) {
                 const option = document.createElement('option');
@@ -3104,11 +3322,20 @@ export class NastyTavern {
                 option.textContent = label;
                 entryState.append(option);
             }
-            if (nativeState?.value) entryState.value = nativeState.value;
+            if (this.isLorebookVariableEntry(entry)) entryState.value = 'variable';
+            else if (nativeState?.value) entryState.value = nativeState.value;
             entryState.addEventListener('click', event => event.stopPropagation());
             entryState.addEventListener('input', event => {
                 event.stopPropagation();
                 if (!nativeState) return;
+                const currentVariable = this.isLorebookVariableEntry(entry);
+                if (entryState.value === 'variable' || currentVariable) {
+                    entryState.disabled = true;
+                    void this.setLorebookEntryActivationMode(entry, entryState.value).finally(() => {
+                        if (entryState.isConnected) entryState.disabled = false;
+                    });
+                    return;
+                }
                 nativeState.value = entryState.value;
                 nativeState.dispatchEvent(new Event('input', { bubbles: true }));
                 requestAnimationFrame(() => this.syncLorebookSplitEntryRow(entry));
@@ -3311,6 +3538,7 @@ export class NastyTavern {
     syncLorebookEntryFolders() {
         const state = this.lorebookSplitState;
         if (!state?.sidebarList) return;
+        for (const entry of state.entriesList?.querySelectorAll?.('.world_entry') || []) this.syncLorebookSplitEntryRow(entry);
         this.lorebookManager?.decorateEntrySidebar?.(state.sidebarList);
     }
 

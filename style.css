@@ -32279,3 +32279,151 @@ body.mt-enabled .nt-chat-appearance-category-controls .nt-chat-appearance-alpha-
   }
 }
 
+
+/* NastyTavern variable-driven Lorebook activation */
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-entry .world_entry_edit [name="keywordsAndLogicBlock"] {
+  display: none!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  margin: 0 0 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--mt-border);
+  border-bottom: 1px solid var(--mt-border);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition-head label {
+  min-width: 0;
+  color: var(--mt-text);
+  font-weight: 600;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition-head [data-nt-lorebook-variable-status] {
+  min-width: 0;
+  color: var(--mt-text-2);
+  font-size: var(--nt-font-meta, 14px);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition-head [data-state="valid"],
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition-head [data-state="true"] {
+  color: color-mix(in srgb, var(--mt-success) 78%, var(--mt-text));
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition-head [data-state="false"] {
+  color: var(--mt-text-2);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition-head [data-state="error"] {
+  color: color-mix(in srgb, var(--mt-danger) 78%, var(--mt-text));
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition input {
+  width: 100%;
+  min-width: 0;
+  font-family: var(--monoFontFamily, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition small {
+  color: var(--mt-text-2);
+  line-height: 1.35;
+}
+
+@media (max-width: 680px) {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-variable-condition-head [data-nt-lorebook-variable-status] {
+    text-align: left;
+  }
+}
+
+/* NastyTavern 0.1.12 r102 — explicit Lorebook activation editor
+   The native strategy control stays compact in the entry list, while the
+   selected-entry pane exposes the complete activation mode and Variable rule. */
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus {
+  grid-template-columns: minmax(0, 1fr)!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus::after,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus select[name="entryStateSelector"] {
+  display: none!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-selected-entry .WIEntryTitleAndStatus > .flex-container {
+  grid-column: 1!important;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-activation-editor {
+  display: grid;
+  grid-template-columns: minmax(170px, 240px) minmax(0, 1fr);
+  gap: 8px 14px;
+  width: 100%;
+  min-width: 0;
+  margin: 0 0 10px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--mt-border);
+  align-items: end;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-activation-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  min-width: 0;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-activation-field > label {
+  color: var(--mt-text-3);
+  font-size: var(--nt-font-meta);
+  font-weight: var(--nt-weight-label);
+  line-height: 1.1;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-activation-field > select {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  min-height: 34px;
+  margin: 0;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-activation-editor .nt-lorebook-variable-condition {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--mt-border);
+  border-bottom: 0;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-activation-editor .nt-lorebook-variable-condition[hidden] {
+  display: none!important;
+}
+
+@media (max-width: 680px), (orientation: landscape) and (max-height: 520px) and (max-width: 960px) {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-activation-editor {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-activation-editor .nt-lorebook-variable-condition {
+    grid-column: 1;
+  }
+}

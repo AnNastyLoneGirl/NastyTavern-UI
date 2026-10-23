@@ -1232,5 +1232,21 @@
   "Imported preset": "Imported preset",
   "Chat Appearance preset imported.": "Chat Appearance preset imported.",
   "Invalid Chat Appearance preset file.": "Invalid Chat Appearance preset file.",
-  "Avatar is still too large after optimization.": "Avatar is still too large after optimization."
+  "Avatar is still too large after optimization.": "Avatar is still too large after optimization.",
+  "Variable condition": "Variable condition",
+  "Local variables are checked first. Use .local.name or .global.name to choose a scope explicitly.": "Local variables are checked first. Use .local.name or .global.name to choose a scope explicitly.",
+  "TRUE": "TRUE",
+  "FALSE": "FALSE",
+  "missing": "missing",
+  "Invalid condition": "Invalid condition",
+  "Could not save the variable condition.": "Could not save the variable condition.",
+  "Could not change this Lorebook entry type.": "Could not change this Lorebook entry type.",
+  "Invalid variable condition": "Invalid variable condition",
+  "Variable condition is false": "Variable condition is false",
+  "Variable condition is true, but another Lorebook rule filtered the entry.": "Variable condition is true, but another Lorebook rule filtered the entry.",
+  "variable": "variable",
+  "Activation": "Activation",
+  "Vectorized": "Vectorized",
+  "Valid condition": "Valid condition",
+  "Evaluated only during generation. Local variables are checked first. Use .local.name or .global.name to choose a scope explicitly.": "Evaluated only during generation. Local variables are checked first. Use .local.name or .global.name to choose a scope explicitly."
 }

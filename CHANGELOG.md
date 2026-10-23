@@ -4,9 +4,31 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
+## v0.1.12
+
+Official release introducing conditional Lorebook activation based on SillyTavern variables, with safer editing and integration into native World Info processing.
+
+### Added
+
+- Added a NastyTavern **Variables** activation mode for Lorebook entries. Conditions such as `.affection >= 50`, scoped references (`.local.name` / `.global.name`), boolean logic (`&&`, `||`, `!`) and parentheses are evaluated against SillyTavern local/global variables without `eval()`.
+- Variable-driven entries use SillyTavern's native `WORLDINFO_FORCE_ACTIVATE` pipeline, so normal World Info budget, timing, character filters and prompt insertion remain host-owned.
+- The Lorebook editor validates only the condition syntax; variable values are intentionally resolved only during a real World Info generation scan. The World Info Inspector continues to report runtime activation results from the active chat context.
+
+### Fixed
+
+- Fixed the Lorebook **Variables** condition field losing or clearing its text when focus left the input. NastyTavern-owned activation controls are no longer processed by the native-entry sync listener, condition drafts are preserved across editor refreshes, and the metadata preservation registry is updated before SillyTavern save events can fire.
+- Lorebook entry activation is now explicit in the selected-entry pane: a visible **Activation** selector exposes Constant, Normal, Vectorized, and Variables instead of requiring users to discover the compact strategy icon in the entry list. Selecting **Variables** immediately reveals the condition editor with syntax validation only.
+- Missing variables at generation time are treated as a normal `false` result for the whole condition. They never throw, warn, block generation, or accidentally satisfy negated / `!=` expressions.
+
+### Compatibility
+
+- Variable entries store their NastyTavern metadata under `extensions.nastyTavern.activation`. Their native keyword/constant/vector state is backed up while Variable mode is active and restored when switching back, leaving the entry safely inactive when NastyTavern is unavailable.
+
+---
+
 ## v0.1.11
 
-Update focused on completing the Community self-host migration and restoring previews for legacy shared Character Cards.
+Update focused on completing the Community self-host migration and restoring previews for legacy shared Character Cards without undoing the v0.1.10 egress reductions.
 
 ### Fixed
 

@@ -1329,5 +1329,21 @@
   "Imported preset": "Préréglage importé",
   "Chat Appearance preset imported.": "Préréglage Chat Appearance importé.",
   "Invalid Chat Appearance preset file.": "Fichier de préréglage Chat Appearance invalide.",
-  "Avatar is still too large after optimization.": "L’avatar est encore trop volumineux après optimisation."
+  "Avatar is still too large after optimization.": "L’avatar est encore trop volumineux après optimisation.",
+  "Variable condition": "Condition de variable",
+  "Local variables are checked first. Use .local.name or .global.name to choose a scope explicitly.": "Les variables locales sont vérifiées en premier. Utilise .local.nom ou .global.nom pour choisir explicitement une portée.",
+  "TRUE": "VRAI",
+  "FALSE": "FAUX",
+  "missing": "absente",
+  "Invalid condition": "Condition invalide",
+  "Could not save the variable condition.": "Impossible d’enregistrer la condition de variable.",
+  "Could not change this Lorebook entry type.": "Impossible de modifier le type de cette entrée de Lorebook.",
+  "Invalid variable condition": "Condition de variable invalide",
+  "Variable condition is false": "La condition de variable est fausse",
+  "Variable condition is true, but another Lorebook rule filtered the entry.": "La condition de variable est vraie, mais une autre règle du Lorebook a filtré l’entrée.",
+  "variable": "variable",
+  "Activation": "Activation",
+  "Vectorized": "Vectorisée",
+  "Valid condition": "Condition valide",
+  "Evaluated only during generation. Local variables are checked first. Use .local.name or .global.name to choose a scope explicitly.": "Évaluée uniquement pendant la génération. Les variables locales sont vérifiées en premier. Utilise .local.nom ou .global.nom pour choisir explicitement une portée."
 }

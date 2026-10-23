@@ -8,7 +8,7 @@ The underlying SillyTavern features remain intact: chats, Character Cards, Perso
 
 On top of that, NastyTavern adds integrated tools, improved mobile support, Community features, and the Nasty Catalogue for discovering and sharing Character Cards and Lorebooks.
 
-> **Current release version:** `0.1.11`
+> **Current release version:** `0.1.12`
 > **Minimum SillyTavern version:** `1.18.0`
 
 ## ✨ Highlights
@@ -21,7 +21,7 @@ On top of that, NastyTavern adds integrated tools, improved mobile support, Comm
 - 📚 **Nasty Catalogue** — discover, rate, organize, download, and import Character Cards and Lorebooks shared by the Community.
 - 🌐 **Community Chat** — chat with other NastyTavern users, share resources, react to messages, reply, search conversations, and create a Community profile.
 - 🧑‍🎨 **Improved Character Management** — redesigned Character Library, cleaner editing, better navigation, Groups integration, and direct Catalogue access.
-- 📖 **Improved Lorebook interface** — easier navigation and editing with layouts adapted for both desktop and mobile.
+- 📖 **Improved Lorebook interface** — easier navigation and editing across desktop and mobile, with a Variables activation mode for conditional World Info entries.
 - 🧩 **Improved Extensions interface** — cleaner access to installed extensions and their settings.
 - 📱 **Mobile support** — dedicated portrait and landscape layouts with touch-friendly controls.
 - ⌨️ **Keyboard shortcuts** — configurable shortcuts for NastyTavern tools.
@@ -200,6 +200,21 @@ NastyTavern is designed around a few simple ideas:
 
 5. **Desktop and mobile both matter.**  
    The interface is designed for mouse, keyboard, and touch usage.
+
+---
+
+# 🛠 Current status
+
+**NastyTavern UI v0.1.12 is the current public release.**
+
+Most major features are already usable, but some compatibility or responsive issues may still appear depending on:
+
+- your SillyTavern version
+- your browser
+- your screen size
+- your installed extensions
+
+If you find a bug, feel free to report it through GitHub.
 
 ---
 

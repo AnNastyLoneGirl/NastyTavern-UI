@@ -1,6 +1,6 @@
-# NastyTavern Community Backend — v0.1.11 audit source
+# NastyTavern Community Backend — v0.1.12 audit source
 
-This directory is the auditable server-side companion for NastyTavern UI v0.1.11.
+This directory is the auditable server-side companion for NastyTavern UI v0.1.12.
 
 It intentionally contains no production secrets. Supabase service-role keys, OAuth secrets and Cloudflare R2 credentials are deployment environment variables and must never be committed.
 
