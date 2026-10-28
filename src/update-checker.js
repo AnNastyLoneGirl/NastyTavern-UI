@@ -6,7 +6,7 @@ const REMOTE_CHANGELOG_URL = 'https://raw.githubusercontent.com/AnNastyLoneGirl/
 const CHANGELOG_URL = `${REPOSITORY_URL}/blob/main/CHANGELOG.md`;
 const LOCAL_MANIFEST_URL = new URL('../manifest.json', import.meta.url).href;
 const LOCAL_CHANGELOG_URL = new URL('../CHANGELOG.md', import.meta.url).href;
-const CACHE_KEY = 'nt:update-check:v5';
+const CACHE_KEY = 'nt:update-check:v6';
 const CACHE_TTL = 15 * 60 * 1000;
 const REQUEST_TIMEOUT = 7000;
 const UPDATE_TIMEOUT = 60 * 1000;
@@ -96,8 +96,17 @@ const fetchWithTimeout = async (url, options = {}, timeout = REQUEST_TIMEOUT) =>
     }
 };
 
+// Give each remote check a distinct URL. The browser's no-store option alone
+// cannot prevent an upstream CDN/proxy from returning a stale manifest after a push.
+// Never add this parameter to extension-local URLs.
+const freshRemoteUrl = url => {
+    const requestUrl = new URL(url);
+    requestUrl.searchParams.set('nt_check', `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+    return requestUrl.href;
+};
+
 const fetchManifestSource = async (url, { remote = false } = {}) => {
-    const response = await fetchWithTimeout(url, { cache: 'no-store' });
+    const response = await fetchWithTimeout(remote ? freshRemoteUrl(url) : url, { cache: 'no-store' });
     if (!response.ok) {
         const scope = remote ? 'Update' : 'Local';
         throw new Error(`${scope} manifest request failed (${response.status})`);
@@ -110,7 +119,7 @@ const fetchManifestSource = async (url, { remote = false } = {}) => {
 };
 
 const fetchText = async (url, { remote = false } = {}) => {
-    const response = await fetchWithTimeout(url, remote ? { cache: 'no-store' } : {});
+    const response = await fetchWithTimeout(remote ? freshRemoteUrl(url) : url, remote ? { cache: 'no-store' } : {});
     if (!response.ok) throw new Error(`Update changelog request failed (${response.status})`);
     return await response.text();
 };

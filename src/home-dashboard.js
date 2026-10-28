@@ -75,6 +75,7 @@ export class HomeDashboard {
         this.updateCheckPromise = null;
         this.lastUpdateCheckAt = 0;
         this.updateInProgress = false;
+        this.updateChecking = false;
         this.updateInstalled = false;
         this.collectionTab = 'favorites';
         this.collectionTrack = null;
@@ -118,6 +119,7 @@ export class HomeDashboard {
         this.updateCheckPromise = null;
         this.lastUpdateCheckAt = 0;
         this.updateInProgress = false;
+        this.updateChecking = false;
         this.updateInstalled = false;
         document.body?.classList.remove('nt-home-active');
         this.setShellHomeHeader(false);
@@ -547,21 +549,26 @@ export class HomeDashboard {
 
     async ensureUpdateCheck({ force = false } = {}) {
         const now = Date.now();
-        if (!force && this.updateCheckPromise) return this.updateCheckPromise;
+        // A manual refresh should never compete with a pending automatic check.
+        if (this.updateCheckPromise) return this.updateCheckPromise;
         if (!force && this.lastUpdateCheckAt && now - this.lastUpdateCheckAt < 15 * 60 * 1000) return this.updateInfo;
 
         this.lastUpdateCheckAt = now;
+        this.updateChecking = true;
+        this.updateUpdateNotice();
         const promise = getNastyTavernUpdateInfo({ force })
             .then(info => {
                 this.updateInfo = info;
-                this.updateUpdateNotice();
                 return info;
             })
-            .catch(error => {
+            .catch(() => {
+                // Keep the last working result if a temporary network error occurs.
                 return null;
             })
             .finally(() => {
+                this.updateChecking = false;
                 if (this.updateCheckPromise === promise) this.updateCheckPromise = null;
+                this.updateUpdateNotice();
             });
 
         this.updateCheckPromise = promise;
@@ -585,6 +592,7 @@ export class HomeDashboard {
 
     renderUpdateNotice(info = this.updateInfo) {
         const loading = !info;
+        const checking = this.updateChecking;
         const available = info?.state === 'available';
         const unavailable = info?.state === 'unavailable';
         const installed = this.updateInstalled;
@@ -596,7 +604,8 @@ export class HomeDashboard {
 
         let meta = t('Checking GitHub…');
         if (!loading) {
-            if (installed) meta = t('Update installed · reload to apply');
+            if (checking) meta = t('Checking GitHub…');
+            else if (installed) meta = t('Update installed · reload to apply');
             else if (available && info.maintenanceUpdate) meta = t('Maintenance update available · installed v{installed}', { installed: info.localVersion || '—' });
             else if (available) meta = t('Update available · installed v{installed}', { installed: info.localVersion || '—' });
             else if (unavailable) meta = t('Could not check GitHub right now');
@@ -615,9 +624,12 @@ export class HomeDashboard {
 
         const updateAction = installed
             ? `<button type="button" class="nt-home-update-now" data-nt-home-action="reload-update">${t('Reload to apply')}</button>`
-            : available
-                ? `<button type="button" class="nt-home-update-now" data-nt-home-action="update-now" ${this.updateInProgress ? 'disabled aria-busy="true"' : ''}>${this.updateInProgress ? t('Updating…') : t('Update now')}</button>`
-                : '';
+            : available && info?.nativeManaged
+                ? `<button type="button" class="nt-home-update-now" data-nt-home-action="update-now" ${this.updateInProgress || checking ? 'disabled aria-busy="true"' : ''}>${this.updateInProgress ? t('Updating…') : t('Update now')}</button>`
+                : available
+                    ? `<a class="nt-home-update-now" href="https://github.com/AnNastyLoneGirl/NastyTavern-UI" target="_blank" rel="noopener noreferrer" title="${escapeHtml(t('Manual installation required for non-Git extensions'))}">${t('Download update')}</a>`
+                    : '';
+        const refreshAction = installed ? '' : `<button type="button" class="nt-home-update-recheck" data-nt-home-action="check-update" ${checking || this.updateInProgress ? 'disabled aria-busy="true"' : ''}>${checking ? t('Checking…') : t('Check again')}</button>`;
         const changelogLink = info?.changelogUrl || 'https://github.com/AnNastyLoneGirl/NastyTavern-UI/blob/main/CHANGELOG.md';
 
         return `<section class="nt-home-update-notice${available ? ' is-update-available' : ''}${installed ? ' is-update-installed' : ''}" aria-label="${escapeHtml(title)}" aria-live="polite">
@@ -628,6 +640,7 @@ export class HomeDashboard {
             </div>
             <div class="nt-home-update-actions">
               ${updateAction}
+              ${refreshAction}
               <a class="nt-home-update-link" href="${escapeHtml(changelogLink)}" target="_blank" rel="noopener noreferrer"><span>${t('View changelog')}</span>${icons.external}</a>
             </div>
           </div>
@@ -875,6 +888,10 @@ export class HomeDashboard {
         if (!action) return;
         if (action === 'update-now') {
             void this.installAvailableUpdate();
+            return;
+        }
+        if (action === 'check-update') {
+            void this.ensureUpdateCheck({ force: true });
             return;
         }
         if (action === 'reload-update') {

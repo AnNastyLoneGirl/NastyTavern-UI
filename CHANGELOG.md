@@ -6,6 +6,12 @@ All notable changes to NastyTavern UI are documented here.
 
 ## v0.1.13
 
+### Update reliability (revision 106)
+
+- Bypass intermediary caches when checking the published GitHub manifest and changelog, so new releases do not get hidden behind stale responses.
+- Add a **Check again** action on Home to bypass the 15-minute session cache, including while diagnosing failed checks.
+- Provide a manual download link instead of a failing Git update action when the extension was installed without Git metadata.
+
 ### Fixed
 
 - Removed the redundant version label from the left sidebar brand, retaining its logo and title. The version remains available on Home, About and Health.

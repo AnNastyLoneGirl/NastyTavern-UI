@@ -16247,6 +16247,7 @@ body.mt-enabled .nt-home-hero-actions button svg {
 }
 
 .nt-home-update-now,
+.nt-home-update-recheck,
 .nt-home-update-link {
   min-height: 26px;
   padding: 0 7px;
@@ -16258,6 +16259,9 @@ body.mt-enabled .nt-home-hero-actions button svg {
 }
 
 .nt-home-update-now {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
   border: 1px solid color-mix(in srgb, var(--mt-accent) 72%, var(--mt-border));
   background: var(--mt-accent);
   color: var(--mt-accent-contrast);
@@ -16269,6 +16273,22 @@ body.mt-enabled .nt-home-hero-actions button svg {
 }
 
 .nt-home-update-now:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.nt-home-update-recheck {
+  border: 1px solid var(--mt-border);
+  background: transparent;
+  color: var(--mt-text-2);
+  cursor: pointer;
+}
+
+.nt-home-update-recheck:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--mt-accent) 8%, transparent);
+}
+
+.nt-home-update-recheck:disabled {
   cursor: wait;
   opacity: .6;
 }
@@ -16287,6 +16307,7 @@ body.mt-enabled .nt-home-hero-actions button svg {
 }
 
 .nt-home-update-now:focus-visible,
+.nt-home-update-recheck:focus-visible,
 .nt-home-update-link:focus-visible,
 .nt-home-update-changes summary:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--mt-accent) 80%, white);
