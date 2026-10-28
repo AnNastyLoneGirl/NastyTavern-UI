@@ -4,6 +4,23 @@ All notable changes to NastyTavern UI are documented here.
 
 ---
 
+## v0.1.13
+
+### Fixed
+
+- Removed the redundant version label from the left sidebar brand, retaining its logo and title. The version remains available on Home, About and Health.
+
+- Corrected NastyTavern version labels on Home, About, and Health diagnostics to match the installed v0.1.13 release; centralized the displayed version across panels.
+
+### Compatibility
+
+- Added a generic Third-Party Top Bar Bridge. Native extension buttons added to SillyTavern's top bar (including ST-StatTab's `#stat_tab_topbar`) are mirrored into the NastyTavern header without replacing or moving their original click handlers.
+- Added an opt-in DOM marker (`data-nt-topbar-action`) and `window.NastyTavernTopbar.register(...)` JavaScript API for third-party extension authors.
+- Mirrored buttons update when their source is added, hidden, or removed, and an overflow menu keeps multiple extensions accessible on narrow screens.
+- Preserved DataCat's existing Character Libraries navigation integration.
+
+---
+
 ## v0.1.12
 
 Official release introducing conditional Lorebook activation based on SillyTavern variables, with safer editing and integration into native World Info processing.

@@ -1,4 +1,5 @@
 import { icons } from './icons.js';
+import { NASTYTAVERN_VERSION } from './version.js';
 import { t } from './i18n.js';
 import { getContextSafe as ctx, escapeHtml } from './utils.js';
 import { starsHtml } from './ui-templates.js';
@@ -655,13 +656,14 @@ export class HomeDashboard {
     }
 
     renderFooter(version) {
+        const buildLabel = `${version} · NastyTavern UI v${NASTYTAVERN_VERSION}`;
         return `<footer class="nt-home-footer">
           <div class="nt-home-resource-links">
             <a href="https://docs.sillytavern.app/" target="_blank" rel="noreferrer"><span>${t('Documentation')}</span>${icons.external}</a>
             <a href="https://github.com/AnNastyLoneGirl/NastyTavern-UI" target="_blank" rel="noreferrer"><span>GitHub</span>${icons.external}</a>
             <a href="https://discord.gg/F4ps4dA7tB" target="_blank" rel="noreferrer"><span>Discord</span>${icons.external}</a>
           </div>
-          <small class="nt-home-build" title="${escapeHtml(`${version} · NastyTavern UI v0.1.12`)}">${escapeHtml(version)} · NastyTavern UI v0.1.12</small>
+          <small class="nt-home-build" title="${escapeHtml(buildLabel)}">${escapeHtml(buildLabel)}</small>
         </footer>`;
     }
 

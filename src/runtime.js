@@ -6,6 +6,7 @@ import { getSettings, saveSettings, applySettings } from './settings.js';
 import { VariableManager } from './variable-manager.js';
 import { WorldInfoInfo } from './world-info-info.js';
 import { ChatToolbar } from './chat-toolbar.js';
+import { TopbarBridge } from './topbar-bridge.js';
 import { ChatAppearanceManager } from './chat-appearance.js';
 import { TimelineManager } from './timeline-manager.js';
 import { ContextInspector } from './context-inspector.js';
@@ -186,6 +187,7 @@ export class NastyTavern {
         this.characterLibraryPerformanceState = null;
         this.characterPaginationStateRef = null;
         this.thirdPartyLauncherState = new Map();
+        this.topbarBridge = new TopbarBridge(() => this.shell?.root?.querySelector?.('[data-mt-third-party-launchers]'));
         this.thirdPartyWorkspacePassThrough = '';
         this.viewSyncTimer = null;
         this.active = false;
@@ -275,6 +277,7 @@ export class NastyTavern {
         clearTimeout(this.retagTimer); this.retagTimer = null;
         stopI18nObserver();
         this.observer?.disconnect(); this.observer = null;
+        this.topbarBridge.stop();
         this.nativeSidePanelObserver?.disconnect(); this.nativeSidePanelObserver = null;
         this.nativeSidePanelResizeObserver?.disconnect(); this.nativeSidePanelResizeObserver = null;
         this.mobileComposerResizeObserver?.disconnect(); this.mobileComposerResizeObserver = null;
@@ -348,6 +351,7 @@ export class NastyTavern {
         applySettings(this.settings);
         this.syncResponsiveNavMode();
         this.shell.mount();
+        this.topbarBridge.start();
         this.syncCharacterLibraryIntegration();
         this.shell.updateCommandShortcut(this.settings.shortcuts?.commandPalette);
         this.shell.updateChatAppearanceShortcut(this.settings.shortcuts?.chatAppearance);
@@ -407,6 +411,7 @@ export class NastyTavern {
             let panelStateChanged = false;
             let nativeSidePanelStructureChanged = false;
             let translationAvailabilityChanged = false;
+            let topbarChanged = false;
             for (const mutation of mutations) {
                 if (mutation.type === 'childList') {
                     if (mutation.addedNodes.length) {
@@ -414,18 +419,24 @@ export class NastyTavern {
                     }
                     if (mutation.addedNodes.length || mutation.removedNodes.length) {
                         const changedNodes = [...mutation.addedNodes, ...mutation.removedNodes];
+                        topbarChanged ||= Boolean(mutation.target?.closest?.('#top-settings-holder, #top-bar'))
+                            || changedNodes.some(node => node?.nodeType === Node.ELEMENT_NODE && (
+                                node.matches?.('[data-nt-topbar-action]') || node.querySelector?.('[data-nt-topbar-action]')
+                            ));
                         nativeSidePanelStructureChanged ||= changedNodes.some(node => {
                             const element = node?.nodeType === Node.ELEMENT_NODE ? node : null;
                             return !!element && (
-                                element.matches?.('#floatingPrompt, #cfgConfig, #logprobsViewer, [data-nt-native-side-panel], [id*="moonlit" i], [class*="moonlit" i], #datacat_browser_topbar_button') ||
-                                element.querySelector?.('#floatingPrompt, #cfgConfig, #logprobsViewer, [data-nt-native-side-panel], [id*="moonlit" i], [class*="moonlit" i], #datacat_browser_topbar_button')
+                                element.matches?.('#floatingPrompt, #cfgConfig, #logprobsViewer, [data-nt-native-side-panel], [id*="moonlit" i], [class*="moonlit" i], #datacat_browser_topbar_button, [data-nt-topbar-action], #top-settings-holder, #top-bar') ||
+                                element.querySelector?.('#floatingPrompt, #cfgConfig, #logprobsViewer, [data-nt-native-side-panel], [id*="moonlit" i], [class*="moonlit" i], #datacat_browser_topbar_button, [data-nt-topbar-action], #top-settings-holder, #top-bar')
                             );
                         });
                     }
                 }
                 if (mutation.type === 'attributes' && mutation.target?.matches?.('.mt-native-panel,.drawer-content')) panelStateChanged = true;
+                if (mutation.type === 'attributes' && mutation.target?.matches?.('[data-nt-topbar-action], #top-settings-holder [id], #top-bar [id]')) topbarChanged = true;
                 if (mutation.type === 'attributes' && mutation.target === document.body && mutation.attributeName === 'class') translationAvailabilityChanged = true;
             }
+            if (topbarChanged) this.topbarBridge.refresh();
             if (nativeSidePanelStructureChanged) {
                 this.setupNativeSidePanels();
                 this.syncThirdPartyLaunchers();
@@ -461,7 +472,7 @@ export class NastyTavern {
                 localizeOwnedUI();
             }, 80);
         });
-        this.observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
+        this.observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden', 'data-nt-topbar-action', 'data-nt-topbar-disabled', 'data-nt-topbar-label', 'data-nt-topbar-icon', 'aria-disabled'] });
     }
 
     enhanceChat() {
@@ -700,7 +711,7 @@ export class NastyTavern {
 
         // Remove the previous app-bar bridge if upgrading without a full reload.
         host?.querySelector('[data-nt-third-party-launcher="datacat"]')?.remove();
-        if (host) host.hidden = !host.childElementCount;
+        this.topbarBridge.refresh();
     }
 
     thirdPartyWorkspaceDefinition(view) {

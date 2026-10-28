@@ -8,7 +8,7 @@ The underlying SillyTavern features remain intact: chats, Character Cards, Perso
 
 On top of that, NastyTavern adds integrated tools, improved mobile support, Community features, and the Nasty Catalogue for discovering and sharing Character Cards and Lorebooks.
 
-> **Current release version:** `0.1.12`
+> **Current release version:** `0.1.13`
 > **Minimum SillyTavern version:** `1.18.0`
 
 ## ✨ Highlights
@@ -23,6 +23,7 @@ On top of that, NastyTavern adds integrated tools, improved mobile support, Comm
 - 🧑‍🎨 **Improved Character Management** — redesigned Character Library, cleaner editing, better navigation, Groups integration, and direct Catalogue access.
 - 📖 **Improved Lorebook interface** — easier navigation and editing across desktop and mobile, with a Variables activation mode for conditional World Info entries.
 - 🧩 **Improved Extensions interface** — cleaner access to installed extensions and their settings.
+- 🔗 **Third-party Top Bar Bridge** — automatically mirrors compatible SillyTavern extension buttons into the NastyTavern header, with a small opt-in API for extension developers. [Integration guide](docs/topbar-extensions.md).
 - 📱 **Mobile support** — dedicated portrait and landscape layouts with touch-friendly controls.
 - ⌨️ **Keyboard shortcuts** — configurable shortcuts for NastyTavern tools.
 - ❤️ **Health & Performance** — built-in diagnostics to help identify interface or compatibility issues.
@@ -205,7 +206,7 @@ NastyTavern is designed around a few simple ideas:
 
 # 🛠 Current status
 
-**NastyTavern UI v0.1.12 is the current public release.**
+**NastyTavern UI v0.1.13 is the current public release.**
 
 Most major features are already usable, but some compatibility or responsive issues may still appear depending on:
 
@@ -221,8 +222,6 @@ If you find a bug, feel free to report it through GitHub.
 # ☕ Support the project
 
 If you enjoy **NastyTavern UI** and want to support its development, you can buy me a coffee on Ko-fi. 🤍
-
-Your support helps with testing, future features, Community infrastructure, and compatibility improvements.
 
 👉 **[Buy me a coffee on Ko-fi](https://ko-fi.com/annastylonegirl)**
 

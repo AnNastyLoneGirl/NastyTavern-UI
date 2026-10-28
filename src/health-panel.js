@@ -1,4 +1,5 @@
 import { icons } from './icons.js';
+import { NASTYTAVERN_VERSION } from './version.js';
 import { t } from './i18n.js';
 import { getContextSafe as ctx, escapeHtml as esc } from './utils.js';
 import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
@@ -74,7 +75,7 @@ export class HealthPanel {
 
         return {
             stVersion: document.querySelector('#version_display')?.textContent?.trim() || 'Unknown',
-            nastyVersion: '0.1.12',
+            nastyVersion: NASTYTAVERN_VERSION,
             view: document.body?.dataset?.mtView || 'chat',
             chatId: c?.getCurrentChatId?.() || c?.chatId || '',
             messages: Array.isArray(c?.chat) ? c.chat.length : 0,

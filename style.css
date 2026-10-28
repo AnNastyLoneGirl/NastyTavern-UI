@@ -11289,13 +11289,6 @@ body.mt-enabled .mt-brandtext small {
   font-size: var(--nt-font-meta);
 }
 
-body.mt-enabled .mt-brand-version {
-  margin-left: auto;
-  color: var(--mt-text-3);
-  font: 650 8px/1 inherit;
-  letter-spacing: .03em;
-}
-
 body.mt-enabled .mt-nav {
   gap: 10px;
   padding: 0 2px;
@@ -11482,11 +11475,6 @@ body.mt-enabled .mt-appbar-icon svg {
   display: block;
 }
 
-body.mt-nav-compact .mt-brand-version,
-body.mt-enabled.waifuMode .mt-brand-version{
-  display: none;
-}
-
 body.mt-nav-compact .mt-nav {
   gap: 4px;
 }
@@ -11528,7 +11516,6 @@ body.mt-nav-compact .mt-nav {
   }
 
   body.mt-enabled .mt-brandtext,
-body.mt-enabled .mt-brand-version,
 body.mt-enabled .mt-nav-label,
 body.mt-enabled .mt-sidebar kbd{
     display: none;
@@ -17748,7 +17735,6 @@ body.mt-enabled.mt-focus-mode .mt-sidebar-toggle {
    desktop preference remains untouched and is restored automatically when the
    viewport grows again. */
 body.mt-enabled.nt-mobile-nav-forced .mt-brandtext,
-body.mt-enabled.nt-mobile-nav-forced .mt-brand-version,
 body.mt-enabled.nt-mobile-nav-forced .mt-nav-label,
 body.mt-enabled.nt-mobile-nav-forced .mt-sidebar kbd {
   display: none;
@@ -32426,4 +32412,70 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-activation-editor .nt-lorebo
   body.mt-enabled #nt-lorebook-workspace .nt-lorebook-activation-editor .nt-lorebook-variable-condition {
     grid-column: 1;
   }
+}
+
+/* Generic extension top-bar bridge: only the action is mirrored, never the
+   extension's source DOM, listeners, menus or third-party styling. */
+body.mt-enabled .mt-appbar-third-party {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+body.mt-enabled .mt-appbar-third-party .nt-third-party-action,
+body.mt-enabled .mt-appbar-third-party .nt-third-party-overflow-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 6px;
+  font-size: 16px;
+  line-height: 1;
+}
+body.mt-enabled .mt-appbar-third-party .nt-third-party-action > :is(i,span),
+body.mt-enabled .mt-appbar-third-party .nt-third-party-overflow-toggle > :is(i,span) {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+}
+body.mt-enabled .nt-third-party-overflow {
+  position: absolute;
+  z-index: 4400;
+  top: calc(100% + 10px);
+  right: 0;
+  width: max-content;
+  min-width: 180px;
+  max-width: min(280px, calc(100vw - 16px));
+  max-height: min(65vh, 440px);
+  overflow: auto;
+  padding: 5px;
+  background: var(--mt-panel, #111821);
+  border: 1px solid var(--mt-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+}
+body.mt-enabled .nt-third-party-overflow[hidden] { display: none; }
+body.mt-enabled .nt-third-party-overflow .nt-third-party-menu-item {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--mt-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+body.mt-enabled .nt-third-party-menu-item i,
+body.mt-enabled .nt-third-party-menu-item svg { width: 17px; flex: 0 0 17px; }
+body.mt-enabled .nt-third-party-menu-item:hover,
+body.mt-enabled .nt-third-party-menu-item:focus-visible {
+  background: rgba(255,255,255,.08);
 }
