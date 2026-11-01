@@ -1132,6 +1132,7 @@
   "Could not update NastyTavern.": "Impossible de mettre NastyTavern à jour.",
   "Character Library": "Character Library",
   "Character Library is not available.": "Character Library n’est pas disponible.",
+  "Update available · one-click install requires Git": "Mise à jour disponible · installation en un clic réservée à Git",
   "Maintenance update available · installed v{installed}": "Mise à jour de maintenance disponible · version installée v{installed}",
   "NastyTavern update installed. Reloading to apply it.": "La mise à jour NastyTavern est installée. Rechargement pour l’appliquer.",
   "New": "Nouveau",

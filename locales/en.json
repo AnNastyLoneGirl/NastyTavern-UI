@@ -1132,6 +1132,7 @@
   "Could not update NastyTavern.": "Could not update NastyTavern.",
   "Character Library": "Character Library",
   "Character Library is not available.": "Character Library is not available.",
+  "Update available · one-click install requires Git": "Update available · one-click install requires Git",
   "Maintenance update available · installed v{installed}": "Maintenance update available · installed v{installed}",
   "NastyTavern update installed. Reloading to apply it.": "NastyTavern update installed. Reloading to apply it.",
   "Lorebook name": "Lorebook name",

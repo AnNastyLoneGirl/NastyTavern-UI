@@ -226,15 +226,62 @@ const requestExtensionEndpoint = async (endpoint, extensionName, global, timeout
     return { response, data, text };
 };
 
-const getNativeRepoStatus = async extensionName => {
+// The extension manager already knows which folder scope contains an extension.
+// Prefer its authoritative type instead of guessing from a failed HTTP request.
+// In particular, an old user-scoped ZIP installation can return 200 with empty
+// Git metadata or an HTTP 500, even if a global Git installation exists.
+const getNativeExtensionScope = async extensionName => {
     try {
-        const local = await requestExtensionEndpoint('version', extensionName, false);
-        if (local.response.ok && local.data) return { ...local.data, extensionGlobal: false };
-        if (local.response.status !== 404) return null;
+        const { extensionTypes } = await import('/scripts/extensions.js');
+        const wantedName = String(extensionName).toLowerCase();
+        for (const [id, type] of Object.entries(extensionTypes || {})) {
+            const folder = id.replace(/^third-party\/?/i, '').toLowerCase();
+            if (folder !== wantedName) continue;
+            if (type === 'global') return true;
+            if (type === 'local') return false;
+        }
+    } catch (_) {
+        // Older SillyTavern builds or tests may not expose the module.
+    }
+    return null;
+};
 
-        const global = await requestExtensionEndpoint('version', extensionName, true);
-        if (global.response.ok && global.data) return { ...global.data, extensionGlobal: true };
-    } catch (error) {
+// SillyTavern returns HTTP 200 for non-Git folders with *empty* Git fields.
+// Never call /update just because /version returned a successful response.
+const isManagedCheckout = data => {
+    if (!data || typeof data !== 'object') return false;
+    const commit = String(data.currentCommitHash || '').trim();
+    const branch = String(data.currentBranchName || '').trim();
+    if (!/^[0-9a-f]{7,40}$/i.test(commit) || !branch || branch === 'HEAD') return false;
+    try {
+        let origin = String(data.remoteUrl || '').trim();
+        origin = origin.replace(/^git@github\.com:/i, 'https://github.com/')
+            .replace(/^ssh:\/\/git@github\.com\//i, 'https://github.com/')
+            .replace(/^git:\/\/github\.com\//i, 'https://github.com/');
+        const url = new URL(origin);
+        return url.hostname.toLowerCase() === 'github.com'
+            && url.pathname.replace(/\.git$/i, '').replace(/\/$/, '').toLowerCase() === '/annastylonegirl/nastytavern-ui';
+    } catch (_) {
+        return false;
+    }
+};
+
+const getNativeRepoStatus = async extensionName => {
+    const knownScope = await getNativeExtensionScope(extensionName);
+    const scopes = typeof knownScope === 'boolean' ? [knownScope] : [false, true];
+    for (const global of scopes) {
+        try {
+            const result = await requestExtensionEndpoint('version', extensionName, global);
+            if (!result.response.ok) continue;
+            if (isManagedCheckout(result.data)) {
+                return { ...result.data, extensionGlobal: global };
+            }
+            // When the manager tells us where this extension lives, a successful
+            // non-Git response is definitive: don't probe/update the other scope.
+            if (typeof knownScope === 'boolean') return null;
+        } catch (_) {
+            // A failed check must not masquerade as a working Git install.
+        }
     }
     return null;
 };
@@ -378,40 +425,34 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
 }
 
 export async function updateNastyTavernExtension(info = {}) {
-    // Re-check immediately before mutating the checkout so a stale Home card can
-    // never launch a Git pull after the installed version has already caught up.
-    const freshInfo = await getNastyTavernUpdateInfo({ force: true });
-    if (!freshInfo || freshInfo.state !== 'available') {
-        return { skipped: true, upToDate: true };
-    }
-    if (!freshInfo.nativeManaged) {
-        throw new Error('This NastyTavern installation is not managed by SillyTavern Git updates.');
+    const extensionName = getInstalledExtensionName();
+    // Revalidate the actual Git checkout just before installation. This does
+    // not rely on raw.githubusercontent.com, whose version can lag behind a push.
+    const nativeStatus = await getNativeRepoStatus(extensionName);
+    if (!nativeStatus) {
+        throw new Error('Automatic updates require NastyTavern to be installed from its official Git repository through SillyTavern. ZIP installations must be updated manually.');
     }
 
-    const extensionName = String(freshInfo.extensionName || info.extensionName || getInstalledExtensionName()).trim();
-    if (!extensionName) throw new Error('Could not determine the NastyTavern extension folder.');
-
-    const preferredGlobal = typeof freshInfo.extensionGlobal === 'boolean'
-        ? freshInfo.extensionGlobal
-        : (typeof info.extensionGlobal === 'boolean' ? info.extensionGlobal : false);
-    const attempts = typeof freshInfo.extensionGlobal === 'boolean'
-        ? [preferredGlobal]
-        : (typeof info.extensionGlobal === 'boolean' ? [preferredGlobal] : [false, true]);
-
-    let lastError = null;
-    for (const global of attempts) {
-        try {
-            const result = await requestExtensionEndpoint('update', extensionName, global, UPDATE_TIMEOUT);
-            if (result.response.ok) return { ...(result.data || {}), extensionGlobal: global };
-
-            const message = result.text || result.data?.error || result.response.statusText || `HTTP ${result.response.status}`;
-            lastError = new Error(message);
-            if (result.response.status !== 404) break;
-        } catch (error) {
-            lastError = error instanceof Error ? error : new Error(String(error));
-            break;
+    const result = await requestExtensionEndpoint('update', extensionName, nativeStatus.extensionGlobal, UPDATE_TIMEOUT);
+    if (!result.response.ok) {
+        if (result.response.status === 403) {
+            throw new Error('Only a SillyTavern administrator can update globally installed extensions.');
         }
+        const message = result.text || result.data?.error || result.response.statusText || `HTTP ${result.response.status}`;
+        throw new Error(`SillyTavern could not install the update: ${message}`);
     }
-
-    throw lastError || new Error('NastyTavern update failed.');
+    if (!result.data || typeof result.data.isUpToDate !== 'boolean') {
+        throw new Error('SillyTavern returned an unexpected update result. Please check the extension manager.');
+    }
+    if (result.data.isUpToDate) {
+        // Git didn't pull anything. Never claim an install succeeded just because
+        // the remote manifest (which uses a separate CDN) advertised a release.
+        return { updated: false, upToDate: true, extensionGlobal: nativeStatus.extensionGlobal };
+    }
+    return {
+        ...result.data,
+        updated: true,
+        upToDate: false,
+        extensionGlobal: nativeStatus.extensionGlobal,
+    };
 }

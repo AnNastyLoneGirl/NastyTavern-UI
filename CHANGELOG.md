@@ -6,6 +6,14 @@ All notable changes to NastyTavern UI are documented here.
 
 ## v0.1.14
 
+### One-click updates (revision 115)
+
+- Home **Update now** uses SillyTavern's own Git update API to install the new commit directly, followed by an automatic page reload only when an update was actually pulled.
+- Fixed Git installation detection for local/global extension scopes and ZIP folders. A 200 response from the native version endpoint without Git metadata is no longer treated as an updatable repository.
+- Native Git status is revalidated before a pull; a stale GitHub manifest or an already-current commit can no longer trigger a false installation success. Admin-only global installs and update errors have clearer messages.
+- Manually copied ZIP installations continue to show a download link because SillyTavern cannot Git-pull a folder without Git metadata.
+
+
 ### Backward compatibility (revision 114)
 
 - Kept a single `## v0.1.14` release heading so NastyTavern 0.1.13 and earlier update checkers can read all 0.1.14 notes, including later maintenance revisions.

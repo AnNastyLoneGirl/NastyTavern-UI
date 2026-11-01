@@ -606,6 +606,7 @@ export class HomeDashboard {
         if (!loading) {
             if (checking) meta = t('Checking GitHub…');
             else if (installed) meta = t('Update installed · reload to apply');
+            else if (available && !info.nativeManaged) meta = t('Update available · one-click install requires Git');
             else if (available && info.maintenanceUpdate) meta = t('Maintenance update available · installed v{installed}', { installed: info.localVersion || '—' });
             else if (available) meta = t('Update available · installed v{installed}', { installed: info.localVersion || '—' });
             else if (info?.state === 'remote-behind') meta = t('GitHub returned an older build · check again');
@@ -628,7 +629,7 @@ export class HomeDashboard {
             : available && info?.nativeManaged
                 ? `<button type="button" class="nt-home-update-now" data-nt-home-action="update-now" ${this.updateInProgress || checking ? 'disabled aria-busy="true"' : ''}>${this.updateInProgress ? t('Updating…') : t('Update now')}</button>`
                 : available
-                    ? `<a class="nt-home-update-now" href="https://github.com/AnNastyLoneGirl/NastyTavern-UI" target="_blank" rel="noopener noreferrer" title="${escapeHtml(t('Manual installation required for non-Git extensions'))}">${t('Download update')}</a>`
+                    ? `<a class="nt-home-update-now" href="https://github.com/AnNastyLoneGirl/NastyTavern-UI" target="_blank" rel="noopener noreferrer" title="${escapeHtml(t('Automatic updates require a Git installation; manually installed ZIPs cannot be updated by SillyTavern'))}">${t('Download update')}</a>`
                     : '';
         const refreshAction = installed ? '' : `<button type="button" class="nt-home-update-recheck" data-nt-home-action="check-update" ${checking || this.updateInProgress ? 'disabled aria-busy="true"' : ''}>${checking ? t('Checking…') : t('Check again')}</button>`;
         const changelogLink = info?.changelogUrl || 'https://github.com/AnNastyLoneGirl/NastyTavern-UI/blob/main/CHANGELOG.md';
@@ -654,13 +655,16 @@ export class HomeDashboard {
         this.updateInProgress = true;
         this.updateUpdateNotice();
         try {
-            await updateNastyTavernExtension(this.updateInfo);
-            this.updateInstalled = true;
-            this.toast?.(t('NastyTavern update installed. Reloading to apply it.'));
-            // The updater replaces extension files on disk while the current page
-            // is still running the previous bundle. Reload automatically so the
-            // newly installed build becomes active without requiring a manual step.
-            window.setTimeout(() => window.location.reload(), 450);
+            const result = await updateNastyTavernExtension(this.updateInfo);
+            if (result.updated) {
+                this.updateInstalled = true;
+                this.toast?.(t('NastyTavern update installed. Reloading to apply it.'));
+                // The installed JavaScript on disk differs from the running page.
+                window.setTimeout(() => window.location.reload(), 450);
+            } else {
+                this.toast?.(t('SillyTavern reports no new Git commit. Check again shortly.'));
+                this.updateInfo = await getNastyTavernUpdateInfo({ force: true });
+            }
         } catch (error) {
             this.toast?.(error?.message || t('Could not update NastyTavern.'));
         } finally {

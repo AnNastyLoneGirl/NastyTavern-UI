@@ -47,6 +47,12 @@ https://github.com/AnNastyLoneGirl/NastyTavern-UI
 
 Reload SillyTavern and enable **NastyTavern UI** if needed.
 
+## One-click updates
+
+When installed through **SillyTavern → Extensions → Install extension** (from the GitHub URL above), NastyTavern's Home page can show **Update now**. It uses SillyTavern's existing Git update API, confirms the server pulled a new commit, and then reloads the page to activate the new files. **Check again** requests fresh release information.
+
+An extension copied manually from a ZIP has no Git metadata, so SillyTavern cannot update it in place. NastyTavern shows **Download update** instead. To enable one-click updates in the future, back up your manually installed extension folder, remove that copy, and install NastyTavern through SillyTavern's Git-based extension installer. Do not leave two copies installed. Global installations may require administrator privileges to update.
+
 ## Manual installation
 
 Copy the entire `NastyTavern-UI` folder into your SillyTavern user extensions directory and reload SillyTavern.
