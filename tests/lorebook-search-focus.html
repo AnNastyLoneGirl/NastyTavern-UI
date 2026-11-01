@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Lorebook Search Focus Regression</title></head>
+<body>
+<section id="gallery"></section><pre id="results">RUNNING</pre>
+<script type="module">
+import { LorebookManager } from '../src/lorebook-manager.js';
+const output = document.getElementById('results');
+const checks = [];
+function assert(check, description) {
+    if (!check) throw new Error(description);
+    checks.push(description);
+}
+try {
+    const gallery = document.getElementById('gallery');
+    const manager = new LorebookManager({ lorebookStudio: { sort: 'az' } }, () => {});
+    manager.gallery = gallery;
+    manager.pageSize = 2;
+    const book = (id, name, flags = {}) => ({
+        id, name,
+        binding: {
+            global: Boolean(flags.global), chat: false,
+            characters: [], personas: [], labels: flags.global ? ['Global'] : [],
+        },
+    });
+    manager.books = [book('a', 'Apple'), book('b', 'Apricot', {global: true}), book('c', 'Banana'), book('d', 'Berry')];
+    gallery.addEventListener('input', event => manager.onInput(event));
+    manager.renderGallery();
+    const input = gallery.querySelector('[data-nt-lorebook-search]');
+    assert(input !== null, 'initial search field exists');
+    assert(gallery.querySelectorAll('[data-nt-lorebook-card]').length === 2, 'initial page size');
+    assert(gallery.querySelector('.nt-lorebook-library-footer').textContent.includes('4'), 'initial count');
+    input.focus();
+    assert(document.activeElement === input, 'initial focus is on search');
+
+    for (const query of ['a', 'ap', 'app', 'apple']) {
+        input.value = query;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        assert(gallery.querySelector('[data-nt-lorebook-search]') === input, 'original input retained for ' + query);
+        assert(document.activeElement === input, 'focus retained for ' + query);
+        assert(manager.search === query, 'search state updated to ' + query);
+    }
+    assert(gallery.querySelectorAll('[data-nt-lorebook-card]').length === 1, 'matching card appears');
+    assert(gallery.querySelector('[data-nt-lorebook-card]').dataset.ntLorebookCard === 'a', 'Apple matches');
+    input.value = 'nothing';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    assert(Boolean(gallery.querySelector('.nt-lorebook-library-empty')), 'empty-state shown');
+    assert(document.activeElement === input, 'focus retained for empty results');
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    assert(manager.page === 1 && manager.books.length === 4, 'clearing query restores first page');
+    assert(gallery.querySelectorAll('[data-nt-lorebook-card]').length === 2, 'clearing query restores cards');
+    manager.filter = 'global';
+    manager.renderGallery();
+    assert(document.activeElement === input, 'filter updates preserve focus');
+    assert(gallery.querySelector('[data-nt-lorebook-filter="global"]').getAttribute('aria-pressed') === 'true', 'filter state updates');
+    assert(gallery.querySelectorAll('[data-nt-lorebook-card]').length === 1, 'filter applies to results');
+    manager.filter = 'all';
+    manager.sort = 'za';
+    manager.renderGallery();
+    assert(gallery.querySelector('[data-nt-lorebook-sort]').value === 'za', 'sort field stays synced');
+    assert(gallery.querySelector('[data-nt-lorebook-card]').dataset.ntLorebookCard === 'd', 'sort applies to results');
+    assert(document.activeElement === input, 'sort updates preserve focus');
+    manager.books.push(book('e', 'Cherry'));
+    manager.renderGallery();
+    assert(gallery.querySelector('.nt-lorebook-library-footer').textContent.includes('5'), 'refresh updates count');
+    assert(document.activeElement === input, 'refresh preserves focus');
+    output.textContent = `PASS (${checks.length} assertions): lorebook search focus, filtering, sorting and pagination`;
+    output.dataset.status = 'pass';
+} catch (error) {
+    output.textContent = 'FAIL: ' + error.stack;
+    output.dataset.status = 'fail';
+}
+</script>
+</body>
+</html>

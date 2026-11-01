@@ -1,0 +1,66 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Native World Info navigation</title>
+<style>.fa-solid { font-family: "Font Awesome 6 Free"; font-weight: 900; } .fa-solid::before { content: "\f013"; }</style>
+<link rel="stylesheet" href="../style.css">
+<style>
+body{background:#151822;color:#f2f3f8;font:14px Arial,sans-serif;--mt-text:#f2f3f8;--mt-text-2:#bdc4d9;--mt-border:#44495b;--mt-accent:#6cb8ed;--mt-text-3:#afb7c9;--nt-control-border:#48516e;--nt-button-bg:#242b3d;--nt-action-primary-bg:#354b67;--nt-action-primary-color:#fff;--nt-button-radius:8px;}
+#nt-lorebook-workspace{display:flex!important;position:relative!important;width:900px;height:560px;max-width:100%;padding:12px;box-sizing:border-box;}
+#nt-lorebook-workspace .nt-lorebook-workspace-host{display:flex;flex:1;min-width:0;min-height:0;}
+#nt-lorebook-workspace .nt-lorebook-library-header{width:100%;}
+#nt-lorebook-workspace .nt-lorebook-editor-bar{padding:10px;}
+#nt-lorebook-workspace .nt-lorebook-native-host{padding:12px;}
+#WorldInfo #wi-holder{padding:10px;}
+#wiTopBlock{margin-bottom:15px;}
+</style></head>
+<body class="mt-enabled"><section id="nt-lorebook-workspace" class="is-gallery-view nt-lorebook-gallery-ready">
+<div class="nt-lorebook-workspace-host" data-nt-lorebook-host>
+<section id="WorldInfo" class="nt-lorebook-native-editor">
+<div id="wiTopBlock" class="nt-lorebook-top-controls" hidden><div id="WIMultiSelector"><label>Active Global Lorebooks<select id="world_info" multiple><option selected>Book A</option><option>Book B</option></select></label></div><div id="wiActivationSettings">Native settings</div></div>
+<div id="wi-holder"><div id="world_popup"><div class="flex-container alignitemscenter"><select id="world_editor_select"><option>Book A</option><option>Book B</option></select><i id="world_popup_export" class="menu_button fa-solid" role="button" title="Export"></i><i id="world_popup_delete" class="menu_button fa-solid" role="button" title="Delete"></i><button type="button" id="native_text_action" class="menu_button">Native action</button></div><div id="world_popup_entries_list">Native entry editor</div></div></div>
+</section></div></section><pre id="result">RUNNING</pre>
+<script type="module">
+import { LorebookManager } from '../src/lorebook-manager.js';
+const result=document.querySelector('#result');let n=0; const assert=(ok,msg)=>{if(!ok)throw Error(msg);n++};
+try{
+ const root=document.querySelector('#nt-lorebook-workspace');const panel=document.querySelector('#WorldInfo');
+ const select=document.querySelector('#world_info');const top=document.querySelector('#wiTopBlock');
+ const manager=new LorebookManager({lorebookStudio:{sort:'az'}},msg=>{throw Error(msg)}, {
+   openNativeWorldInfo:()=>{top.hidden=false;top.classList.remove('nt-lorebook-top-controls');return true;},
+   onShowGallery:()=>{top.hidden=true;top.classList.add('nt-lorebook-top-controls');},
+ });
+ assert(await manager.mount(root,panel)===true,'Lorebooks gallery mounts');
+ const nativeButton=root.querySelector('[data-nt-lorebook-open-native]');
+ const actions=root.querySelector('.nt-lorebook-library-actions');
+ assert(nativeButton!==null,'Left action is present');
+ assert(actions!==null && actions.querySelectorAll('button').length===4,'Right action group preserves 4 buttons');
+ assert(nativeButton.getBoundingClientRect().right <= actions.getBoundingClientRect().left,'Open Native action stays left of others');
+ assert(nativeButton.getBoundingClientRect().top === actions.getBoundingClientRect().top,'Actions occupy the same row');
+ assert(top.hidden,'Native settings hidden in gallery');
+ nativeButton.click();await new Promise(r=>requestAnimationFrame(r));
+ assert(manager.view==='native','Opening native view sets native state');
+ assert(root.classList.contains('is-native-view'),'Native view class is applied');
+ assert(manager.gallery.hidden && !manager.editorView.hidden,'Native surface is shown; gallery is hidden');
+ assert(panel.isConnected && select.isConnected && document.querySelector('#world_info')===select,'Original global selector stays connected and unchanged');
+ assert(!top.hidden,'SillyTavern native top settings are visible');
+ const nativeIcon=root.querySelector('#world_popup_export');
+ const deleteIcon=root.querySelector('#world_popup_delete');
+ const textAction=root.querySelector('#native_text_action');
+ assert(getComputedStyle(nativeIcon).fontFamily.includes('Font Awesome 6 Free'),'Native Font Awesome font family is preserved');
+ assert(getComputedStyle(nativeIcon).fontWeight==='900','Native Font Awesome weight is preserved');
+ assert(nativeIcon.getBoundingClientRect().width>=36 && deleteIcon.getBoundingClientRect().width>=36,'Native file action icons have real button widths');
+ assert(getComputedStyle(textAction).fontFamily!==getComputedStyle(nativeIcon).fontFamily,'Native textual actions retain the regular UI font');
+ assert(getComputedStyle(manager.editorView).display!=='none','Native editor is in layout');
+ assert(getComputedStyle(top).display!=='none','Native setting control is actually visible');
+ manager.editorView.querySelector('[data-nt-lorebook-back]').click();
+ assert(manager.view==='gallery','Back returns to gallery');
+ assert(manager.gallery.hidden===false && manager.editorView.hidden===true,'Back hides native editor');
+ assert(top.hidden,'Gallery restores settings hide');
+ assert(select.isConnected && document.querySelector('#world_info')===select,'Native global selector remains connected on return');
+ const search=manager.gallery.querySelector('[data-nt-lorebook-search]');
+ search.focus();search.value='Book';manager.onInput({target:search});
+ assert(document.activeElement===search,'Search focus survives after returning from native view');
+ manager.unmount({keepNative:true});
+ assert(select.isConnected,'Unloading restores native selector');
+ result.textContent=`PASS (${n} assertions): toolbar layout, native settings, connected globals, return and search focus`;
+ result.dataset.status='pass';
+}catch(e){result.textContent='FAIL '+e.stack;result.dataset.status='fail';}
+</script></body></html>

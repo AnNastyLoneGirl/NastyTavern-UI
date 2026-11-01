@@ -1,14 +1,3 @@
-## 0.1.14 — revision 112
-
-- Fixed native World Info icons disappearing: shared Lorebook button styling no longer overrides Font Awesome's icon font family and weight.
-- Restored a flexible native file-action toolbar with properly sized icon buttons while leaving the Lorebook gallery and its save behavior unchanged.
-
-## 0.1.14 — revision 111
-
-- Added a left-aligned **Open Native World Info** action to the Lorebooks toolbar; New, Import, Settings and Refresh remain right-aligned.
-- Native World Info is displayed with SillyTavern’s original selectors, global bindings, and entry controls, and offers a back button to the Lorebooks gallery.
-- Preserved global lorebook persistence and existing search, Global and universal ON/OFF behavior.
-
 # NastyTavern UI — Changelog
 
 All notable changes to NastyTavern UI are documented here.
@@ -16,6 +5,27 @@ All notable changes to NastyTavern UI are documented here.
 ---
 
 ## v0.1.14
+
+### Backward compatibility (revision 114)
+
+- Kept a single `## v0.1.14` release heading so NastyTavern 0.1.13 and earlier update checkers can read all 0.1.14 notes, including later maintenance revisions.
+- Verified the published manifest's semantic version is newer than 0.1.13 and documented the update steps for older installed clients and Git-managed installs.
+
+### Changelog reliability (revision 113)
+
+- Fixed the Home changelog parser so headings including a revision suffix are understood; the published changelog also uses canonical version headings for older installations.
+- When a GitHub raw-content response is older than the installed build, the update card now displays the installed version's notes and an accurate warning instead of incorrectly reporting the old release as up to date.
+
+### Native World Info icons (revision 112)
+
+- Fixed native World Info icons disappearing: shared Lorebook button styling no longer overrides Font Awesome's icon font family and weight.
+- Restored a flexible native file-action toolbar with properly sized icon buttons while leaving the Lorebook gallery and its save behavior unchanged.
+
+### Native World Info navigation (revision 111)
+
+- Added a left-aligned **Open Native World Info** action to the Lorebooks toolbar; New, Import, Settings and Refresh remain right-aligned.
+- Native World Info is displayed with SillyTavern’s original selectors, global bindings, and entry controls, and offers a back button to the Lorebooks gallery.
+- Preserved global lorebook persistence and existing search, Global and universal ON/OFF behavior.
 
 ### Global Lorebook save reliability (revision 110)
 

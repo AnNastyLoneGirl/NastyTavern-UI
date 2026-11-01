@@ -1,0 +1,74 @@
+<!doctype html><html lang="en"><meta charset="UTF-8"><title>Topbar bridge tests</title>
+<body class="mt-enabled">
+<div id="top-bar"><div id="top-settings-holder">
+<div class="drawer" id="extensions-settings-button"><div class="drawer-toggle"><i class="fa-solid fa-gear" title="Extensions"></i></div></div>
+<div class="drawer" id="stat_tab_topbar"><div class="drawer-toggle"><i class="drawer-icon fa-solid fa-chart-simple fa-fw" title="Open Stat Tab"></i></div></div>
+<button id="datacat_browser_topbar_button" title="DataCat"><i class="fa-solid fa-database"></i></button>
+</div></div>
+<div id="mt-root"><header><div data-mt-third-party-launchers hidden></div></header></div>
+<pre id="log">Running tests...</pre>
+<script type="module">
+import { TopbarBridge } from '../src/topbar-bridge.js';
+const results = [];
+function assert(value, label) { if (!value) throw Error(label); results.push('PASS '+label); }
+const host = document.querySelector('[data-mt-third-party-launchers]');
+const source = document.querySelector('#stat_tab_topbar');
+let hits = 0;
+source.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); hits++; }, true);
+const bridge = new TopbarBridge(() => host);
+try {
+bridge.start();
+assert(window.NastyTavernTopbar?.version === 1, 'API exposed');
+assert(host.querySelectorAll('[data-nt-third-party-launcher]').length === 1, 'only StatTab mirrored');
+assert(host.querySelector('[data-nt-third-party-launcher="stat_tab_topbar"]').title === 'Open Stat Tab', 'StatTab label');
+assert(!!host.querySelector('.fa-chart-simple'), 'StatTab FontAwesome glyph');
+host.querySelector('[data-nt-third-party-launcher="stat_tab_topbar"]').click();
+assert(hits === 1, 'original capture handler invoked once');
+assert(!host.querySelector('[data-nt-third-party-launcher="datacat_browser_topbar_button"]'), 'DataCat excluded');
+source.remove(); bridge.refresh();
+assert(host.hidden && !host.childElementCount, 'removed source hides shortcut');
+document.querySelector('#top-settings-holder').append(source); bridge.refresh();
+assert(!host.hidden, 'source reinserted');
+source.hidden = true; bridge.refresh();
+assert(host.hidden, 'hidden source disabled');
+source.hidden = false; bridge.refresh();
+assert(!host.hidden, 'source restored');
+let optHits = 0;
+const button = document.createElement('button');
+button.dataset.ntTopbarAction = 'opt:open';
+button.dataset.ntTopbarLabel = 'Example';
+button.dataset.ntTopbarIcon = 'fa-solid fa-star';
+button.addEventListener('click', () => optHits++);
+document.body.append(button); bridge.refresh();
+assert(!!host.querySelector('[data-nt-third-party-launcher="opt:open"]'), 'DOM opt-in discovered');
+host.querySelector('[data-nt-third-party-launcher="opt:open"]').click();
+assert(optHits === 1, 'DOM opt-in original handler invoked');
+button.dataset.ntTopbarDisabled = 'true'; bridge.refresh();
+assert(!host.querySelector('[data-nt-third-party-launcher="opt:open"]'), 'disabled opt-in hidden');
+button.remove(); bridge.refresh();
+let apiHits = 0;
+const dereg = window.NastyTavernTopbar.register({id:'api:open',label:'<b>fake</b>',icon:'fa-solid fa-bolt',onClick:()=>apiHits++});
+assert(!!host.querySelector('[data-nt-third-party-launcher="api:open"]'), 'API registered');
+host.querySelector('[data-nt-third-party-launcher="api:open"]').click();
+assert(apiHits === 1, 'API executed from user click');
+assert(host.querySelector('b') === null, 'label never parsed as HTML');
+dereg();
+assert(!host.querySelector('[data-nt-third-party-launcher="api:open"]'), 'API deregistered');
+const fns=[];
+for(let i=0;i<5;i++) fns.push(window.NastyTavernTopbar.register({id:`extra:${i}`,label:`Extra ${i}`,onClick:()=>apiHits++}));
+assert(!!host.querySelector('[data-nt-topbar-overflow-toggle]'), 'overflow toggle');
+host.querySelector('[data-nt-topbar-overflow-toggle]').click();
+assert(!!host.querySelector('[data-nt-topbar-overflow]:not([hidden])'), 'overflow opens');
+host.querySelector('[data-nt-topbar-overflow] button').click();
+assert(apiHits === 2, 'overflow click executes source');
+assert(!!host.querySelector('[data-nt-topbar-overflow][hidden]'), 'overflow closes');
+fns.forEach(fn=>fn());
+bridge.stop();
+assert(!window.NastyTavernTopbar && host.hidden && host.childElementCount === 0, 'stop cleans up');
+bridge.start();
+assert(!!host.querySelector('[data-nt-third-party-launcher="stat_tab_topbar"]'), 'restart works');
+bridge.stop();
+document.body.dataset.testResult='PASS';
+} catch(e) { results.push('FAIL '+(e.stack || e.message));document.body.dataset.testResult='FAIL'; }
+document.querySelector('#log').textContent=results.join('\n');
+</script></body></html>

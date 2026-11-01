@@ -231,6 +231,8 @@ Your support helps with testing, future features, Community infrastructure, and 
 
 Release history and patch notes are maintained in **[CHANGELOG.md](CHANGELOG.md)**.
 
+For older installations (including v0.1.13), see the [release update compatibility guide](docs/release-compatibility.md).
+
 ### Lorebook master activation (v0.1.14)
 
 Each Lorebook card has a separate **Global** membership control and a universal **ON/OFF** switch. OFF filters that Lorebook out of every source (global, character, persona, chat) during World Info generation without modifying its entries or associations. The setting persists when the Lorebooks screen is closed; it applies while NastyTavern is enabled. Global membership changes are saved through SillyTavern itself; the native selection stays connected in gallery mode to prevent lost Global Lorebooks.

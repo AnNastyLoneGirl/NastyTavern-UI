@@ -608,6 +608,7 @@ export class HomeDashboard {
             else if (installed) meta = t('Update installed · reload to apply');
             else if (available && info.maintenanceUpdate) meta = t('Maintenance update available · installed v{installed}', { installed: info.localVersion || '—' });
             else if (available) meta = t('Update available · installed v{installed}', { installed: info.localVersion || '—' });
+            else if (info?.state === 'remote-behind') meta = t('GitHub returned an older build · check again');
             else if (unavailable) meta = t('Could not check GitHub right now');
             else meta = t('Latest on GitHub · up to date');
         }

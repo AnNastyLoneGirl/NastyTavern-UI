@@ -131,10 +131,14 @@ const parseChangelog = (markdown, predicate) => {
     let include = false;
 
     for (const rawLine of String(markdown ?? '').replace(/\r\n?/g, '\n').split('\n')) {
-        const versionMatch = rawLine.match(/^##\s+v?(\d+(?:\.\d+){1,2}(?:[-+][^\s]+)?)\s*$/i);
+        // Release headings may contain descriptive suffixes, for example:
+        // ## v0.1.14, ## 0.1.14 — revision 112, ## 0.1.14 (revision 111).
+        // Do not mistake a revision suffix for the version, or silently omit its notes.
+        const versionMatch = rawLine.match(/^##\s+v?(\d+(?:\.\d+){1,2})(?=\s|$|[-+])/i);
         if (versionMatch) {
             version = cleanVersion(versionMatch[1]);
-            category = '';
+            const revisionMatch = rawLine.slice(versionMatch[0].length).match(/\brevision\s*(\d+)\b/i);
+            category = revisionMatch ? `Revision ${revisionMatch[1]}` : '';
             include = Boolean(predicate?.(version));
             continue;
         }
@@ -301,11 +305,14 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
     const nativeStatus = nativeResult.status === 'fulfilled' ? nativeResult.value : null;
     const remoteVersion = cleanVersion(remoteManifest?.version);
     const remoteRevision = cleanRevision(remoteManifest?.revision);
-    const latestVersion = remoteVersion || base.localVersion;
-    const latestRevision = remoteVersion ? remoteRevision : base.localRevision;
     const releaseComparison = remoteVersion
         ? compareReleaseIdentity(remoteVersion, remoteRevision, base.localVersion, base.localRevision)
         : 0;
+    // A recently published build can briefly be newer than the snapshot returned
+    // by GitHub's raw-content CDN. Never label an older response 'up to date'.
+    const remoteBehind = Boolean(remoteVersion && releaseComparison < 0);
+    const latestVersion = remoteBehind ? base.localVersion : (remoteVersion || base.localVersion);
+    const latestRevision = remoteBehind ? base.localRevision : (remoteVersion ? remoteRevision : base.localRevision);
 
     const manifestChanged = Boolean(
         remoteManifest
@@ -327,11 +334,12 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
     );
 
     let state = 'unavailable';
-    if (remoteVersion) {
+    if (remoteBehind) {
+        state = 'remote-behind';
+    } else if (remoteVersion) {
         // Newer version/revision is an update. If both sides advertise the same
         // release identity, any meaningful manifest or changelog content change
-        // is also an update. A locally newer test revision never gets downgraded
-        // merely because its files intentionally differ from the public release.
+        // is also an update.
         state = releaseComparison > 0 || (sameReleaseIdentity && contentChanged)
             ? 'available'
             : 'current';
@@ -339,7 +347,9 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
         state = 'current';
     }
 
-    let changes = remoteChangelog
+    // When GitHub returned an older snapshot, its changelog may also be old.
+    // Show the installed version's notes rather than mixing in previous releases.
+    let changes = remoteChangelog && !remoteBehind
         ? parseChangelog(remoteChangelog, version => compareVersions(version, latestVersion) === 0)
         : [];
     if (!changes.length && state !== 'available' && compareVersions(latestVersion, base.localVersion) === 0) {
@@ -352,6 +362,9 @@ export async function getNastyTavernUpdateInfo({ force = false } = {}) {
         latestVersion,
         latestRevision,
         maintenanceUpdate,
+        remoteBehind,
+        remoteVersion,
+        remoteRevision,
         manifestChanged,
         changelogChanged,
         contentChanged,
