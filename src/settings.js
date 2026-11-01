@@ -101,6 +101,7 @@ export const defaults = Object.freeze({
     historyLimit: 50,
     lorebookStudio: {
         sort: 'az',
+        disabledBooks: [],
     },
     // Privacy-first: Community performs no external network activity until explicitly enabled.
     communityNetworkEnabled: false,
@@ -156,6 +157,8 @@ export function getSettings() {
             ? { global: String(local.chatAppearancePresetSelection.global || ''), cards: local.chatAppearancePresetSelection.cards && typeof local.chatAppearancePresetSelection.cards === 'object' && !Array.isArray(local.chatAppearancePresetSelection.cards) ? local.chatAppearancePresetSelection.cards : {} }
             : structuredClone(defaults.chatAppearancePresetSelection);
         settings.chatAppearancePresetSeedVersion = Number.isFinite(Number(local.chatAppearancePresetSeedVersion)) ? Number(local.chatAppearancePresetSeedVersion) : 0;
+        settings.lorebookStudio = Object.assign({}, defaults.lorebookStudio, local.lorebookStudio && typeof local.lorebookStudio === 'object' ? local.lorebookStudio : {});
+        if (!Array.isArray(settings.lorebookStudio.disabledBooks)) settings.lorebookStudio.disabledBooks = [];
         settings.modules = Object.assign({}, defaults.modules, local.modules && typeof local.modules === 'object' ? local.modules : {});
         settings.shortcuts = Object.assign({}, defaults.shortcuts, local.shortcuts && typeof local.shortcuts === 'object' ? local.shortcuts : {});
         delete settings.community;
@@ -189,6 +192,8 @@ export function getSettings() {
     for (const [key, value] of Object.entries(defaults.lorebookStudio)) {
         if (!Object.hasOwn(settings.lorebookStudio, key)) settings.lorebookStudio[key] = structuredClone(value);
     }
+    if (!Array.isArray(settings.lorebookStudio.disabledBooks)) settings.lorebookStudio.disabledBooks = [];
+    settings.lorebookStudio.disabledBooks = [...new Set(settings.lorebookStudio.disabledBooks.filter(value => typeof value === 'string' && value.trim()).map(value => value.trim()))];
     if (!settings.modules || typeof settings.modules !== 'object') settings.modules = structuredClone(defaults.modules);
     for (const [key, value] of Object.entries(defaults.modules)) {
         if (!Object.hasOwn(settings.modules, key)) settings.modules[key] = value;

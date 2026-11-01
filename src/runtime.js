@@ -23,6 +23,7 @@ import { ExtensionsModal } from './extensions-modal.js';
 import { CatalogueModal } from './catalogue-modal.js';
 import { PersonaManager } from './persona-manager.js';
 import { LorebookManager } from './lorebook-manager.js';
+import { LorebookActivation } from './lorebook-activation.js';
 import { LorebookVariableActivation, getVariableActivationMeta, validateVariableCondition } from './lorebook-variable-activation.js';
 import { createModalShell, showModalShell, hideModalShell } from './modal-shell.js';
 import { emptyStateHtml } from './ui-templates.js';
@@ -174,12 +175,17 @@ export class NastyTavern {
         this.lorebookSplitState = null;
         this.lorebookNativeIconState = new Map();
         this.lorebookVariableActivation = new LorebookVariableActivation(message => this.toast(message));
+        this.lorebookActivation = new LorebookActivation(this.settings);
         this.lorebookManager = new LorebookManager(this.settings, message => this.toast(message), {
             openBook: name => this.openLorebookGalleryBook(name),
             renameBook: (oldName, newName) => this.renameLorebookFromField(oldName, newName),
             openSettings: () => this.openLorebookSettingsPopup(),
+            openNativeWorldInfo: () => this.prepareLorebookNativeView(),
             onShowGallery: () => this.prepareLorebookGalleryView(),
             syncEntryFolders: () => this.syncLorebookEntryFolders(),
+            isBookEnabled: name => this.lorebookActivation.isEnabled(name),
+            setBookEnabled: (name, enabled) => this.lorebookActivation.setEnabled(name, enabled),
+            forgetBook: name => this.lorebookActivation.forget(name),
         });
         this.characterTagSortState = null;
         this.characterTagUsageCache = null;
@@ -317,6 +323,7 @@ export class NastyTavern {
         this.homeDashboard.unmount();
         this.variableManager.unmount();
         this.lorebookVariableActivation.unmount();
+        this.lorebookActivation.unmount();
         this.worldInfoInfo.unmount();
         this.personaManager.unmount();
         this.shell.unmount();
@@ -365,6 +372,7 @@ export class NastyTavern {
         this.decorateNativePanels();
         this.ensureCommunityShareButtons();
         this.variableManager.mount();
+        this.lorebookActivation.mount();
         this.lorebookVariableActivation.mount();
         this.setView('chat');
         this.worldInfoInfo.mount();
@@ -3534,6 +3542,7 @@ export class NastyTavern {
                         select.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 }
+                this.lorebookActivation.rename(previousName, requestedName);
                 return requestedName;
             }
             await wait(50);
@@ -3541,8 +3550,23 @@ export class NastyTavern {
         return false;
     }
 
+    prepareLorebookNativeView() {
+        const panel = this.lorebookWorkspaceState?.panel;
+        if (!panel?.isConnected) return false;
+        // Native World Info must own its real settings and entry controls.
+        // Do not detach/recreate the #world_info multi-select: SillyTavern
+        // persists global selections from that connected element.
+        this.closeLorebookSettingsPopup();
+        this.restoreLorebookSplitView();
+        this.restoreLorebookSettingsLayout();
+        this.setLorebookSidebarHidden(false);
+        return true;
+    }
+
     prepareLorebookGalleryView() {
         this.restoreLorebookSplitView();
+        const panel = this.lorebookWorkspaceState?.panel;
+        if (panel?.isConnected) this.prepareLorebookSettingsLayout(panel);
         this.setLorebookSidebarHidden(false);
     }
 

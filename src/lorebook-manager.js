@@ -46,7 +46,10 @@ export class LorebookManager {
         this.currentBookData = null;
         this.renamePending = false;
         this.refreshQueued = false;
+        this.globalTogglePending = false;
         this.selectObserver = null;
+        this.worldInfoEvent = null;
+        this.boundWorldInfoChange = () => this.scheduleRefresh();
         this.boundClick = event => this.onClick(event);
         this.boundInput = event => this.onInput(event);
         this.boundChange = event => this.onChange(event);
@@ -79,6 +82,14 @@ export class LorebookManager {
             this.selectObserver = new MutationObserver(() => this.scheduleRefresh());
             this.selectObserver.observe(select, { childList: true });
         }
+        // Native World Info changes (including /world and the original panel)
+        // are the source of truth. Keep the visible switches synchronized.
+        const context = contextSafe();
+        const eventType = (context.eventTypes || context.event_types)?.WORLDINFO_SETTINGS_UPDATED;
+        if (eventType && context.eventSource?.on) {
+            context.eventSource.on(eventType, this.boundWorldInfoChange);
+            this.worldInfoEvent = { source: context.eventSource, type: eventType };
+        }
 
         await this.refresh();
         return true;
@@ -87,6 +98,10 @@ export class LorebookManager {
     unmount({ keepNative = false } = {}) {
         this.selectObserver?.disconnect();
         this.selectObserver = null;
+        if (this.worldInfoEvent) {
+            this.worldInfoEvent.source.off?.(this.worldInfoEvent.type, this.boundWorldInfoChange);
+            this.worldInfoEvent = null;
+        }
         if (this.surface) {
             this.surface.removeEventListener('click', this.boundClick);
             this.surface.removeEventListener('input', this.boundInput);
@@ -98,17 +113,15 @@ export class LorebookManager {
             // restored native surface.
             this.restoreNameInputToHeader();
 
-            // The native World Info panel is mounted inside the active Lorebook
-            // view so gallery/detail navigation replaces one body, like Persona.
-            // Move it back out before removing the NastyTavern surface so the
-            // runtime can restore SillyTavern's original DOM unchanged.
+            // Restore the native editor to its host before removing the NastyTavern
+            // surface. It remains connected through both gallery and editor views.
             if (this.panel && this.nativeHost?.contains(this.panel) && this.host?.isConnected) {
                 if (this.surface?.parentNode === this.host) this.host.insertBefore(this.panel, this.surface);
                 else this.host.append(this.panel);
             }
             this.surface.remove();
         }
-        this.root?.classList.remove('nt-lorebook-gallery-ready', 'is-gallery-view', 'is-editor-view');
+        this.root?.classList.remove('nt-lorebook-gallery-ready', 'is-gallery-view', 'is-editor-view', 'is-native-view');
         if (!keepNative) {
             this.currentBook = '';
             this.currentEntryUid = '';
@@ -138,6 +151,7 @@ export class LorebookManager {
                         <div class="nt-lorebook-editor-heading">
                             <input type="text" class="text_pole nt-lorebook-name-input" data-nt-lorebook-name aria-label="${esc(t('Lorebook name'))}" autocomplete="off" spellcheck="false">
                         </div>
+                        <span class="nt-lorebook-native-title">${esc(t('Native World Info'))}</span>
                     </header>
                     <div class="nt-lorebook-native-host" data-nt-lorebook-native-host></div>
                 </section>`;
@@ -152,12 +166,19 @@ export class LorebookManager {
     }
 
     replaceSurfaceWith(node) {
-        if (!this.surface || !node) return false;
-        // Lorebook has one body and one active view. Never append gallery and
-        // editor side by side: the active node physically replaces the previous
-        // one, matching Persona gallery -> detail navigation.
-        if (this.surface.childNodes.length !== 1 || this.surface.firstChild !== node) {
-            this.surface.replaceChildren(node);
+        if (!this.surface || !this.gallery || !this.editorView ||
+            (node !== this.gallery && node !== this.editorView)) return false;
+        // CRITICAL: #world_info must remain in the *connected* document even
+        // while the gallery is visible. SillyTavern reads it with the global
+        // $('#world_info') selector whenever any global lorebook is changed.
+        // Removing the editor from DOM here made that selector empty, silently
+        // clearing the native global selection and eventually saving [].
+        // CSS [hidden] keeps the inactive editor entirely out of the layout,
+        // so only one view is visible without disconnecting native controls.
+        if (this.surface.children.length !== 2 ||
+            this.surface.firstElementChild !== this.gallery ||
+            this.surface.lastElementChild !== this.editorView) {
+            this.surface.replaceChildren(this.gallery, this.editorView);
         }
         return true;
     }
@@ -256,7 +277,7 @@ export class LorebookManager {
         const map = new Map();
         const context = contextSafe();
         const activeSelect = this.panel?.querySelector('#world_info');
-        const selectedGlobal = new Set(
+        let selectedGlobal = new Set(
             activeSelect ? Array.from(activeSelect.selectedOptions || [])
                 .map(option => clean(option.textContent) || clean(option.value))
                 .filter(Boolean) : []
@@ -264,7 +285,11 @@ export class LorebookManager {
 
         try {
             const module = await import('/scripts/world-info.js');
-            for (const name of asArray(module?.selected_world_info).map(clean).filter(Boolean)) selectedGlobal.add(name);
+            // Prefer SillyTavern's live selection: a book removed through
+            // the native UI must not remain ON because of a stale DOM option.
+            if (Array.isArray(module?.selected_world_info)) {
+                selectedGlobal = new Set(module.selected_world_info.map(clean).filter(Boolean));
+            }
             const charLore = module?.world_info?.charLore || module?.worldInfo?.charLore || [];
             const characters = Array.isArray(context.characters) ? context.characters : [];
             for (const item of asArray(charLore)) {
@@ -348,6 +373,7 @@ export class LorebookManager {
 
     cardMarkup(book) {
         const binding = book.binding || this.emptyBinding();
+        const enabled = this.hooks.isBookEnabled?.(book.name) !== false;
         const cover = clean(binding.cover);
         const words = book.name.split(/\s+/).filter(Boolean);
         const initials = (words.slice(0, 3).map(word => word[0]).join('') || book.name[0] || '?').toLocaleUpperCase();
@@ -368,9 +394,15 @@ export class LorebookManager {
                         <span class="nt-lorebook-bindings">${badges.join('')}</span>
                     </span>
                 </button>
-                <button type="button" class="nt-lorebook-global-toggle${binding.global ? ' is-active' : ''}" data-nt-lorebook-global="${esc(book.name)}" aria-pressed="${binding.global ? 'true' : 'false'}" title="${esc(binding.global ? t('Remove from active global Lorebooks') : t('Add to active global Lorebooks'))}">
-                    <i class="fa-solid fa-globe" aria-hidden="true"></i>
-                </button>
+                <div class="nt-lorebook-card-actions">
+                    <button type="button" class="nt-lorebook-global-button${binding.global ? ' is-active' : ''}" data-nt-lorebook-global="${esc(book.name)}" aria-pressed="${binding.global ? 'true' : 'false'}" title="${esc(binding.global ? t('Remove from active global Lorebooks') : t('Add to active global Lorebooks'))}">
+                        <i class="fa-solid fa-globe" aria-hidden="true"></i><span>${esc(t('Global'))}</span>
+                    </button>
+                    <button type="button" class="nt-lorebook-enabled-toggle${enabled ? ' is-active' : ''}" data-nt-lorebook-enabled="${esc(book.name)}" role="switch" aria-checked="${enabled ? 'true' : 'false'}" aria-label="${esc(t('Enable Lorebook everywhere: {name}', { name: book.name }))}" title="${esc(enabled ? t('Disable this Lorebook for all contexts') : t('Enable this Lorebook for all contexts'))}">
+                        <span class="nt-lorebook-enabled-state">${esc(t(enabled ? 'On' : 'Off'))}</span>
+                        <span class="nt-lorebook-enabled-track" aria-hidden="true"><span></span></span>
+                    </button>
+                </div>
             </article>`;
     }
 
@@ -382,8 +414,42 @@ export class LorebookManager {
         const start = (this.page - 1) * this.pageSize;
         const visible = rows.slice(start, start + this.pageSize);
         const filter = (value, label) => `<button type="button" class="nt-lorebook-filter${this.filter === value ? ' is-active' : ''}" data-nt-lorebook-filter="${value}" aria-pressed="${this.filter === value ? 'true' : 'false'}">${esc(t(label))}</button>`;
+        const resultsMarkup = visible.length
+            ? `<div class="nt-lorebook-grid">${visible.map(book => this.cardMarkup(book)).join('')}</div>`
+            : `<div class="nt-lorebook-library-empty">${icons.lore}<strong>${esc(t('No Lorebooks found'))}</strong><span>${esc(t('Try another filter or create a new Lorebook.'))}</span></div>`;
+        const footerMarkup = `
+                <span>${rows.length} ${esc(rows.length === 1 ? t('Lorebook') : t('Lorebooks'))}</span>
+                <div class="nt-lorebook-pager">
+                    <button type="button" class="nt-icon-btn" data-nt-lorebook-page="prev" ${this.page <= 1 ? 'disabled' : ''} aria-label="${esc(t('Previous page'))}">‹</button>
+                    <span><strong>${this.page}</strong> / ${pages}</span>
+                    <button type="button" class="nt-icon-btn" data-nt-lorebook-page="next" ${this.page >= pages ? 'disabled' : ''} aria-label="${esc(t('Next page'))}">›</button>
+                </div>`;
+
+        // Refresh only the result area and pagination after the initial render.
+        // Rebuilding the toolbar on every input event destroys the focused search
+        // element, making users click back into the field after each keystroke.
+        const body = this.gallery.querySelector(':scope > .nt-lorebook-library-body');
+        const footer = this.gallery.querySelector(':scope > .nt-lorebook-library-footer');
+        if (body && footer) {
+            body.innerHTML = resultsMarkup;
+            footer.innerHTML = footerMarkup;
+            const search = this.gallery.querySelector('[data-nt-lorebook-search]');
+            if (search && search !== search.ownerDocument.activeElement && search.value !== this.search) {
+                search.value = this.search;
+            }
+            for (const button of this.gallery.querySelectorAll('[data-nt-lorebook-filter]')) {
+                const active = button.dataset.ntLorebookFilter === this.filter;
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-pressed', String(active));
+            }
+            const sort = this.gallery.querySelector('[data-nt-lorebook-sort]');
+            if (sort && sort.value !== this.sort) sort.value = this.sort;
+            return;
+        }
+
         this.gallery.innerHTML = `
             <header class="nt-lorebook-library-header">
+                <button type="button" class="nt-control-btn nt-lorebook-open-native" data-nt-lorebook-open-native title="${esc(t('Open Native World Info'))}" aria-label="${esc(t('Open Native World Info'))}">${icons.external}<span>${esc(t('Open Native World Info'))}</span></button>
                 <div class="nt-lorebook-library-actions">
                     <button type="button" class="nt-control-btn is-primary" data-nt-lorebook-create>${icons.plus}<span>${esc(t('New'))}</span></button>
                     <button type="button" class="nt-control-btn" data-nt-lorebook-import>${icons.upload}<span>${esc(t('Import'))}</span></button>
@@ -402,15 +468,10 @@ export class LorebookManager {
                 </select>
             </div>
             <div class="nt-lorebook-library-body">
-                ${visible.length ? `<div class="nt-lorebook-grid">${visible.map(book => this.cardMarkup(book)).join('')}</div>` : `<div class="nt-lorebook-library-empty">${icons.lore}<strong>${esc(t('No Lorebooks found'))}</strong><span>${esc(t('Try another filter or create a new Lorebook.'))}</span></div>`}
+                ${resultsMarkup}
             </div>
             <footer class="nt-lorebook-library-footer">
-                <span>${rows.length} ${esc(rows.length === 1 ? t('Lorebook') : t('Lorebooks'))}</span>
-                <div class="nt-lorebook-pager">
-                    <button type="button" class="nt-icon-btn" data-nt-lorebook-page="prev" ${this.page <= 1 ? 'disabled' : ''} aria-label="${esc(t('Previous page'))}">‹</button>
-                    <span><strong>${this.page}</strong> / ${pages}</span>
-                    <button type="button" class="nt-icon-btn" data-nt-lorebook-page="next" ${this.page >= pages ? 'disabled' : ''} aria-label="${esc(t('Next page'))}">›</button>
-                </div>
+                ${footerMarkup}
             </footer>`;
     }
 
@@ -554,12 +615,8 @@ export class LorebookManager {
         this.currentEntryUid = '';
         this.currentBookData = null;
 
-        // Replace the gallery *before* asking SillyTavern to change World Info.
-        // The previous implementation appended editorView so the native selector
-        // stayed connected while loading; that temporarily (or, on a slow/failed
-        // native update, permanently) produced gallery + editor stacked vertically.
-        // editorView already owns the native panel, so making it the sole surface
-        // child first keeps the panel connected without ever rendering two views.
+        // Show the editor without disconnecting either view. The gallery is
+        // hidden while SillyTavern loads the native World Info editor.
         this.showEditor(bookName, { loading: true });
 
         let ok = false;
@@ -581,13 +638,40 @@ export class LorebookManager {
         this.hooks.syncEntryFolders?.();
     }
 
+    async showNativeWorldInfo() {
+        if (!this.panel?.isConnected) {
+            this.toast?.(t('Could not open Native World Info.'));
+            return false;
+        }
+        // Restore the actual SillyTavern controls rather than cloning them or
+        // opening a second World Info drawer. This preserves native handlers,
+        // selected global worlds, entry states and pending saves.
+        const opened = await this.hooks.openNativeWorldInfo?.();
+        if (opened === false) {
+            this.toast?.(t('Could not open Native World Info.'));
+            return false;
+        }
+        this.restoreNameInputToHeader();
+        this.view = 'native';
+        this.root?.classList.remove('is-gallery-view', 'is-editor-view', 'is-sidebar-hidden');
+        this.root?.classList.add('is-native-view');
+        if (this.gallery) this.gallery.hidden = true;
+        if (this.editorView) {
+            this.editorView.hidden = false;
+            this.editorView.classList.remove('is-loading');
+            this.editorView.setAttribute('aria-busy', 'false');
+        }
+        this.replaceSurfaceWith(this.editorView);
+        return true;
+    }
+
     showGallery() {
-        // Restore any split DOM while the native editor is still connected, then
-        // make the gallery the sole child of the Lorebook body.
+        // Restore the editor layout and hide it; keep its native selectors
+        // connected so SillyTavern can continue using them from any screen.
         this.hooks.onShowGallery?.();
         this.view = 'gallery';
         this.root?.classList.add('is-gallery-view');
-        this.root?.classList.remove('is-editor-view', 'is-sidebar-hidden');
+        this.root?.classList.remove('is-editor-view', 'is-native-view', 'is-sidebar-hidden');
         if (this.editorView) {
             this.editorView.hidden = true;
             this.editorView.classList.remove('is-loading');
@@ -602,7 +686,7 @@ export class LorebookManager {
     showEditor(name, { loading = false } = {}) {
         this.currentBook = clean(name) || this.currentBook;
         this.view = 'editor';
-        this.root?.classList.remove('is-gallery-view');
+        this.root?.classList.remove('is-gallery-view', 'is-native-view');
         this.root?.classList.add('is-editor-view');
         if (this.gallery) this.gallery.hidden = true;
         if (this.editorView) {
@@ -757,22 +841,132 @@ export class LorebookManager {
         }
     }
 
-    async toggleGlobal(name) {
-        const select = this.panel?.querySelector('#world_info');
-        if (!select) {
-            this.toast?.(t('Could not change active Lorebooks.'));
-            return;
+    async toggleEnabled(name) {
+        const key = clean(name);
+        if (!key || !this.books.some(book => book.name === key) || typeof this.hooks.setBookEnabled !== 'function') {
+            this.toast?.(t('Could not change Lorebook activation.'));
+            return false;
         }
-        const option = Array.from(select.options || []).find(item => {
-            const target = clean(name);
-            return clean(item.value) === target || clean(item.textContent) === target;
-        });
-        if (!option) return;
-        option.selected = !option.selected;
-        const jq = window.jQuery || window.$;
-        if (jq?.fn?.select2 && jq(select).data('select2')) jq(select).trigger('change');
-        else select.dispatchEvent(new Event('change', { bubbles: true }));
-        await this.refresh();
+        const focused = Array.from(this.gallery?.querySelectorAll('[data-nt-lorebook-enabled]') || [])
+            .some(button => button.dataset.ntLorebookEnabled === key && button === document.activeElement);
+        const enabled = this.hooks.isBookEnabled?.(key) !== false;
+        try {
+            const saved = await this.hooks.setBookEnabled(key, !enabled);
+            if (saved === false) throw new Error('Lorebook activation not saved');
+            await this.refresh();
+            if (focused) {
+                const replacement = Array.from(this.gallery?.querySelectorAll('[data-nt-lorebook-enabled]') || [])
+                    .find(button => button.dataset.ntLorebookEnabled === key);
+                replacement?.focus?.({ preventScroll: true });
+            }
+            return true;
+        } catch (_) {
+            this.toast?.(t('Could not change Lorebook activation.'));
+            await this.refresh();
+            return false;
+        }
+    }
+
+    async toggleGlobal(name) {
+        if (this.globalTogglePending) return false;
+        const key = clean(name);
+        const select = this.panel?.querySelector('#world_info');
+        if (!key || !this.books.some(book => book.name === key) ||
+            !select?.isConnected || document.querySelector('#world_info') !== select) {
+            this.toast?.(t('Could not change active Lorebooks.'));
+            return false;
+        }
+
+        this.globalTogglePending = true;
+        let module;
+        let previousNames;
+        let changed = false;
+        const activeButton = this.gallery && Array.from(this.gallery.querySelectorAll('[data-nt-lorebook-global]'))
+            .find(button => button.dataset.ntLorebookGlobal === key && button === document.activeElement);
+        try {
+            module = await (this.hooks.loadNativeWorldInfo?.() || import('/scripts/world-info.js'));
+            const names = Array.isArray(module?.world_names) ? module.world_names : [];
+            if (!Array.isArray(module?.selected_world_info) || !names.includes(key)) {
+                throw new Error('Native World Info selection is unavailable');
+            }
+
+            // Keep the option values aligned with SillyTavern's world_names:
+            // the native handler maps selected *numeric indices*, not labels.
+            let option = Array.from(select.options || []).find(item => clean(item.textContent) === key);
+            if (!option || option.value !== String(names.indexOf(key))) {
+                this.syncNativeWorldSelectors(module, this.currentBook);
+                option = Array.from(select.options || []).find(item => clean(item.textContent) === key);
+            }
+            if (!option || option.value !== String(names.indexOf(key))) {
+                throw new Error('Native World Info selector is out of sync');
+            }
+
+            previousNames = [...module.selected_world_info];
+            const previous = new Set(previousNames);
+            const expected = new Set(previous);
+            if (expected.has(key)) expected.delete(key);
+            else expected.add(key);
+
+            // Restore every native option to the actual runtime selection first.
+            // A stale select must never remove unrelated global books.
+            for (const item of select.options) item.selected = previous.has(clean(item.textContent));
+            option.selected = expected.has(key);
+
+            // SillyTavern's native handler updates selected_world_info and emits
+            // WORLDINFO_SETTINGS_UPDATED. It requires a connected #world_info.
+            const jq = window.jQuery || window.$;
+            if (typeof jq === 'function') jq(select).trigger('change');
+            else select.dispatchEvent(new Event('change', { bubbles: true }));
+            if (typeof module.onWorldInfoChange === 'function' &&
+                new Set(module.selected_world_info).has(key) !== expected.has(key)) {
+                module.onWorldInfoChange('__notSlashCommand__');
+            }
+
+            const actual = new Set(module.selected_world_info);
+            if (actual.size !== expected.size || [...expected].some(value => !actual.has(value))) {
+                throw new Error('Native World Info did not accept the complete global selection');
+            }
+            changed = true;
+
+            // SillyTavern normally debounces copying selected_world_info into
+            // world_info.globalSelect, then debounces persistence. Copy it now
+            // and request a real save so a quick page reload cannot lose it.
+            if (!module.world_info || typeof module.world_info !== 'object') {
+                throw new Error('Native World Info settings are unavailable');
+            }
+            module.world_info.globalSelect = [...module.selected_world_info];
+            if (this.hooks.saveNativeWorldInfo) {
+                await this.hooks.saveNativeWorldInfo(module);
+            } else {
+                const { saveSettings } = await import('/script.js');
+                await saveSettings();
+            }
+
+            await this.refresh();
+            if (activeButton) {
+                const replacement = Array.from(this.gallery?.querySelectorAll('[data-nt-lorebook-global]') || [])
+                    .find(button => button.dataset.ntLorebookGlobal === key);
+                replacement?.focus?.({ preventScroll: true });
+            }
+            return true;
+        } catch (error) {
+            console.error('[NastyTavern] Could not persist Global Lorebook selection', error);
+            // If the native handler partially changed the selection, restore
+            // exactly what the user had before. Do not silently drop other books.
+            if (changed === false && module && Array.isArray(previousNames) &&
+                typeof module.onWorldInfoChange === 'function') {
+                try {
+                    const original = new Set(previousNames);
+                    for (const item of select.options) item.selected = original.has(clean(item.textContent));
+                    module.onWorldInfoChange('__notSlashCommand__');
+                } catch (_) { /* Original state remains the source of truth */ }
+            }
+            this.toast?.(t('Could not change active Lorebooks.'));
+            await this.refresh();
+            return false;
+        } finally {
+            this.globalTogglePending = false;
+        }
     }
 
     async watchCurrentBookDeletion(bookName) {
@@ -798,6 +992,7 @@ export class LorebookManager {
             const names = Array.isArray(worldInfoModule?.world_names) ? worldInfoModule.world_names : [];
             if (!names.includes(target)) {
                 this.syncNativeWorldSelectors(worldInfoModule, '');
+                this.hooks.forgetBook?.(target);
                 this.currentBook = '';
                 this.currentEntryUid = '';
                 this.currentBookData = null;
@@ -818,6 +1013,11 @@ export class LorebookManager {
             return;
         }
 
+        if (event.target.closest('[data-nt-lorebook-open-native]')) {
+            event.preventDefault();
+            void this.showNativeWorldInfo();
+            return;
+        }
         const open = event.target.closest('[data-nt-lorebook-open]');
         if (open) {
             event.preventDefault();
@@ -838,6 +1038,13 @@ export class LorebookManager {
             const pages = Math.max(1, Math.ceil(this.filteredBooks().length / this.pageSize));
             this.page = page.dataset.ntLorebookPage === 'prev' ? Math.max(1, this.page - 1) : Math.min(pages, this.page + 1);
             this.renderGallery();
+            return;
+        }
+        const enabledToggle = event.target.closest('[data-nt-lorebook-enabled]');
+        if (enabledToggle) {
+            event.preventDefault();
+            event.stopPropagation();
+            void this.toggleEnabled(enabledToggle.dataset.ntLorebookEnabled);
             return;
         }
         const globalToggle = event.target.closest('[data-nt-lorebook-global]');

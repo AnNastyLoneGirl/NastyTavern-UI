@@ -8,7 +8,7 @@ The underlying SillyTavern features remain intact: chats, Character Cards, Perso
 
 On top of that, NastyTavern adds integrated tools, improved mobile support, Community features, and the Nasty Catalogue for discovering and sharing Character Cards and Lorebooks.
 
-> **Current release version:** `0.1.13`
+> **Current release version:** `0.1.14`
 > **Minimum SillyTavern version:** `1.18.0`
 
 ## ✨ Highlights
@@ -21,7 +21,7 @@ On top of that, NastyTavern adds integrated tools, improved mobile support, Comm
 - 📚 **Nasty Catalogue** — discover, rate, organize, download, and import Character Cards and Lorebooks shared by the Community.
 - 🌐 **Community Chat** — chat with other NastyTavern users, share resources, react to messages, reply, search conversations, and create a Community profile.
 - 🧑‍🎨 **Improved Character Management** — redesigned Character Library, cleaner editing, better navigation, Groups integration, and direct Catalogue access.
-- 📖 **Improved Lorebook interface** — easier navigation and editing across desktop and mobile, with a Variables activation mode for conditional World Info entries.
+- 📖 **Improved Lorebook interface** — easier navigation and editing across desktop and mobile, visible ON/OFF switches for global Lorebooks, and a Variables activation mode for conditional World Info entries.
 - 🧩 **Improved Extensions interface** — cleaner access to installed extensions and their settings.
 - 🔗 **Third-party Top Bar Bridge** — automatically mirrors compatible SillyTavern extension buttons into the NastyTavern header, with a small opt-in API for extension developers. [Integration guide](docs/topbar-extensions.md).
 - 📱 **Mobile support** — dedicated portrait and landscape layouts with touch-friendly controls.
@@ -206,7 +206,7 @@ NastyTavern is designed around a few simple ideas:
 
 # 🛠 Current status
 
-**NastyTavern UI v0.1.13 is the current public release.**
+**NastyTavern UI v0.1.14 is the current release.**
 
 Most major features are already usable, but some compatibility or responsive issues may still appear depending on:
 
@@ -223,8 +223,18 @@ If you find a bug, feel free to report it through GitHub.
 
 If you enjoy **NastyTavern UI** and want to support its development, you can buy me a coffee on Ko-fi. 🤍
 
+Your support helps with testing, future features, Community infrastructure, and compatibility improvements.
+
 👉 **[Buy me a coffee on Ko-fi](https://ko-fi.com/annastylonegirl)**
 
 ---
 
 Release history and patch notes are maintained in **[CHANGELOG.md](CHANGELOG.md)**.
+
+### Lorebook master activation (v0.1.14)
+
+Each Lorebook card has a separate **Global** membership control and a universal **ON/OFF** switch. OFF filters that Lorebook out of every source (global, character, persona, chat) during World Info generation without modifying its entries or associations. The setting persists when the Lorebooks screen is closed; it applies while NastyTavern is enabled. Global membership changes are saved through SillyTavern itself; the native selection stays connected in gallery mode to prevent lost Global Lorebooks.
+
+### Native World Info shortcut (v0.1.14, revision 111)
+
+The Lorebooks gallery has an **Open Native World Info** button on the left of the action bar, with New, Import, Settings and Refresh on the right. It opens SillyTavern's real World Info controls (including the global selector, settings and entry editor) in the same workspace. Use **Lorebooks** to return to the gallery. This uses the existing native controls and does not create a separate source of lorebook settings.

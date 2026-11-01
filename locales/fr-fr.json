@@ -1350,5 +1350,6 @@
   "Activation": "Activation",
   "Vectorized": "Vectorisée",
   "Valid condition": "Condition valide",
-  "Evaluated only during generation. Local variables are checked first. Use .local.name or .global.name to choose a scope explicitly.": "Évaluée uniquement pendant la génération. Les variables locales sont vérifiées en premier. Utilise .local.nom ou .global.nom pour choisir explicitement une portée."
+  "Evaluated only during generation. Local variables are checked first. Use .local.name or .global.name to choose a scope explicitly.": "Évaluée uniquement pendant la génération. Les variables locales sont vérifiées en premier. Utilise .local.nom ou .global.nom pour choisir explicitement une portée.",
+  "Global activation for {name}": "Activation globale de {name}"
 }

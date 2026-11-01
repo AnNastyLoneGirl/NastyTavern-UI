@@ -22784,12 +22784,20 @@ body.mt-enabled :is(#nt-lorebook-workspace, .nt-lorebook-settings-popup) .menu_b
   background: var(--nt-button-bg);
   color: var(--mt-text-2);
   box-shadow: none;
-  font: inherit;
+  /* Do not override font-family or font-weight on SillyTavern's native
+     Font Awesome controls. Their glyphs live in an icon font, not the UI font. */
   font-size: var(--nt-font-button);
-  font-weight: var(--nt-weight-button);
   line-height: 1.2;
   cursor: pointer;
   transition: background-color .14s ease,border-color .14s ease,color .14s ease,opacity .14s ease;
+}
+
+/* Text actions should inherit NastyTavern typography. Icon-font actions
+   (.fa/.fas/.far/.fab and Font Awesome 6/7 classes) retain their native
+   family and weight, including the glyph rendered by ::before. */
+body.mt-enabled :is(#nt-lorebook-workspace, .nt-lorebook-settings-popup) .menu_button:not(:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fal, .fad)) {
+  font-family: inherit;
+  font-weight: var(--nt-weight-button);
 }
 
 body.mt-enabled :is(#nt-lorebook-workspace, .nt-lorebook-settings-popup) .menu_button:hover:not(:disabled) {
@@ -29050,6 +29058,78 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-editor-view[hidden] {
   display: none;
 }
 
+/* Native view reuses SillyTavern's real World Info panel in the connected
+   editor host. The native entry list, global selector and settings are visible;
+   only the NastyTavern-only name field remains hidden. */
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-native-title {
+  display: none;
+}
+body.mt-enabled #nt-lorebook-workspace.is-native-view .nt-lorebook-native-title {
+  display: inline;
+  font-weight: 600;
+  color: var(--mt-text);
+}
+body.mt-enabled #nt-lorebook-workspace.is-native-view .nt-lorebook-editor-heading {
+  display: none;
+}
+body.mt-enabled #nt-lorebook-workspace.is-native-view .nt-lorebook-native-host {
+  overflow-x: hidden;
+  overflow-y: auto;
+  align-items: flex-start;
+  scrollbar-gutter: stable;
+}
+body.mt-enabled #nt-lorebook-workspace.is-native-view #WorldInfo.nt-lorebook-native-editor {
+  flex: 1 1 auto;
+  height: auto!important;
+  max-height: none!important;
+}
+
+/* Opening the actual SillyTavern editor must restore its icon toolbar layout.
+   The gallery's legacy #world_popup grid rules otherwise compress the native
+   file buttons into thin columns next to the world selector. */
+body.mt-enabled #nt-lorebook-workspace.is-native-view #WorldInfo #world_popup > .flex-container.alignitemscenter:first-of-type {
+  display: flex!important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+body.mt-enabled #nt-lorebook-workspace.is-native-view #WorldInfo #world_popup > .flex-container.alignitemscenter:first-of-type > :is(#world_editor_select, .select2-container) {
+  flex: 1 1 240px!important;
+  width: auto!important;
+  min-width: min(240px, 100%)!important;
+  max-width: 100%!important;
+  margin: 0!important;
+  grid-area: auto!important;
+}
+body.mt-enabled #nt-lorebook-workspace.is-native-view #WorldInfo #world_popup > .flex-container.alignitemscenter:first-of-type > :is(.menu_button, .nt-native-community-share-lorebook) {
+  flex: 0 0 auto!important;
+  width: auto!important;
+  min-width: 36px!important;
+  height: 36px!important;
+  min-height: 36px!important;
+  margin: 0!important;
+  padding: 0 9px!important;
+  grid-area: auto!important;
+  display: inline-flex!important;
+  align-items: center;
+  justify-content: center;
+}
+/* Narrow-view SillyTavern layouts can override icon font-weight with the
+   regular UI button weight. Font Awesome solid/regular/brand glyphs require
+   their corresponding native weight to address the correct font face. */
+body.mt-enabled #nt-lorebook-workspace.is-native-view #WorldInfo :is(.fa, .fas, .fa-solid, .fad, .fa-duotone) {
+  font-weight: 900!important;
+}
+body.mt-enabled #nt-lorebook-workspace.is-native-view #WorldInfo :is(.far, .fa-regular, .fab, .fa-brands) {
+  font-weight: 400!important;
+}
+body.mt-enabled #nt-lorebook-workspace.is-native-view #WorldInfo :is(.fal, .fa-light) {
+  font-weight: 300!important;
+}
+body.mt-enabled #nt-lorebook-workspace.is-native-view #WorldInfo .menu_button:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fal, .fad) {
+  line-height: 1;
+}
+
 body.mt-enabled #nt-lorebook-workspace .nt-lorebook-native-host {
   display: flex;
   min-width: 0;
@@ -29093,9 +29173,26 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-editor-bar {
 }
 
 body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-header {
-  justify-content: flex-end;
+  justify-content: space-between;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--mt-border);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-open-native {
+  flex: 0 0 auto;
+  margin-right: auto;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-open-native svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-actions {
+  margin-left: auto;
 }
 
 body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-actions {
@@ -29208,6 +29305,8 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-grid {
 
 body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   border: 1px solid var(--mt-border);
   border-radius: var(--mt-radius);
@@ -29221,6 +29320,7 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card:hover {
 }
 
 body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card-open {
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   padding: 0;
@@ -29233,7 +29333,8 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card-open {
 }
 
 body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card-open:focus-visible,
-body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-toggle:focus-visible,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-button:focus-visible,
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-enabled-toggle:focus-visible,
 body.mt-enabled #nt-lorebook-workspace .nt-lorebook-filter:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--mt-accent) 70%, transparent);
   outline-offset: -2px;
@@ -29283,7 +29384,7 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card-copy {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  padding: 10px 42px 11px 11px;
+  padding: 10px 11px 11px;
 }
 
 body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card-copy > strong {
@@ -29320,36 +29421,108 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-bindings > span.is-muted {
   color: var(--mt-text-3);
 }
 
-body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-toggle {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  width: var(--nt-icon-button-size);
-  height: var(--nt-icon-button-size);
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--nt-control-border);
-  border-radius: var(--nt-button-radius);
-  background: var(--nt-button-bg);
+/* Native Global selection remains separate from the per-book master switch. */
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-top: 1px solid var(--mt-border);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--mt-border);
+  border-radius: 8px;
+  background: transparent;
   color: var(--mt-text-2);
+  font: inherit;
+  font-size: var(--nt-font-meta);
   cursor: pointer;
 }
 
-body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-toggle:hover:not(:disabled) {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-button.is-active {
+  border-color: var(--nt-tab-border-active);
+  background: var(--nt-tab-bg-active);
+  color: var(--mt-accent);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-button:hover {
+  color: var(--mt-text);
+  background: var(--nt-button-bg-hover);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-enabled-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 29px;
+  min-width: 71px;
+  padding: 3px 7px 3px 9px;
+  border: 1px solid var(--nt-control-border);
+  border-radius: 999px;
+  background: var(--nt-button-bg);
+  color: var(--mt-text-2);
+  font: inherit;
+  font-size: var(--nt-font-meta);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-enabled-toggle:hover:not(:disabled) {
   border-color: var(--nt-control-border-hover);
   background: var(--nt-button-bg-hover);
   color: var(--mt-text);
 }
 
-body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-toggle:disabled {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-enabled-toggle:disabled {
   opacity: .48;
   cursor: not-allowed;
 }
 
-body.mt-enabled #nt-lorebook-workspace .nt-lorebook-global-toggle.is-active {
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-enabled-toggle.is-active {
   border-color: var(--nt-tab-border-active);
   background: var(--nt-tab-bg-active);
   color: var(--mt-accent);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-enabled-track {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 27px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--mt-border);
+  transition: background .14s ease;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-enabled-track > span {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--mt-text-2);
+  transition: transform .14s ease, background .14s ease;
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-enabled-toggle.is-active .nt-lorebook-enabled-track {
+  background: var(--mt-accent);
+}
+
+body.mt-enabled #nt-lorebook-workspace .nt-lorebook-enabled-toggle.is-active .nt-lorebook-enabled-track > span {
+  transform: translateX(11px);
+  background: var(--mt-surface);
 }
 
 body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-footer {
@@ -29485,8 +29658,16 @@ body.mt-enabled #nt-lorebook-workspace .nt-lorebook-folder-heading > small {
   }
 
 
-  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-actions .nt-control-btn span {
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-actions .nt-control-btn span,
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-open-native span {
     display: none;
+  }
+
+  body.mt-enabled #nt-lorebook-workspace .nt-lorebook-open-native {
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+    justify-content: center;
   }
 
   body.mt-enabled #nt-lorebook-workspace .nt-lorebook-library-actions .nt-control-btn {

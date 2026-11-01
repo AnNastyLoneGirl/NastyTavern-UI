@@ -1,6 +1,40 @@
+## 0.1.14 — revision 112
+
+- Fixed native World Info icons disappearing: shared Lorebook button styling no longer overrides Font Awesome's icon font family and weight.
+- Restored a flexible native file-action toolbar with properly sized icon buttons while leaving the Lorebook gallery and its save behavior unchanged.
+
+## 0.1.14 — revision 111
+
+- Added a left-aligned **Open Native World Info** action to the Lorebooks toolbar; New, Import, Settings and Refresh remain right-aligned.
+- Native World Info is displayed with SillyTavern’s original selectors, global bindings, and entry controls, and offers a back button to the Lorebooks gallery.
+- Preserved global lorebook persistence and existing search, Global and universal ON/OFF behavior.
+
 # NastyTavern UI — Changelog
 
 All notable changes to NastyTavern UI are documented here.
+
+---
+
+## v0.1.14
+
+### Global Lorebook save reliability (revision 110)
+
+- Keep SillyTavern's native World Info selector connected to the document when the NastyTavern gallery is visible (the native editor remains hidden, not detached). This prevents global book selections from being read as empty and accidentally discarded.
+- Global membership changes now validate the full native selection, preserve other selected books, and explicitly persist the updated selection through SillyTavern's settings save rather than relying only on a delayed save.
+- Added regression tests for Global ON/OFF across gallery/editor navigation, existing selected books, and reload-safe persistence.
+
+### Lorebooks
+
+- Added a **master ON/OFF switch for every Lorebook**, regardless of whether it is global, character-bound, persona-bound, chat-bound or currently unbound. OFF excludes that book from the World Info entries loaded for generation, across all four native sources. The original entry states, global selection and context bindings are never modified; ON restores normal behavior.
+- Master ON/OFF state is saved with NastyTavern settings and applied even when the Lorebook gallery is closed; the generation listener is released if the extension is disabled.
+- Kept the separate **Global** globe control on every card for adding/removing a book from SillyTavern's native global selection. It stays synchronized with changes from SillyTavern, including slash commands.
+- Accessible switch and Global control preserve keyboard focus after refresh. Renaming or deleting a book in the integrated editor carries over or cleans up its disabled state.
+
+### Fixed
+
+- Lorebook gallery search now keeps its original input element mounted while filtering results. Typing no longer loses focus or resets the caret after every character.
+- Search results and pagination update independently of the toolbar; filter and sort button state remain synchronized during refreshes.
+- Added a browser regression test covering continuous typing, empty search results, clearing a query, filter/sort changes, and result refreshes.
 
 ---
 
